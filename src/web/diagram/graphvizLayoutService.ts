@@ -178,6 +178,50 @@ export function edgeEndpoint(
   };
 }
 
+/**
+ * Get the ancestor chain from a node to its root.
+ * Returns [id, parentId, grandparentId, ...]
+ */
+function getAncestorChain(
+  id: string,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): string[] {
+  const chain: string[] = [id];
+  let current = nodeById.get(id);
+  while (current?.parentId) {
+    chain.push(current.parentId);
+    current = nodeById.get(current.parentId);
+  }
+  return chain;
+}
+
+/**
+ * Compute hierarchy distance between two nodes via their lowest common ancestor.
+ * LikeC4 pattern: count hops through LCA in the parent tree.
+ * @internal Exported for testing
+ */
+export function hierarchyDistance(
+  a: string,
+  b: string,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): number {
+  if (a === b) return 0;
+  const chainA = getAncestorChain(a, nodeById);
+  const chainB = getAncestorChain(b, nodeById);
+  const setA = new Set(chainA);
+  let lcaIndexB = -1;
+  for (let i = 0; i < chainB.length; i++) {
+    if (setA.has(chainB[i])) {
+      lcaIndexB = i;
+      break;
+    }
+  }
+  if (lcaIndexB === -1) return chainA.length + chainB.length;
+  const lca = chainB[lcaIndexB];
+  const lcaIndexA = chainA.indexOf(lca);
+  return lcaIndexA + lcaIndexB;
+}
+
 /** @internal Exported for testing */
 export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConfig) {
   const lines: string[] = [];
@@ -267,8 +311,26 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     }
   }
 
-  // Compound edge routing (LikeC4 pattern): edges targeting clusters route through
-  // a leaf node with lhead/ltail attributes
+  // Pre-compute hierarchy distances and max distance for weight calculation (LikeC4 pattern)
+  const edgeDistances = new Map<string, number>();
+  let maxHierarchyDist = 0;
+  for (const edge of model.edges) {
+    const dist = hierarchyDistance(edge.source, edge.target, nodeById);
+    edgeDistances.set(edge.id, dist);
+    maxHierarchyDist = Math.max(maxHierarchyDist, dist);
+  }
+
+  // Count edges within each container for minlen optimization
+  const edgesPerContainer = new Map<string, number>();
+  for (const edge of model.edges) {
+    const sn = nodeById.get(edge.source);
+    const tn = nodeById.get(edge.target);
+    if (sn?.parentId && sn.parentId === tn?.parentId) {
+      edgesPerContainer.set(sn.parentId, (edgesPerContainer.get(sn.parentId) ?? 0) + 1);
+    }
+  }
+
+  // Compound edge routing with weight, direction, and constraint system
   for (const edge of model.edges) {
     const src = edgeEndpoint(edge.source, childrenByParent, nodeById, plainId);
     const tgt = edgeEndpoint(edge.target, childrenByParent, nodeById, plainId);
@@ -287,6 +349,48 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     }
     if (tgt.clusterAttr) {
       attrs.push(`lhead="${tgt.clusterAttr}"`);
+    }
+
+    // Edge weight based on hierarchy distance (LikeC4 pattern):
+    // closer nodes get higher weight, pulling them into same rank
+    const dist = edgeDistances.get(edge.id) ?? 0;
+    if (maxHierarchyDist > 0) {
+      const weight = maxHierarchyDist - dist + 1;
+      attrs.push(`weight=${weight}`);
+    }
+
+    // Edge direction: dir=back for back edges, dir=both for bidirectional, dir=none for directionless
+    const edgeDir = (edge.data?.direction as string) ?? 'forward';
+    if (edgeDir === 'both') {
+      attrs.push('dir=both');
+    } else if (edgeDir === 'none') {
+      attrs.push('dir=none');
+    } else if (edgeDir === 'back') {
+      attrs.push('dir=back');
+    }
+
+    // Constraint handling (LikeC4 pattern):
+    // constraint=false for 'none' direction edges or cross-cluster with no hierarchy
+    if (edgeDir === 'none') {
+      attrs.push('constraint=false');
+    } else {
+      const chainA = getAncestorChain(edge.source, nodeById);
+      const chainBSet = new Set(getAncestorChain(edge.target, nodeById));
+      const hasLCA = chainA.some(id => chainBSet.has(id));
+      const sNode = nodeById.get(edge.source);
+      const tNode = nodeById.get(edge.target);
+      if (!hasLCA && sNode?.parentId !== tNode?.parentId) {
+        attrs.push('constraint=false');
+      }
+    }
+
+    // minlen=0 when edge is the sole connection within a container (LikeC4 optimization)
+    const srcNode = nodeById.get(edge.source);
+    const tgtNode = nodeById.get(edge.target);
+    if (srcNode?.parentId && srcNode.parentId === tgtNode?.parentId) {
+      if ((edgesPerContainer.get(srcNode.parentId) ?? 0) === 1) {
+        attrs.push('minlen=0');
+      }
     }
 
     lines.push(`  "${src.physicalNode}" -> "${tgt.physicalNode}" [${attrs.join(', ')}];`);

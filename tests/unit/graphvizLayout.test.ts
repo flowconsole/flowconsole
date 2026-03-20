@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint } from '../../src/web/diagram/graphvizLayoutService';
+import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance } from '../../src/web/diagram/graphvizLayoutService';
 import type { ArchitectureDiagramModel } from '../../src/web/diagram/types';
 import { defaultAutoLayoutConfig } from '../../src/web/diagram/types';
 
@@ -31,8 +31,8 @@ describe('graphvizLayout', () => {
       expect(dot).toContain('label="Parent \\"quote\\""');
       // empty container width uses container base size (280) + padding → ~3.125 in
       expect(dot).toMatch(/"empty-container"\s+\[label="Empty", width=3\.125/);
-      // edge label preserved
-      expect(dot).toContain('"child" -> "child" [id="e", label="edge"]');
+      // edge label preserved (with weight and minlen from edge weight system)
+      expect(dot).toMatch(/"child" -> "child" \[id="e", label="edge"/);
     });
 
     it('uses default TB direction when defaultAutoLayoutConfig is used', () => {
@@ -456,6 +456,244 @@ describe('graphvizLayout', () => {
       const result = edgeEndpoint('empty', childrenByParent, nodeById, toClusterName);
       expect(result.physicalNode).toBe('empty');
       expect(result.clusterAttr).toBeUndefined();
+    });
+  });
+
+  describe('hierarchyDistance', () => {
+    function buildNodeMap(nodes: any[]) {
+      const map = new Map<string, any>();
+      for (const n of nodes) map.set(n.id, n);
+      return map;
+    }
+
+    it('returns 0 for same node', () => {
+      const map = buildNodeMap([{ id: 'a', type: 'element', data: {} }]);
+      expect(hierarchyDistance('a', 'a', map)).toBe(0);
+    });
+
+    it('returns 2 for siblings (same parent)', () => {
+      const map = buildNodeMap([
+        { id: 'parent', type: 'container', data: {} },
+        { id: 'a', type: 'element', data: {}, parentId: 'parent' },
+        { id: 'b', type: 'element', data: {}, parentId: 'parent' },
+      ]);
+      // chainA=[a, parent], chainB=[b, parent]. LCA=parent at indexA=1, indexB=1. dist=1+1=2
+      expect(hierarchyDistance('a', 'b', map)).toBe(2);
+    });
+
+    it('returns 1 for parent-child', () => {
+      const map = buildNodeMap([
+        { id: 'parent', type: 'container', data: {} },
+        { id: 'child', type: 'element', data: {}, parentId: 'parent' },
+      ]);
+      // chainA=[child, parent], chainB=[parent]. LCA=parent at indexA=1, indexB=0. dist=1+0=1
+      expect(hierarchyDistance('child', 'parent', map)).toBe(1);
+    });
+
+    it('returns 4 for cousins (different parents, same grandparent)', () => {
+      const map = buildNodeMap([
+        { id: 'gp', type: 'container', data: {} },
+        { id: 'p1', type: 'container', data: {}, parentId: 'gp' },
+        { id: 'p2', type: 'container', data: {}, parentId: 'gp' },
+        { id: 'a', type: 'element', data: {}, parentId: 'p1' },
+        { id: 'b', type: 'element', data: {}, parentId: 'p2' },
+      ]);
+      // chainA=[a, p1, gp], chainB=[b, p2, gp]. LCA=gp at indexA=2, indexB=2. dist=2+2=4
+      expect(hierarchyDistance('a', 'b', map)).toBe(4);
+    });
+
+    it('returns sum of chain lengths for nodes with no common ancestor', () => {
+      const map = buildNodeMap([
+        { id: 'c1', type: 'container', data: {} },
+        { id: 'a', type: 'element', data: {}, parentId: 'c1' },
+        { id: 'c2', type: 'container', data: {} },
+        { id: 'b', type: 'element', data: {}, parentId: 'c2' },
+      ]);
+      // chainA=[a, c1] (len 2), chainB=[b, c2] (len 2). No LCA → 2+2=4
+      expect(hierarchyDistance('a', 'b', map)).toBe(4);
+    });
+
+    it('returns 2 for root-level nodes (no parent)', () => {
+      const map = buildNodeMap([
+        { id: 'a', type: 'element', data: {} },
+        { id: 'b', type: 'element', data: {} },
+      ]);
+      // chainA=[a] (len 1), chainB=[b] (len 1). No LCA → 1+1=2
+      expect(hierarchyDistance('a', 'b', map)).toBe(2);
+    });
+  });
+
+  describe('edge weight and constraint system in buildDot', () => {
+    it('adds weight attribute based on hierarchy distance', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'parent', type: 'container', data: { title: 'Parent' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Siblings: distance=2, maxDist=2, weight=2-2+1=1
+      expect(dot).toContain('weight=1');
+    });
+
+    it('higher weight for closer nodes, lower for distant nodes', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'gp', type: 'container', data: { title: 'GP' }, position: { x: 0, y: 0 } },
+          { id: 'p1', type: 'container', data: { title: 'P1' }, position: { x: 0, y: 0 }, parentId: 'gp' },
+          { id: 'p2', type: 'container', data: { title: 'P2' }, position: { x: 0, y: 0 }, parentId: 'gp' },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p1' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p1' },
+          { id: 'c', type: 'element', data: { title: 'C' }, position: { x: 0, y: 0 }, parentId: 'p2' },
+        ] as any,
+        edges: [
+          { id: 'e-close', source: 'a', target: 'b', data: {} },
+          { id: 'e-far', source: 'a', target: 'c', data: {} },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // a→b: siblings (dist=2), a→c: cousins (dist=4). maxDist=4
+      // e-close weight = 4-2+1 = 3
+      // e-far weight = 4-4+1 = 1
+      expect(dot).toMatch(/"a" -> "b" \[.*weight=3/);
+      expect(dot).toMatch(/"a" -> "c" \[.*weight=1/);
+    });
+
+    it('adds dir=both for bidirectional edges', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: { direction: 'both' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('dir=both');
+    });
+
+    it('adds dir=none for directionless edges', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: { direction: 'none' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('dir=none');
+    });
+
+    it('adds dir=back for back-direction edges', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: { direction: 'back' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('dir=back');
+    });
+
+    it('does not add dir attribute for forward edges', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: { direction: 'forward' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).not.toMatch(/\bdir=(back|both|none)\b/);
+    });
+
+    it('adds constraint=false for edges with direction none', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: { direction: 'none' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('constraint=false');
+    });
+
+    it('adds constraint=false for cross-cluster edges with no common ancestor', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'c1', type: 'container', data: { title: 'C1' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'c1' },
+          { id: 'c2', type: 'container', data: { title: 'C2' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'c2' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // c1 and c2 are separate top-level clusters, no common ancestor
+      expect(dot).toContain('constraint=false');
+    });
+
+    it('does not add constraint=false for edges within same hierarchy', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'gp', type: 'container', data: { title: 'GP' }, position: { x: 0, y: 0 } },
+          { id: 'p1', type: 'container', data: { title: 'P1' }, position: { x: 0, y: 0 }, parentId: 'gp' },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p1' },
+          { id: 'p2', type: 'container', data: { title: 'P2' }, position: { x: 0, y: 0 }, parentId: 'gp' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p2' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // a and b share grandparent gp — have hierarchy relationship
+      expect(dot).not.toContain('constraint=false');
+    });
+
+    it('adds minlen=0 for sole edge within a container', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'parent', type: 'container', data: { title: 'Parent' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('minlen=0');
+    });
+
+    it('does not add minlen=0 when container has multiple internal edges', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'parent', type: 'container', data: { title: 'Parent' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+          { id: 'c', type: 'element', data: { title: 'C' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+        ] as any,
+        edges: [
+          { id: 'e1', source: 'a', target: 'b', data: {} },
+          { id: 'e2', source: 'b', target: 'c', data: {} },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).not.toContain('minlen=0');
+    });
+
+    it('does not add minlen=0 for edges crossing containers', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p1', type: 'container', data: { title: 'P1' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p1' },
+          { id: 'p2', type: 'container', data: { title: 'P2' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p2' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).not.toContain('minlen=0');
     });
   });
 
