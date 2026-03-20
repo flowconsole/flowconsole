@@ -10,6 +10,7 @@ import {
   type JSX,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 
 type Spacing = number | string;
 
@@ -244,7 +245,7 @@ export function Modal({
     backdropFilter: overlayProps?.blur ? `blur(${overlayProps.blur}px)` : undefined,
   };
 
-  return (
+  return createPortal(
     <div className="fc-modal" role="dialog" aria-modal="true">
       <div className="fc-modal__overlay" style={overlayStyle} onClick={onClose} />
       <div className={`fc-modal__content${fullScreen ? ' is-fullscreen' : ''}`}>
@@ -258,7 +259,8 @@ export function Modal({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
