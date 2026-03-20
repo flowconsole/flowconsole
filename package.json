@@ -25,6 +25,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "@xyflow/react": "^12.10.0",
     "react": "19.2.1",
+    "react-dom": "19.2.1",
     "vitest": "^4.0.15"
   },
   "packageManager": "pnpm@10.19.0"
