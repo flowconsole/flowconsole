@@ -824,7 +824,10 @@ function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): Arc
 let wasmPromise: Promise<void> | null = null;
 async function ensureWasm() {
   if (!wasmPromise) {
-    wasmPromise = graphviz.loadWASM();
+    wasmPromise = graphviz.loadWASM().catch((err) => {
+      wasmPromise = null;
+      throw err;
+    });
   }
   await wasmPromise;
 }
