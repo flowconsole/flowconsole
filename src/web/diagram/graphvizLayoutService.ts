@@ -64,18 +64,24 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
   const direction = config.direction ?? defaultAutoLayoutConfig.direction;
   const nodeSep = config.nodeSep ?? DEFAULT_NODESEP;
   const rankSep = config.rankSep ?? DEFAULT_RANKSEP;
+  const isHorizontal = direction === 'LR' || direction === 'RL';
+
+  // LikeC4 pattern: labeljust/labelloc depend on direction
+  const labeljust = isHorizontal ? 'l' : 'c';
+  const labelloc = isHorizontal ? 't' : 't';
+
   lines.push('digraph G {');
   lines.push(
-    `  graph [layout=dot, rankdir=${direction}, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, sep=0.5, esep=0.3, nodesep=${pxToInch(
+    `  graph [layout=dot, rankdir=${direction}, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, TBbalance=min, newrank=true, clusterrank=global, labeljust=${labeljust}, labelloc=${labelloc}, sep=0.5, esep=0.3, nodesep=${pxToInch(
       nodeSep
     ).toFixed(3)}, ranksep=${pxToInch(rankSep).toFixed(3)}, pad=${pxToInch(
       DEFAULT_PAD
-    ).toFixed(3)}, margin=${pxToInch(GRAPH_CLUSTER_SPACE + CLUSTER_MARGIN).toFixed(3)}]`
+    ).toFixed(3)}, margin=${pxToInch(GRAPH_CLUSTER_SPACE + CLUSTER_MARGIN).toFixed(3)}, fontname="Arial", fontsize=14]`
   );
   lines.push(
-    '  node [shape=rect, style="rounded,filled", fillcolor="#0f1625", color="#1f2a3d", penwidth=0, fontname="Arial"];'
+    '  node [shape=rect, style="rounded,filled", fillcolor="#0f1625", color="#1f2a3d", penwidth=0, fontname="Arial", fontsize=14];'
   );
-  lines.push('  edge [color="#3b82f6", penwidth=2, arrowsize=0.75, fontname="Arial"];');
+  lines.push('  edge [color="#3b82f6", penwidth=2, arrowsize=0.75, fontname="Arial", fontsize=12];');
 
   const childrenByParent = new Map<string | undefined, string[]>();
   for (const node of model.nodes) {

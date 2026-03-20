@@ -86,6 +86,82 @@ describe('graphvizLayout', () => {
       expect(dot).toContain('nodesep=1.146');
       expect(dot).toContain('ranksep=1.250');
     });
+
+    it('includes TBbalance=min attribute for balanced TB layout', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('TBbalance=min');
+    });
+
+    it('includes newrank=true and clusterrank=global', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('newrank=true');
+      expect(dot).toContain('clusterrank=global');
+    });
+
+    it('sets labeljust=c for TB direction', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, { direction: 'TB' });
+      expect(dot).toContain('labeljust=c');
+    });
+
+    it('sets labeljust=c for BT direction', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, { direction: 'BT' });
+      expect(dot).toContain('labeljust=c');
+    });
+
+    it('sets labeljust=l for LR direction (LikeC4 pattern)', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, { direction: 'LR' });
+      expect(dot).toContain('labeljust=l');
+      expect(dot).toContain('labelloc=t');
+    });
+
+    it('sets labeljust=l for RL direction (LikeC4 pattern)', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, { direction: 'RL' });
+      expect(dot).toContain('labeljust=l');
+      expect(dot).toContain('labelloc=t');
+    });
+
+    it('includes fontname and fontsize in graph attributes', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Graph-level font attributes
+      expect(dot).toMatch(/graph \[.*fontname="Arial".*fontsize=14/);
+      // Node-level font attributes
+      expect(dot).toMatch(/node \[.*fontname="Arial".*fontsize=14/);
+      // Edge-level font attributes
+      expect(dot).toMatch(/edge \[.*fontname="Arial".*fontsize=12/);
+    });
+
+    it('TBbalance=min present for all directions', () => {
+      const model = makeModel({
+        nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
+      });
+      for (const dir of ['TB', 'BT', 'LR', 'RL'] as const) {
+        const dot = buildDot(model, { direction: dir });
+        expect(dot).toContain('TBbalance=min');
+        expect(dot).toContain('newrank=true');
+        expect(dot).toContain('clusterrank=global');
+      }
+    });
   });
 
   describe('parseJsonLayout', () => {
