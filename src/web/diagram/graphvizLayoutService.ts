@@ -127,6 +127,57 @@ export function estimateSize(
   return { width, height };
 }
 
+/**
+ * Find the first leaf node (non-cluster) inside a cluster, recursing into sub-clusters.
+ * LikeC4 pattern: compound edges route through a leaf node with lhead/ltail.
+ */
+function findLeafNode(
+  id: string,
+  childrenByParent: Map<string | undefined, string[]>,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): string | undefined {
+  const children = childrenByParent.get(id);
+  if (!children?.length) return undefined;
+  for (const childId of children) {
+    const child = nodeById.get(childId);
+    if (!child) continue;
+    const childChildren = childrenByParent.get(childId)?.length ?? 0;
+    const isCluster = child.type === 'container' && childChildren > 0;
+    if (!isCluster) return childId;
+    // Recurse into sub-cluster
+    const leaf = findLeafNode(childId, childrenByParent, nodeById);
+    if (leaf) return leaf;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve an edge endpoint for compound edge routing.
+ * If the endpoint is a cluster, returns the leaf node to physically connect to
+ * and the cluster name for lhead/ltail.
+ * @internal Exported for testing
+ */
+export function edgeEndpoint(
+  id: string,
+  childrenByParent: Map<string | undefined, string[]>,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>,
+  toClusterName: (id: string) => string
+): { physicalNode: string; clusterAttr?: string } {
+  const node = nodeById.get(id);
+  if (!node) return { physicalNode: id };
+  const childCount = childrenByParent.get(id)?.length ?? 0;
+  const isCluster = node.type === 'container' && childCount > 0;
+  if (!isCluster) return { physicalNode: id };
+
+  const leaf = findLeafNode(id, childrenByParent, nodeById);
+  if (!leaf) return { physicalNode: id };
+
+  return {
+    physicalNode: leaf,
+    clusterAttr: `cluster_${toClusterName(id)}`,
+  };
+}
+
 /** @internal Exported for testing */
 export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConfig) {
   const lines: string[] = [];
@@ -152,8 +203,11 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
   );
   lines.push('  edge [color="#3b82f6", penwidth=2, arrowsize=0.75, fontname="Arial", fontsize=12];');
 
+  // Build parent-children index
   const childrenByParent = new Map<string | undefined, string[]>();
+  const nodeById = new Map<string, ArchitectureDiagramModel['nodes'][number]>();
   for (const node of model.nodes) {
+    nodeById.set(node.id, node);
     const parent = node.parentId;
     const list = childrenByParent.get(parent) ?? [];
     list.push(node.id);
@@ -213,14 +267,29 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     }
   }
 
+  // Compound edge routing (LikeC4 pattern): edges targeting clusters route through
+  // a leaf node with lhead/ltail attributes
   for (const edge of model.edges) {
-    const attrs = [
-      `id="${escapeLabel(edge.id)}"`,
-      edge.data?.label ? `label="${escapeLabel(edge.data.label)}"` : undefined,
-    ]
-      .filter(Boolean)
-      .join(', ');
-    lines.push(`  "${edge.source}" -> "${edge.target}" [${attrs}];`);
+    const src = edgeEndpoint(edge.source, childrenByParent, nodeById, plainId);
+    const tgt = edgeEndpoint(edge.target, childrenByParent, nodeById, plainId);
+    const isCompound = !!(src.clusterAttr || tgt.clusterAttr);
+
+    const attrs: string[] = [`id="${escapeLabel(edge.id)}"`];
+
+    // LikeC4 pattern: use xlabel for compound edges to prevent label collision with cluster border
+    if (edge.data?.label) {
+      const labelAttr = isCompound ? 'xlabel' : 'label';
+      attrs.push(`${labelAttr}="${escapeLabel(edge.data.label)}"`);
+    }
+
+    if (src.clusterAttr) {
+      attrs.push(`ltail="${src.clusterAttr}"`);
+    }
+    if (tgt.clusterAttr) {
+      attrs.push(`lhead="${tgt.clusterAttr}"`);
+    }
+
+    lines.push(`  "${src.physicalNode}" -> "${tgt.physicalNode}" [${attrs.join(', ')}];`);
   }
 
   lines.push('}');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDot, parseJsonLayout, estimateSize } from '../../src/web/diagram/graphvizLayoutService';
+import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint } from '../../src/web/diagram/graphvizLayoutService';
 import type { ArchitectureDiagramModel } from '../../src/web/diagram/types';
 import { defaultAutoLayoutConfig } from '../../src/web/diagram/types';
 
@@ -396,6 +396,171 @@ describe('graphvizLayout', () => {
       const ignored = estimateSize(makeNode({ data: { title: 'X' }, style: { width: 500 } }), { allowStyledSize: false });
       const noStyled = estimateSize(makeNode({ data: { title: 'X' } }));
       expect(ignored.width).toEqual(noStyled.width);
+    });
+  });
+
+  describe('edgeEndpoint', () => {
+    function buildIndex(nodes: any[]) {
+      const childrenByParent = new Map<string | undefined, string[]>();
+      const nodeById = new Map<string, any>();
+      for (const node of nodes) {
+        nodeById.set(node.id, node);
+        const parent = node.parentId;
+        const list = childrenByParent.get(parent) ?? [];
+        list.push(node.id);
+        childrenByParent.set(parent, list);
+      }
+      const toClusterName = (id: string) => id.replace(/-/g, '_');
+      return { childrenByParent, nodeById, toClusterName };
+    }
+
+    it('returns physicalNode=id for leaf nodes (no cluster)', () => {
+      const nodes = [
+        { id: 'leaf', type: 'element', data: { title: 'Leaf' }, position: { x: 0, y: 0 } },
+      ];
+      const { childrenByParent, nodeById, toClusterName } = buildIndex(nodes);
+      const result = edgeEndpoint('leaf', childrenByParent, nodeById, toClusterName);
+      expect(result.physicalNode).toBe('leaf');
+      expect(result.clusterAttr).toBeUndefined();
+    });
+
+    it('returns leaf node and cluster attr for container with children', () => {
+      const nodes = [
+        { id: 'container-a', type: 'container', data: { title: 'Container A' }, position: { x: 0, y: 0 } },
+        { id: 'child-1', type: 'element', data: { title: 'Child 1' }, position: { x: 0, y: 0 }, parentId: 'container-a' },
+        { id: 'child-2', type: 'element', data: { title: 'Child 2' }, position: { x: 0, y: 0 }, parentId: 'container-a' },
+      ];
+      const { childrenByParent, nodeById, toClusterName } = buildIndex(nodes);
+      const result = edgeEndpoint('container-a', childrenByParent, nodeById, toClusterName);
+      expect(result.physicalNode).toBe('child-1');
+      expect(result.clusterAttr).toBe('cluster_container_a');
+    });
+
+    it('recurses into nested clusters to find leaf', () => {
+      const nodes = [
+        { id: 'outer', type: 'container', data: { title: 'Outer' }, position: { x: 0, y: 0 } },
+        { id: 'inner', type: 'container', data: { title: 'Inner' }, position: { x: 0, y: 0 }, parentId: 'outer' },
+        { id: 'deep-leaf', type: 'element', data: { title: 'Deep Leaf' }, position: { x: 0, y: 0 }, parentId: 'inner' },
+      ];
+      const { childrenByParent, nodeById, toClusterName } = buildIndex(nodes);
+      const result = edgeEndpoint('outer', childrenByParent, nodeById, toClusterName);
+      expect(result.physicalNode).toBe('deep-leaf');
+      expect(result.clusterAttr).toBe('cluster_outer');
+    });
+
+    it('returns physicalNode=id for empty container (no children)', () => {
+      const nodes = [
+        { id: 'empty', type: 'container', data: { title: 'Empty' }, position: { x: 0, y: 0 } },
+      ];
+      const { childrenByParent, nodeById, toClusterName } = buildIndex(nodes);
+      const result = edgeEndpoint('empty', childrenByParent, nodeById, toClusterName);
+      expect(result.physicalNode).toBe('empty');
+      expect(result.clusterAttr).toBeUndefined();
+    });
+  });
+
+  describe('compound edge routing in buildDot', () => {
+    it('adds lhead for edges targeting a container cluster', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'ext', type: 'element', data: { title: 'External' }, position: { x: 0, y: 0 } },
+          { id: 'svc-group', type: 'container', data: { title: 'Services' }, position: { x: 0, y: 0 } },
+          { id: 'svc-a', type: 'element', data: { title: 'Svc A' }, position: { x: 0, y: 0 }, parentId: 'svc-group' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'ext', target: 'svc-group', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Edge should route through svc-a (leaf) with lhead pointing to cluster
+      expect(dot).toContain('"ext" -> "svc-a"');
+      expect(dot).toContain('lhead="cluster_svc_group"');
+    });
+
+    it('adds ltail for edges sourcing from a container cluster', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'svc-group', type: 'container', data: { title: 'Services' }, position: { x: 0, y: 0 } },
+          { id: 'svc-a', type: 'element', data: { title: 'Svc A' }, position: { x: 0, y: 0 }, parentId: 'svc-group' },
+          { id: 'ext', type: 'element', data: { title: 'External' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'svc-group', target: 'ext', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('"svc-a" -> "ext"');
+      expect(dot).toContain('ltail="cluster_svc_group"');
+    });
+
+    it('adds both lhead and ltail for edges between two clusters', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'group-a', type: 'container', data: { title: 'Group A' }, position: { x: 0, y: 0 } },
+          { id: 'a-child', type: 'element', data: { title: 'A Child' }, position: { x: 0, y: 0 }, parentId: 'group-a' },
+          { id: 'group-b', type: 'container', data: { title: 'Group B' }, position: { x: 0, y: 0 } },
+          { id: 'b-child', type: 'element', data: { title: 'B Child' }, position: { x: 0, y: 0 }, parentId: 'group-b' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'group-a', target: 'group-b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('"a-child" -> "b-child"');
+      expect(dot).toContain('ltail="cluster_group_a"');
+      expect(dot).toContain('lhead="cluster_group_b"');
+    });
+
+    it('uses xlabel instead of label for compound edges (LikeC4 pattern)', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'ext', type: 'element', data: { title: 'External' }, position: { x: 0, y: 0 } },
+          { id: 'svc-group', type: 'container', data: { title: 'Services' }, position: { x: 0, y: 0 } },
+          { id: 'svc-a', type: 'element', data: { title: 'Svc A' }, position: { x: 0, y: 0 }, parentId: 'svc-group' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'ext', target: 'svc-group', data: { label: 'HTTP' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Compound edge should use xlabel, not label
+      expect(dot).toContain('xlabel="HTTP"');
+      expect(dot).not.toMatch(/[^x]label="HTTP"/);
+    });
+
+    it('uses label (not xlabel) for non-compound edges', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: { label: 'calls' } }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('label="calls"');
+      expect(dot).not.toContain('xlabel="calls"');
+    });
+
+    it('does not add lhead/ltail for edges between leaf nodes', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('"a" -> "b"');
+      expect(dot).not.toContain('lhead');
+      expect(dot).not.toContain('ltail');
+    });
+
+    it('handles nested clusters for compound edge routing', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'ext', type: 'element', data: { title: 'External' }, position: { x: 0, y: 0 } },
+          { id: 'outer', type: 'container', data: { title: 'Outer' }, position: { x: 0, y: 0 } },
+          { id: 'inner', type: 'container', data: { title: 'Inner' }, position: { x: 0, y: 0 }, parentId: 'outer' },
+          { id: 'leaf', type: 'element', data: { title: 'Leaf' }, position: { x: 0, y: 0 }, parentId: 'inner' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'ext', target: 'outer', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Should route through 'leaf' (deepest leaf in outer), with lhead pointing to outer cluster
+      expect(dot).toContain('"ext" -> "leaf"');
+      expect(dot).toContain('lhead="cluster_outer"');
     });
   });
 });
