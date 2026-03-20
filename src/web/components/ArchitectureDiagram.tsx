@@ -18,6 +18,7 @@ import type {
   ArchitectureNodeTypes,
   ArchitectureEdge,
   FlowDefinition,
+  AutoLayoutConfig,
 } from '../diagram/types';
 import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
@@ -32,6 +33,7 @@ type ArchitectureDiagramProps = {
   edgeTypes?: ArchitectureEdgeTypes;
   editable?: boolean;
   autoLayout?: boolean;
+  autoLayoutConfig?: AutoLayoutConfig;
   viewId?: string;
   viewTitle?: string;
   viewDescription?: string;
@@ -113,6 +115,7 @@ export function ArchitectureDiagram({
   edgeTypes = {},
   editable = true,
   autoLayout = true,
+  autoLayoutConfig,
   viewId,
   viewTitle,
   viewDescription,
@@ -172,18 +175,18 @@ export function ArchitectureDiagram({
     let cancelled = false;
 
     const update = async () => {
-      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender) : modelToRender;
+      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender, autoLayoutConfig) : modelToRender;
       if (cancelled) return;
       setNodes(autoResizeParents(withParentAutoResize(baseModel.nodes)));
       setEdges(baseModel.edges);
     };
 
     void update();
-    
+
     return () => {
       cancelled = true;
     };
-  }, [modelToRender, autoLayout, setNodes, setEdges]);
+  }, [modelToRender, autoLayout, autoLayoutConfig, setNodes, setEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {

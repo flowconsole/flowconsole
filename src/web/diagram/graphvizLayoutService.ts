@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import graphviz from 'graphviz-wasm';
 import { Position } from '@xyflow/react';
-import type { ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge } from './types';
+import type { ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, AutoLayoutConfig } from './types';
+import { defaultAutoLayoutConfig } from './types';
 
 const DPI = 96;
 const PT_TO_INCH = 1 / 72;
@@ -57,13 +58,17 @@ function estimateSize(
   return { width, height };
 }
 
-function buildDot(model: ArchitectureDiagramModel) {
+/** @internal Exported for testing */
+export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConfig) {
   const lines: string[] = [];
+  const direction = config.direction ?? defaultAutoLayoutConfig.direction;
+  const nodeSep = config.nodeSep ?? DEFAULT_NODESEP;
+  const rankSep = config.rankSep ?? DEFAULT_RANKSEP;
   lines.push('digraph G {');
   lines.push(
-    `  graph [layout=dot, rankdir=LR, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, sep=0.5, esep=0.3, nodesep=${pxToInch(
-      DEFAULT_NODESEP
-    ).toFixed(3)}, ranksep=${pxToInch(DEFAULT_RANKSEP).toFixed(3)}, pad=${pxToInch(
+    `  graph [layout=dot, rankdir=${direction}, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, sep=0.5, esep=0.3, nodesep=${pxToInch(
+      nodeSep
+    ).toFixed(3)}, ranksep=${pxToInch(rankSep).toFixed(3)}, pad=${pxToInch(
       DEFAULT_PAD
     ).toFixed(3)}, margin=${pxToInch(GRAPH_CLUSTER_SPACE + CLUSTER_MARGIN).toFixed(3)}]`
   );
@@ -206,7 +211,8 @@ function anchorFromPoint(
   };
 }
 
-function parseJsonLayout(json: string): LayoutResult {
+/** @internal Exported for testing */
+export function parseJsonLayout(json: string): LayoutResult {
   const j = JSON.parse(json) as any;
   const nodeEntries = new Map<string, LayoutEntry>();
   const edgeEntries = new Map<string, EdgeLayoutEntry>();
@@ -344,9 +350,13 @@ async function ensureWasm() {
   loaded = true;
 }
 
-export async function layoutWithGraphviz(model: ArchitectureDiagramModel): Promise<ArchitectureDiagramModel> {
+export async function layoutWithGraphviz(
+  model: ArchitectureDiagramModel,
+  config?: AutoLayoutConfig
+): Promise<ArchitectureDiagramModel> {
   await ensureWasm();
-  const dot = buildDot(model);
+  const effectiveConfig = config ?? model.autoLayoutConfig ?? defaultAutoLayoutConfig;
+  const dot = buildDot(model, effectiveConfig);
   const json = graphviz.layout(dot, 'json', 'dot');
   const parsed = parseJsonLayout(json);
   return applyLayout(model, parsed);
