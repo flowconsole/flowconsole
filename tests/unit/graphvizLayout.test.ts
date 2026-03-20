@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance } from '../../src/web/diagram/graphvizLayoutService';
+import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance, clusterColorsByDepth, assignGroups } from '../../src/web/diagram/graphvizLayoutService';
 import type { ArchitectureDiagramModel } from '../../src/web/diagram/types';
 import { defaultAutoLayoutConfig } from '../../src/web/diagram/types';
 
@@ -950,6 +950,199 @@ describe('graphvizLayout', () => {
       // Invisible edges: n0→n3, n3→n6
       expect(dot).toContain('"n0" -> "n3" [style=invis]');
       expect(dot).toContain('"n3" -> "n6" [style=invis]');
+    });
+  });
+
+  describe('dynamic cluster margins in buildDot', () => {
+    it('uses margin=40 for clusters with multiple children', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('margin=40');
+    });
+
+    it('uses margin=32 for clusters with single child', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'only', type: 'element', data: { title: 'Only' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).toContain('margin=32');
+    });
+
+    it('different margins for clusters with different child counts', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'multi', type: 'container', data: { title: 'Multi' }, position: { x: 0, y: 0 } },
+          { id: 'm1', type: 'element', data: { title: 'M1' }, position: { x: 0, y: 0 }, parentId: 'multi' },
+          { id: 'm2', type: 'element', data: { title: 'M2' }, position: { x: 0, y: 0 }, parentId: 'multi' },
+          { id: 'single', type: 'container', data: { title: 'Single' }, position: { x: 0, y: 0 } },
+          { id: 's1', type: 'element', data: { title: 'S1' }, position: { x: 0, y: 0 }, parentId: 'single' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Multi-child cluster gets margin=40, single-child gets margin=32
+      expect(dot).toContain('margin=40');
+      expect(dot).toContain('margin=32');
+    });
+  });
+
+  describe('depth-based cluster colors', () => {
+    it('returns base colors for depth 0', () => {
+      const colors = clusterColorsByDepth(0);
+      expect(colors.fillcolor).toBe('#0f1625');
+      expect(colors.color).toBe('#1f2a3d');
+    });
+
+    it('returns lighter colors for depth 1', () => {
+      const colors = clusterColorsByDepth(1);
+      // depth 1: fillcolor = (0x0f+8, 0x16+8, 0x25+8) = (23, 30, 45) = #171e2d
+      expect(colors.fillcolor).toBe('#171e2d');
+      // depth 1: color = (0x1f+8, 0x2a+8, 0x3d+8) = (39, 50, 69) = #273245
+      expect(colors.color).toBe('#273245');
+    });
+
+    it('returns even lighter colors for depth 2', () => {
+      const colors0 = clusterColorsByDepth(0);
+      const colors1 = clusterColorsByDepth(1);
+      const colors2 = clusterColorsByDepth(2);
+      // Each depth level should be progressively lighter
+      expect(colors2.fillcolor).not.toBe(colors1.fillcolor);
+      expect(colors1.fillcolor).not.toBe(colors0.fillcolor);
+    });
+
+    it('applies depth-based colors to nested clusters in DOT', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'outer', type: 'container', data: { title: 'Outer' }, position: { x: 0, y: 0 } },
+          { id: 'inner', type: 'container', data: { title: 'Inner' }, position: { x: 0, y: 0 }, parentId: 'outer' },
+          { id: 'leaf', type: 'element', data: { title: 'Leaf' }, position: { x: 0, y: 0 }, parentId: 'inner' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Outer (depth 0) uses base colors
+      expect(dot).toContain('fillcolor="#0f1625"');
+      // Inner (depth 1) uses lighter colors
+      const depth1Colors = clusterColorsByDepth(1);
+      expect(dot).toContain(`fillcolor="${depth1Colors.fillcolor}"`);
+    });
+  });
+
+  describe('assignGroups', () => {
+    function buildNodeMap(nodes: any[]) {
+      const map = new Map<string, any>();
+      for (const n of nodes) map.set(n.id, n);
+      return map;
+    }
+
+    it('returns empty map when no internal edges', () => {
+      const nodes = [
+        { id: 'a', type: 'element', data: {}, parentId: 'p' },
+        { id: 'b', type: 'element', data: {}, parentId: 'q' },
+      ];
+      const edges = [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any;
+      const groups = assignGroups(edges, buildNodeMap(nodes));
+      expect(groups.size).toBe(0);
+    });
+
+    it('returns empty map for container with only 1 internal edge', () => {
+      const nodes = [
+        { id: 'p', type: 'container', data: {} },
+        { id: 'a', type: 'element', data: {}, parentId: 'p' },
+        { id: 'b', type: 'element', data: {}, parentId: 'p' },
+      ];
+      const edges = [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any;
+      const groups = assignGroups(edges, buildNodeMap(nodes));
+      expect(groups.size).toBe(0);
+    });
+
+    it('assigns groups for container with 2-8 internal edges', () => {
+      const nodes = [
+        { id: 'p', type: 'container', data: {} },
+        { id: 'a', type: 'element', data: {}, parentId: 'p' },
+        { id: 'b', type: 'element', data: {}, parentId: 'p' },
+        { id: 'c', type: 'element', data: {}, parentId: 'p' },
+      ];
+      const edges = [
+        { id: 'e1', source: 'a', target: 'b', data: {} },
+        { id: 'e2', source: 'b', target: 'c', data: {} },
+      ] as any;
+      const groups = assignGroups(edges, buildNodeMap(nodes));
+      // All 3 nodes should get a group (they're all connected)
+      expect(groups.has('a')).toBe(true);
+      expect(groups.has('b')).toBe(true);
+      expect(groups.has('c')).toBe(true);
+    });
+
+    it('does not assign groups for container with more than 8 internal edges', () => {
+      const nodes = [
+        { id: 'p', type: 'container', data: {} },
+        ...Array.from({ length: 10 }, (_, i) => ({
+          id: `n${i}`, type: 'element', data: {}, parentId: 'p',
+        })),
+      ];
+      // Create 9 edges (>8)
+      const edges = Array.from({ length: 9 }, (_, i) => ({
+        id: `e${i}`, source: `n${i}`, target: `n${i + 1}`, data: {},
+      })) as any;
+      const groups = assignGroups(edges, buildNodeMap(nodes));
+      expect(groups.size).toBe(0);
+    });
+
+    it('limits to max 4 groups per cluster', () => {
+      const nodes = [
+        { id: 'p', type: 'container', data: {} },
+        // Create 10 disconnected pairs = 5 groups, but max 4
+        ...Array.from({ length: 10 }, (_, i) => ({
+          id: `n${i}`, type: 'element', data: {}, parentId: 'p',
+        })),
+      ];
+      // 5 disconnected edges = 5 groups
+      const edges = Array.from({ length: 5 }, (_, i) => ({
+        id: `e${i}`, source: `n${i * 2}`, target: `n${i * 2 + 1}`, data: {},
+      })) as any;
+      const groups = assignGroups(edges, buildNodeMap(nodes));
+      const uniqueGroups = new Set(groups.values());
+      expect(uniqueGroups.size).toBeLessThanOrEqual(4);
+    });
+
+    it('group attribute appears in DOT output for grouped nodes', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'c', type: 'element', data: { title: 'C' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+        edges: [
+          { id: 'e1', source: 'a', target: 'b', data: {} },
+          { id: 'e2', source: 'b', target: 'c', data: {} },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Nodes should have group attribute in DOT
+      expect(dot).toMatch(/"a" \[.*group="/);
+      expect(dot).toMatch(/"b" \[.*group="/);
+      expect(dot).toMatch(/"c" \[.*group="/);
+    });
+
+    it('no group attribute for nodes without internal edge grouping', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [{ id: 'e1', source: 'a', target: 'b', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      expect(dot).not.toContain('group=');
     });
   });
 });

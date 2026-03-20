@@ -11,6 +11,8 @@ const DEFAULT_NODESEP = 110;
 const DEFAULT_RANKSEP = 120;
 const DEFAULT_PAD = 15;
 const CLUSTER_MARGIN = 36;
+const CLUSTER_MARGIN_MULTI = 40; // LikeC4 pattern: 40px for clusters with multiple children
+const CLUSTER_MARGIN_SINGLE = 32; // LikeC4 pattern: 32px for clusters with single child
 const CONTENT_PADDING = 20;
 
 function escapeLabel(text: string) {
@@ -222,6 +224,122 @@ export function hierarchyDistance(
   return lcaIndexA + lcaIndexB;
 }
 
+/**
+ * Compute nesting depth of a node (0 = top-level, 1 = inside one cluster, etc.)
+ */
+function computeDepth(
+  id: string,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): number {
+  let depth = 0;
+  let current = nodeById.get(id);
+  while (current?.parentId) {
+    depth++;
+    current = nodeById.get(current.parentId);
+  }
+  return depth;
+}
+
+/**
+ * LikeC4 pattern: depth-based cluster colors.
+ * Returns fillcolor and border color adjusted by nesting depth.
+ * Deeper clusters get slightly lighter fill and slightly brighter border.
+ * @internal Exported for testing
+ */
+export function clusterColorsByDepth(depth: number): { fillcolor: string; color: string } {
+  // Base: fillcolor=#0f1625, color=#1f2a3d
+  // Lighten fillcolor and color as depth increases
+  const baseFillR = 0x0f, baseFillG = 0x16, baseFillB = 0x25;
+  const baseColorR = 0x1f, baseColorG = 0x2a, baseColorB = 0x3d;
+  const step = 8; // lightness step per depth level
+  const clampC = (v: number) => Math.min(255, v);
+  const toHex = (r: number, g: number, b: number) =>
+    '#' + [r, g, b].map(c => clampC(c).toString(16).padStart(2, '0')).join('');
+  const fillcolor = toHex(
+    baseFillR + depth * step,
+    baseFillG + depth * step,
+    baseFillB + depth * step
+  );
+  const color = toHex(
+    baseColorR + depth * step,
+    baseColorG + depth * step,
+    baseColorB + depth * step
+  );
+  return { fillcolor, color };
+}
+
+/**
+ * LikeC4 pattern: assign group attributes to nodes within clusters.
+ * For clusters with 2-8 internal edges, assigns `group` attribute to
+ * source and target nodes so Graphviz co-locates related nodes.
+ * Max 4 groups per cluster.
+ * @internal Exported for testing
+ */
+export function assignGroups(
+  edges: ArchitectureDiagramModel['edges'],
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): Map<string, string> {
+  const nodeGroups = new Map<string, string>();
+
+  // Collect internal edges per container
+  const edgesByContainer = new Map<string, { source: string; target: string }[]>();
+  for (const edge of edges) {
+    const sn = nodeById.get(edge.source);
+    const tn = nodeById.get(edge.target);
+    if (sn?.parentId && sn.parentId === tn?.parentId) {
+      const list = edgesByContainer.get(sn.parentId) ?? [];
+      list.push({ source: edge.source, target: edge.target });
+      edgesByContainer.set(sn.parentId, list);
+    }
+  }
+
+  for (const [containerId, internalEdges] of edgesByContainer) {
+    if (internalEdges.length < 2 || internalEdges.length > 8) continue;
+
+    // Build connected components using union-find for grouping
+    const parent = new Map<string, string>();
+    const find = (x: string): string => {
+      if (!parent.has(x)) parent.set(x, x);
+      if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
+      return parent.get(x)!;
+    };
+    const union = (a: string, b: string) => {
+      parent.set(find(a), find(b));
+    };
+
+    for (const { source, target } of internalEdges) {
+      union(source, target);
+    }
+
+    // Collect groups
+    const groups = new Map<string, string[]>();
+    const allNodes = new Set<string>();
+    for (const { source, target } of internalEdges) {
+      allNodes.add(source);
+      allNodes.add(target);
+    }
+    for (const nodeId of allNodes) {
+      const root = find(nodeId);
+      const list = groups.get(root) ?? [];
+      list.push(nodeId);
+      groups.set(root, list);
+    }
+
+    // Assign group names (max 4 groups per cluster)
+    let groupIdx = 0;
+    for (const [, members] of groups) {
+      if (groupIdx >= 4) break;
+      const groupName = `${containerId}_g${groupIdx}`;
+      for (const nodeId of members) {
+        nodeGroups.set(nodeId, groupName);
+      }
+      groupIdx++;
+    }
+  }
+
+  return nodeGroups;
+}
+
 /** @internal Exported for testing */
 export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConfig) {
   const lines: string[] = [];
@@ -258,6 +376,9 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     childrenByParent.set(parent, list);
   }
 
+  // Compute node groups for edge grouping (LikeC4 pattern)
+  const nodeGroups = assignGroups(model.edges, nodeById);
+
   for (const node of model.nodes) {
     const childCount = childrenByParent.get(node.id)?.length ?? 0;
     const isCluster = (node.type === 'container') && childCount > 0;
@@ -269,10 +390,11 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     const { width: estW, height: estH } = estimateSize(node, { allowStyledSize });
     const widthIn = pxToInch(estW);
     const heightIn = pxToInch(estH);
+    const groupAttr = nodeGroups.has(node.id) ? `, group="${nodeGroups.get(node.id)}"` : '';
     lines.push(
       `  "${node.id}" [label="${escapeLabel(label)}", width=${widthIn.toFixed(
         3
-      )}, height=${heightIn.toFixed(3)}];`
+      )}, height=${heightIn.toFixed(3)}${groupAttr}];`
     );
   }
 
@@ -294,9 +416,17 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     const node = model.nodes.find((n) => n.id === id);
     const label = node && 'title' in node.data ? escapeLabel(node.data.title) : id;
     const clusterName = plainId(id);
+
+    // LikeC4 pattern: dynamic margin based on child count
+    const clusterMargin = children.length > 1 ? CLUSTER_MARGIN_MULTI : CLUSTER_MARGIN_SINGLE;
+
+    // LikeC4 pattern: depth-based cluster colors
+    const depth = computeDepth(id, nodeById);
+    const colors = clusterColorsByDepth(depth);
+
     lines.push(`  subgraph cluster_${clusterName} {`);
     lines.push(
-      `    label="${label}"; margin=20; style="rounded,filled"; color="#1f2a3d"; fillcolor="#0f1625";`
+      `    label="${label}"; margin=${clusterMargin}; style="rounded,filled"; color="${colors.color}"; fillcolor="${colors.fillcolor}";`
     );
 
     // Separate sub-clusters from leaf nodes
