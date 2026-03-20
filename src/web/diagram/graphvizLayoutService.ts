@@ -139,8 +139,11 @@ export function estimateSize(
 function findLeafNode(
   id: string,
   childrenByParent: Map<string | undefined, string[]>,
-  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>,
+  visited = new Set<string>()
 ): string | undefined {
+  if (visited.has(id)) return undefined;
+  visited.add(id);
   const children = childrenByParent.get(id);
   if (!children?.length) return undefined;
   for (const childId of children) {
@@ -150,7 +153,7 @@ function findLeafNode(
     const isCluster = child.type === 'container' && childChildren > 0;
     if (!isCluster) return childId;
     // Recurse into sub-cluster
-    const leaf = findLeafNode(childId, childrenByParent, nodeById);
+    const leaf = findLeafNode(childId, childrenByParent, nodeById, visited);
     if (leaf) return leaf;
   }
   return undefined;
@@ -415,7 +418,10 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     return 2;
   };
 
+  const renderedClusters = new Set<string>();
   const renderCluster = (id: string) => {
+    if (renderedClusters.has(id)) return;
+    renderedClusters.add(id);
     const children = childrenByParent.get(id) ?? [];
     if (!children.length) return;
     const node = nodeById.get(id);
