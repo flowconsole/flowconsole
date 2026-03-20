@@ -1415,4 +1415,159 @@ describe('graphvizLayout', () => {
       expect(dot).toContain('lhead="cluster_svc_group"');
     });
   });
+
+  describe('acceptance: complex diagram with 15+ nodes, 3+ nested containers', () => {
+    // Build a complex model matching the manual test scenario
+    function buildComplexModel(): ArchitectureDiagramModel {
+      return makeModel({
+        nodes: [
+          // Top-level container: Frontend
+          { id: 'frontend', type: 'container', data: { title: 'Frontend' }, position: { x: 0, y: 0 } },
+          { id: 'web-app', type: 'element', data: { title: 'Web App', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'frontend' },
+          { id: 'mobile-app', type: 'element', data: { title: 'Mobile App', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'frontend' },
+          { id: 'admin-panel', type: 'element', data: { title: 'Admin Panel', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'frontend' },
+
+          // Top-level container: Backend (with nested sub-containers)
+          { id: 'backend', type: 'container', data: { title: 'Backend' }, position: { x: 0, y: 0 } },
+          { id: 'api-gateway', type: 'element', data: { title: 'API Gateway', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'backend' },
+
+          // Nested container: Microservices inside Backend
+          { id: 'microservices', type: 'container', data: { title: 'Microservices' }, position: { x: 0, y: 0 }, parentId: 'backend' },
+          { id: 'user-svc', type: 'element', data: { title: 'User Service', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'microservices' },
+          { id: 'order-svc', type: 'element', data: { title: 'Order Service', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'microservices' },
+          { id: 'payment-svc', type: 'element', data: { title: 'Payment Service', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'microservices' },
+          { id: 'notification-svc', type: 'element', data: { title: 'Notification Service', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'microservices' },
+
+          // Top-level container: Data Layer
+          { id: 'data-layer', type: 'container', data: { title: 'Data Layer' }, position: { x: 0, y: 0 } },
+          { id: 'postgres-db', type: 'element', data: { title: 'PostgreSQL', shape: 'database' }, position: { x: 0, y: 0 }, parentId: 'data-layer' },
+          { id: 'redis-cache', type: 'element', data: { title: 'Redis Cache', shape: 'database' }, position: { x: 0, y: 0 }, parentId: 'data-layer' },
+          { id: 'message-queue', type: 'element', data: { title: 'Message Queue', shape: 'queue' }, position: { x: 0, y: 0 }, parentId: 'data-layer' },
+
+          // Top-level nodes (external)
+          { id: 'user', type: 'element', data: { title: 'User', shape: 'person' }, position: { x: 0, y: 0 } },
+          { id: 'external-api', type: 'element', data: { title: 'External API', shape: 'service' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [
+          // User to frontend
+          { id: 'e-user-web', source: 'user', target: 'web-app', data: { label: 'HTTPS' } },
+          { id: 'e-user-mobile', source: 'user', target: 'mobile-app', data: { label: 'HTTPS' } },
+          // Frontend to API Gateway
+          { id: 'e-web-api', source: 'web-app', target: 'api-gateway', data: { label: 'REST' } },
+          { id: 'e-mobile-api', source: 'mobile-app', target: 'api-gateway', data: { label: 'REST' } },
+          { id: 'e-admin-api', source: 'admin-panel', target: 'api-gateway', data: { label: 'REST' } },
+          // API Gateway to microservices
+          { id: 'e-api-user', source: 'api-gateway', target: 'user-svc', data: { label: 'gRPC' } },
+          { id: 'e-api-order', source: 'api-gateway', target: 'order-svc', data: { label: 'gRPC' } },
+          // Cross-microservice edges
+          { id: 'e-order-payment', source: 'order-svc', target: 'payment-svc', data: { label: 'async' } },
+          { id: 'e-payment-notif', source: 'payment-svc', target: 'notification-svc', data: { label: 'event' } },
+          // Microservices to data layer
+          { id: 'e-user-db', source: 'user-svc', target: 'postgres-db', data: { label: 'SQL' } },
+          { id: 'e-order-db', source: 'order-svc', target: 'postgres-db', data: { label: 'SQL' } },
+          { id: 'e-user-redis', source: 'user-svc', target: 'redis-cache', data: { label: 'cache' } },
+          { id: 'e-order-queue', source: 'order-svc', target: 'message-queue', data: { label: 'publish' } },
+          // External API
+          { id: 'e-payment-ext', source: 'payment-svc', target: 'external-api', data: { label: 'HTTPS' } },
+          // Compound edge: user to backend container
+          { id: 'e-user-backend', source: 'user', target: 'backend', data: { label: 'traffic' } },
+        ] as any,
+      });
+    }
+
+    it('generates valid DOT for 17 nodes across 4 containers with nesting', () => {
+      const model = buildComplexModel();
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+
+      // Basic structure
+      expect(dot).toContain('digraph G {');
+      expect(dot).toContain('rankdir=TB');
+
+      // All 4 top-level/nested clusters present
+      expect(dot).toContain('subgraph cluster_frontend');
+      expect(dot).toContain('subgraph cluster_backend');
+      expect(dot).toContain('subgraph cluster_microservices');
+      expect(dot).toContain('subgraph cluster_data_layer');
+
+      // Top-level element nodes present
+      expect(dot).toContain('"user"');
+      expect(dot).toContain('"external-api"');
+
+      // Leaf nodes inside containers present
+      expect(dot).toContain('"web-app"');
+      expect(dot).toContain('"user-svc"');
+      expect(dot).toContain('"postgres-db"');
+    });
+
+    it('applies compound edge routing for edge targeting backend container', () => {
+      const model = buildComplexModel();
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+
+      // e-user-backend targets 'backend' which is a cluster
+      // Should route through a leaf inside backend with lhead
+      expect(dot).toContain('lhead="cluster_backend"');
+      // Should use xlabel for compound edge label
+      expect(dot).toContain('xlabel="traffic"');
+    });
+
+    it('applies chunking inside microservices cluster (4 children)', () => {
+      const model = buildComplexModel();
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+
+      // microservices has 4 children -> chunk size 2
+      expect(dot).toContain('subgraph chunk_microservices_0');
+      expect(dot).toContain('subgraph chunk_microservices_1');
+    });
+
+    it('applies depth-based colors to nested cluster', () => {
+      const model = buildComplexModel();
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+
+      // microservices is depth 1 (inside backend)
+      const depth1Colors = clusterColorsByDepth(1);
+      expect(dot).toContain(`fillcolor="${depth1Colors.fillcolor}"`);
+    });
+
+    it('applies edge weights based on hierarchy distance', () => {
+      const model = buildComplexModel();
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+
+      // Edges between siblings within microservices should have higher weight
+      // than edges crossing containers
+      expect(dot).toMatch(/"order-svc" -> "payment-svc" \[.*weight=/);
+      expect(dot).toMatch(/"user-svc" -> "postgres-db" \[.*weight=/);
+    });
+
+    it('produces valid DOT for all four directions', () => {
+      const model = buildComplexModel();
+      for (const dir of ['TB', 'BT', 'LR', 'RL'] as const) {
+        const dot = buildDot(model, { direction: dir });
+        expect(dot).toContain(`rankdir=${dir}`);
+        expect(dot).toContain('digraph G {');
+        expect(dot).toContain('subgraph cluster_frontend');
+        expect(dot).toContain('subgraph cluster_backend');
+        expect(dot).toContain('subgraph cluster_microservices');
+        expect(dot).toContain('subgraph cluster_data_layer');
+        // All edges present
+        expect(dot).toMatch(/"user" -> "web-app"/);
+        expect(dot).toMatch(/"order-svc" -> "payment-svc"/);
+      }
+    });
+
+    it('no overlapping node definitions in DOT', () => {
+      const model = buildComplexModel();
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+
+      // Count node definitions - each leaf node should appear exactly once as a definition
+      const leafNodeIds = ['web-app', 'mobile-app', 'admin-panel', 'api-gateway',
+        'user-svc', 'order-svc', 'payment-svc', 'notification-svc',
+        'postgres-db', 'redis-cache', 'message-queue', 'user', 'external-api'];
+
+      for (const id of leafNodeIds) {
+        const definitionPattern = new RegExp(`"${id.replace('-', '\\-')}"\\s+\\[label=`, 'g');
+        const matches = dot.match(definitionPattern);
+        expect(matches?.length).toBe(1);
+      }
+    });
+  });
 });
