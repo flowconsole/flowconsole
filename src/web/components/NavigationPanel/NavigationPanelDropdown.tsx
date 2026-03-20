@@ -145,7 +145,7 @@ function NavigationItemRow({
               {isExpanded ? <IconChevronDown size={14} /> : <IconChevronRight size={14} />}
             </ActionIcon>
           ) : (
-            <div style={{ width: 28, display: 'flex', justifyContent: 'center' }}>{icon}</div>
+            <div style={{ width: 28 }} />
           )}
         </div>
         <div
