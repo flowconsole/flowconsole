@@ -15,10 +15,12 @@ import type { RelationshipEdgeType } from '../../diagram/types';
 
 type Point = XYPosition;
 type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
-const catmullRomLine = line<Point>()
-  .curve(curveCatmullRomOpen.alpha(0.7))
-  .x((d) => Math.round(d.x))
-  .y((d) => Math.round(d.y));
+function getCatmullRomLine() {
+  return line<Point>()
+    .curve(curveCatmullRomOpen.alpha(0.7))
+    .x((d) => Math.round(d.x))
+    .y((d) => Math.round(d.y));
+}
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -186,7 +188,7 @@ function normalizeGraphvizPoints(
 
 function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
-  return catmullRomLine(points) ?? undefined;
+  return getCatmullRomLine()(points) ?? undefined;
 }
 
 function distance(a: Point, b: Point) {
@@ -382,8 +384,8 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   const stroke = relationshipStroke(data?.kind);
   const direction = data?.direction ?? 'forward';
   const isDirectional = direction !== 'none';
-  const markerStart = direction === 'both' ? `url(#${id}-start)` : undefined;
-  const markerEnd = isDirectional ? `url(#${id}-end)` : undefined;
+  const markerStart = (direction === 'both' || direction === 'back') ? `url(#${id}-start)` : undefined;
+  const markerEnd = (isDirectional && direction !== 'back') ? `url(#${id}-end)` : undefined;
   const hasIcon = Boolean(data?.icon);
   const isAnimated = isDirectional && hovered;
   const animationDirection =
@@ -540,7 +542,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
           >
             <path d="M2,2 L10,6 L2,10 Z" fill={stroke.stroke} />
           </marker>
-          {direction === 'both' ? (
+          {(direction === 'both' || direction === 'back') ? (
             <marker
               id={`${id}-start`}
               markerWidth="18"

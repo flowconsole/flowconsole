@@ -736,8 +736,23 @@ export function parseJsonLayout(
       (op) => typeof op.op === 'string' && op.op.toLowerCase() === 'b' && Array.isArray(op.points)
     );
     if (bezierOps.length > 0) {
-      pts = bezierOps
-        .flatMap((op) => op.points as [number, number][])
+      // Concatenate bezier segments, skipping the duplicate start point of subsequent ops
+      // (consecutive bezier ops share an endpoint, so naively flatMapping produces
+      // arrays where (length-1)%3 !== 0, which normalizeGraphvizPoints rejects)
+      const rawPoints: [number, number][] = [];
+      bezierOps.forEach((op, opIdx) => {
+        const opPts = op.points as [number, number][];
+        if (opIdx === 0) {
+          rawPoints.push(...opPts);
+        } else {
+          // Skip first point if it matches the last accumulated point (shared endpoint)
+          const last = rawPoints[rawPoints.length - 1];
+          const first = opPts[0];
+          const skip = last && first && Math.abs(last[0] - first[0]) < 0.01 && Math.abs(last[1] - first[1]) < 0.01;
+          rawPoints.push(...(skip ? opPts.slice(1) : opPts));
+        }
+      });
+      pts = rawPoints
         .map(([x, y]) => toPoint(x, y))
         .filter((entry) => Number.isFinite(entry.x) && Number.isFinite(entry.y));
     } else if (typeof e.pos === 'string') {

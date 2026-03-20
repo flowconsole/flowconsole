@@ -175,7 +175,7 @@ export function ArchitectureDiagram({
     let cancelled = false;
 
     const update = async () => {
-      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender, autoLayoutConfig) : modelToRender;
+      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender, autoLayoutConfig ?? model.autoLayoutConfig) : modelToRender;
       if (cancelled) return;
       setNodes(autoResizeParents(withParentAutoResize(baseModel.nodes)));
       setEdges(baseModel.edges);

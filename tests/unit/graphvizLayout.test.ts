@@ -1200,8 +1200,8 @@ describe('graphvizLayout', () => {
       const result = parseJsonLayout(json);
       expect(result.edges.has('edge-multi')).toBe(true);
       const edge = result.edges.get('edge-multi')!;
-      // Should have 8 points from two Bezier ops (4 + 4)
-      expect(edge.points.length).toBe(8);
+      // Should have 7 points from two Bezier ops (4 + 4 - 1 shared endpoint)
+      expect(edge.points.length).toBe(7);
     });
 
     it('concatenates points from all Bezier ops in order', () => {

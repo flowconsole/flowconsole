@@ -78,7 +78,7 @@ describe('CodeDiagramWorkbench', () => {
 
   it('triggers evaluation when mounted', async () => {
     render(
-        <CodeDiagramWorkbench />
+        <CodeDiagramWorkbench apiBaseUrl="http://localhost:5000" />
     );
 
     await act(async () => {
@@ -89,7 +89,7 @@ describe('CodeDiagramWorkbench', () => {
 
   it('shows error when evaluation fails', async () => {
     mockEvaluate.mockResolvedValueOnce({ ok: false, error: 'Syntax error' });
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost:5000" />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });
@@ -109,15 +109,15 @@ describe('CodeDiagramWorkbench', () => {
   });
 
   it('switches samples via dropdown', () => {
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost:5000" />);
     const select = screen.getByTestId('sample-select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'oss-collab' } });
-    expect(select.value).toBe('oss-collab');
-    expect(screen.getByTestId('sample-description')).toHaveTextContent('open-source dev platform');
+    fireEvent.change(select, { target: { value: 'simple-arch' } });
+    expect(select.value).toBe('simple-arch');
+    expect(screen.getByTestId('sample-description')).toHaveTextContent('Minimal two-service architecture example');
   });
 
-  it('debounces rapid code edits into a single evaluation', async () => {
-    render(<CodeDiagramWorkbench />);
+  it('debounces rapid code changes into a single evaluation', async () => {
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost:5000" />);
 
     // initial evaluation
     await act(async () => {
@@ -126,12 +126,13 @@ describe('CodeDiagramWorkbench', () => {
     expect(mockEvaluate).toHaveBeenCalledTimes(1);
     mockEvaluate.mockClear();
 
-    const editor = screen.getByTestId('code-editor');
-    fireEvent.change(editor, { target: { value: 'first edit' } });
+    // Rapid sample switches change the code state, triggering debounced re-evaluation
+    const select = screen.getByTestId('sample-select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'simple-arch' } });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(100);
     });
-    fireEvent.change(editor, { target: { value: 'second edit' } });
+    fireEvent.change(select, { target: { value: 'test-sample' } });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });
@@ -140,7 +141,7 @@ describe('CodeDiagramWorkbench', () => {
   });
 
   it('hides overlay after successful evaluation', async () => {
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost:5000" />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });

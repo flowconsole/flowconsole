@@ -23,6 +23,20 @@ const app = new ReactApp({});
 user.sendsRequest(app, "Load App");
 
     `
+  },
+  {
+    id: 'simple-arch',
+    title: 'Simple Architecture',
+    description:
+      'Minimal two-service architecture example',
+    code: `
+import { RestApi, Postgres } from "@flowconsole/sdk";
+
+const api = new RestApi({ name: "API Service" });
+const db = new Postgres({ name: "PostgreSQL" });
+
+api.getDataFrom(db, "Queries data");
+    `
   }
 ];
 
