@@ -278,6 +278,16 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
 
   const plainId = (id: string) => escapeLabel(id).replace(/-/g, '_');
 
+  /**
+   * Determine chunk size based on child count (LikeC4 pattern):
+   * >11 children → chunks of 4, >4 → chunks of 3, otherwise → chunks of 2
+   */
+  const getChunkSize = (count: number): number => {
+    if (count > 11) return 4;
+    if (count > 4) return 3;
+    return 2;
+  };
+
   const renderCluster = (id: string) => {
     const children = childrenByParent.get(id) ?? [];
     if (!children.length) return;
@@ -288,18 +298,58 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     lines.push(
       `    label="${label}"; margin=20; style="rounded,filled"; color="#1f2a3d"; fillcolor="#0f1625";`
     );
+
+    // Separate sub-clusters from leaf nodes
+    const subClusterIds: string[] = [];
+    const leafIds: string[] = [];
     for (const childId of children) {
       const child = model.nodes.find((n) => n.id === childId);
       if (!child) continue;
       const childHasChildren = (childrenByParent.get(childId)?.length ?? 0) > 0;
       const isContainerLike = child.type === 'container';
-
       if (isContainerLike && childHasChildren) {
-        renderCluster(child.id);
+        subClusterIds.push(childId);
       } else {
-        lines.push(`    "${childId}";`);
+        leafIds.push(childId);
       }
     }
+
+    // Render sub-clusters
+    for (const subId of subClusterIds) {
+      renderCluster(subId);
+    }
+
+    // Apply chunking to leaf nodes for balanced rank placement (LikeC4 pattern)
+    if (leafIds.length > 1) {
+      const chunkSize = getChunkSize(leafIds.length);
+      const chunks: string[][] = [];
+      for (let i = 0; i < leafIds.length; i += chunkSize) {
+        chunks.push(leafIds.slice(i, i + chunkSize));
+      }
+
+      // Create rank=same subgraphs for each chunk
+      const chunkHeads: string[] = [];
+      chunks.forEach((chunk, idx) => {
+        chunkHeads.push(chunk[0]);
+        lines.push(`    subgraph chunk_${clusterName}_${idx} {`);
+        lines.push('      rank=same;');
+        for (const cid of chunk) {
+          lines.push(`      "${cid}";`);
+        }
+        lines.push('    }');
+      });
+
+      // Add invisible edges between chunk head nodes for vertical alignment
+      for (let i = 0; i < chunkHeads.length - 1; i++) {
+        lines.push(`    "${chunkHeads[i]}" -> "${chunkHeads[i + 1]}" [style=invis];`);
+      }
+    } else {
+      // Single or no leaf children — no chunking needed
+      for (const cid of leafIds) {
+        lines.push(`    "${cid}";`);
+      }
+    }
+
     lines.push('  }');
   };
 

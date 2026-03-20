@@ -801,4 +801,155 @@ describe('graphvizLayout', () => {
       expect(dot).toContain('lhead="cluster_outer"');
     });
   });
+
+  describe('child chunking in buildDot', () => {
+    it('creates rank=same subgraphs for clusters with multiple children', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'parent', type: 'container', data: { title: 'Parent' }, position: { x: 0, y: 0 } },
+          { id: 'c1', type: 'element', data: { title: 'C1' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+          { id: 'c2', type: 'element', data: { title: 'C2' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+          { id: 'c3', type: 'element', data: { title: 'C3' }, position: { x: 0, y: 0 }, parentId: 'parent' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // 3 children, chunk size=2 → 2 chunks: [c1,c2], [c3]
+      expect(dot).toContain('subgraph chunk_parent_0');
+      expect(dot).toContain('subgraph chunk_parent_1');
+      expect(dot).toContain('rank=same;');
+    });
+
+    it('uses chunk size 2 for 4 or fewer children', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'c', type: 'element', data: { title: 'C' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'd', type: 'element', data: { title: 'D' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // 4 children, chunk size=2 → chunks: [a,b], [c,d]
+      expect(dot).toContain('subgraph chunk_p_0');
+      expect(dot).toContain('subgraph chunk_p_1');
+      // Exactly 2 chunks, no chunk_p_2
+      expect(dot).not.toContain('subgraph chunk_p_2');
+    });
+
+    it('uses chunk size 3 for 5-11 children', () => {
+      const children = Array.from({ length: 6 }, (_, i) => ({
+        id: `n${i}`, type: 'element', data: { title: `N${i}` }, position: { x: 0, y: 0 }, parentId: 'p',
+      }));
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          ...children,
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // 6 children, chunk size=3 → chunks: [n0,n1,n2], [n3,n4,n5]
+      expect(dot).toContain('subgraph chunk_p_0');
+      expect(dot).toContain('subgraph chunk_p_1');
+      expect(dot).not.toContain('subgraph chunk_p_2');
+    });
+
+    it('uses chunk size 4 for more than 11 children', () => {
+      const children = Array.from({ length: 12 }, (_, i) => ({
+        id: `n${i}`, type: 'element', data: { title: `N${i}` }, position: { x: 0, y: 0 }, parentId: 'p',
+      }));
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          ...children,
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // 12 children, chunk size=4 → chunks: [0-3], [4-7], [8-11]
+      expect(dot).toContain('subgraph chunk_p_0');
+      expect(dot).toContain('subgraph chunk_p_1');
+      expect(dot).toContain('subgraph chunk_p_2');
+      expect(dot).not.toContain('subgraph chunk_p_3');
+    });
+
+    it('adds invisible edges between chunk head nodes', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'b', type: 'element', data: { title: 'B' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'c', type: 'element', data: { title: 'C' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'd', type: 'element', data: { title: 'D' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'e', type: 'element', data: { title: 'E' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // 5 children, chunk size=3 → chunks: [a,b,c], [d,e]
+      // Invisible edge between chunk heads: a → d
+      expect(dot).toContain('"a" -> "d" [style=invis]');
+    });
+
+    it('does not chunk single child in cluster', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'only', type: 'element', data: { title: 'Only' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Single child — no chunking
+      expect(dot).not.toContain('subgraph chunk_');
+      expect(dot).not.toContain('rank=same');
+      expect(dot).toContain('"only";');
+    });
+
+    it('does not apply chunking to top-level nodes', () => {
+      const nodes = Array.from({ length: 6 }, (_, i) => ({
+        id: `top${i}`, type: 'element', data: { title: `Top${i}` }, position: { x: 0, y: 0 },
+      }));
+      const model = makeModel({ nodes: nodes as any });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Top-level nodes should not have chunk subgraphs
+      expect(dot).not.toContain('subgraph chunk_');
+      expect(dot).not.toContain('rank=same');
+    });
+
+    it('chunks leaf children but still renders sub-clusters normally', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          { id: 'sub', type: 'container', data: { title: 'Sub' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'sub-child', type: 'element', data: { title: 'SubChild' }, position: { x: 0, y: 0 }, parentId: 'sub' },
+          { id: 'leaf1', type: 'element', data: { title: 'Leaf1' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'leaf2', type: 'element', data: { title: 'Leaf2' }, position: { x: 0, y: 0 }, parentId: 'p' },
+          { id: 'leaf3', type: 'element', data: { title: 'Leaf3' }, position: { x: 0, y: 0 }, parentId: 'p' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // Sub-cluster rendered normally
+      expect(dot).toContain('subgraph cluster_sub');
+      // Leaf children chunked (3 leaves, chunk size=2 → 2 chunks)
+      expect(dot).toContain('subgraph chunk_p_0');
+      expect(dot).toContain('subgraph chunk_p_1');
+      // Invisible edge between chunk heads
+      expect(dot).toContain('"leaf1" -> "leaf3" [style=invis]');
+    });
+
+    it('invisible edges have correct head nodes for multi-chunk layout', () => {
+      const children = Array.from({ length: 9 }, (_, i) => ({
+        id: `n${i}`, type: 'element', data: { title: `N${i}` }, position: { x: 0, y: 0 }, parentId: 'p',
+      }));
+      const model = makeModel({
+        nodes: [
+          { id: 'p', type: 'container', data: { title: 'P' }, position: { x: 0, y: 0 } },
+          ...children,
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // 9 children, chunk size=3 → chunks: [n0,n1,n2], [n3,n4,n5], [n6,n7,n8]
+      // Invisible edges: n0→n3, n3→n6
+      expect(dot).toContain('"n0" -> "n3" [style=invis]');
+      expect(dot).toContain('"n3" -> "n6" [style=invis]');
+    });
+  });
 });
