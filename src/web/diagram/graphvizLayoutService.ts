@@ -1,84 +1,393 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import graphviz from 'graphviz-wasm';
 import { Position } from '@xyflow/react';
-import type { ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge } from './types';
+import type { ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, AutoLayoutConfig } from './types';
+import { defaultAutoLayoutConfig } from './types';
 
-const DPI = 96;
-const PT_TO_INCH = 1 / 72;
+const DPI = 72; // LikeC4-compatible: Graphviz native 72 DPI (1 point = 1 pixel)
 const GRAPH_CLUSTER_SPACE = 50.1; // px, same as GraphClusterSpace
 const DEFAULT_NODESEP = 110;
 const DEFAULT_RANKSEP = 120;
 const DEFAULT_PAD = 15;
 const CLUSTER_MARGIN = 36;
+const CLUSTER_MARGIN_MULTI = 40; // pattern: 40px for clusters with multiple children
+const CLUSTER_MARGIN_SINGLE = 32; // pattern: 32px for clusters with single child
 const CONTENT_PADDING = 20;
 
 function escapeLabel(text: string) {
-  return text.replace(/"/g, '\\"');
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
 function pxToInch(px: number) {
   return px / DPI;
 }
 
-function pointToPx(pt: number) {
-  return pt * PT_TO_INCH * DPI;
-}
+/** Graphviz points to pixels. At DPI=72, 1 point = 1 pixel (identity). */
+const pointToPx = (pt: number) => pt;
 
 function inchToPx(inch: number) {
   return inch * DPI;
 }
 
-function estimateSize(
+/** Sanitize an ID for use as a Graphviz cluster identifier. @internal Exported for testing */
+export function sanitizeId(id: string): string {
+  return id.replace(/[^a-zA-Z0-9_]/g, '_');
+}
+
+/** Shape-specific base dimensions (width, height in px) */
+const SHAPE_BASE_SIZES: Record<string, { width: number; height: number }> = {
+  person: { width: 180, height: 200 },
+  database: { width: 200, height: 160 },
+  queue: { width: 240, height: 130 },
+  storage: { width: 200, height: 140 },
+  service: { width: 240, height: 120 },
+  boundary: { width: 280, height: 140 },
+  container: { width: 280, height: 140 },
+};
+const DEFAULT_BASE_SIZE = { width: 240, height: 120 };
+
+/** Extra px added when an icon is present */
+const ICON_WIDTH_EXTRA = 36;
+const ICON_HEIGHT_EXTRA = 24;
+
+/** Extra padding for special shapes (pattern: queue, mobile get extra) */
+const SHAPE_EXTRA_PADDING: Record<string, { width: number; height: number }> = {
+  queue: { width: 20, height: 10 },
+  person: { width: 0, height: 30 },
+  database: { width: 0, height: 20 },
+  storage: { width: 10, height: 10 },
+};
+
+/** pattern: character limits based on node width category (xs/sm=30, md=40, lg/xl=55) */
+function getCharLimit(width: number): number {
+  if (width <= 180) return 30;
+  if (width <= 240) return 40;
+  return 55;
+}
+
+/** @internal Exported for testing */
+export function estimateSize(
   node: ArchitectureDiagramModel['nodes'][number],
   options?: { allowStyledSize?: boolean }
 ) {
   const allowStyledSize = options?.allowStyledSize ?? true;
-  const title = 'title' in node.data ? node.data.title ?? '' : '';
-  const subtitle = node.data?.subtitle ?? '';
-  const desc = node.data?.description ?? '';
-  const tags = Array.isArray(node.data?.tags) ? (node.data?.tags as string[]) : [];
-  const badge = node.data?.badge ?? '';
+  const data = node.data;
+  const title = 'title' in data ? data.title ?? '' : '';
+  const subtitle = data?.subtitle ?? '';
+  const desc = data?.description ?? '';
+  const technology = (data as any)?.technology ?? '';
+  const tags = Array.isArray(data?.tags) ? (data?.tags as string[]) : [];
+  const badge = data?.badge ?? '';
 
-  const baseWidth =
-    (allowStyledSize && typeof node.style?.width === 'number' && node.style.width) ||
-    node.width || 240;
-  const baseHeight = 90;
+  // Determine shape from node data
+  const shape = ('shape' in data && data.shape) ? String(data.shape) : (node.type === 'container' ? 'container' : 'service');
+  const baseSize = SHAPE_BASE_SIZES[shape] ?? DEFAULT_BASE_SIZE;
 
-  const textWidth = Math.max(title.length * 7, subtitle.length * 6, 120);
-  const tagsWidth = tags.length ? Math.max(tags.join(',').length * 5, tags.length * 60) : 0;
-  const badgeWidth = badge ? Math.max(String(badge).length * 7 + 32, 80) : 0;
-  const width = Math.max(baseWidth, textWidth, tagsWidth, badgeWidth) + CONTENT_PADDING;
+  // Start from styled/node width or shape-specific base
+  const styledWidth = (allowStyledSize && typeof node.style?.width === 'number' && node.style.width) || node.width;
+  let width = styledWidth || baseSize.width;
+  let height = baseSize.height;
 
+  // Icon awareness: left/right icons add width, top/bottom icons add height
+  const hasIcon = 'icon' in data && !!data.icon;
+  if (hasIcon) {
+    width += ICON_WIDTH_EXTRA;
+    height += ICON_HEIGHT_EXTRA;
+  }
+
+  // Text wrapping estimation with size-dependent character limits
+  const charLimit = getCharLimit(width);
   const lineHeight = 18;
-  const descLines = desc ? Math.ceil(desc.length / 40) : 0;
+
+  const titleLines = title ? Math.ceil(title.length / charLimit) : 0;
+  const subtitleLines = subtitle ? Math.ceil(subtitle.length / charLimit) : 0;
+  const descLines = desc ? Math.ceil(desc.length / charLimit) : 0;
+  const techLines = technology ? Math.ceil(technology.length / charLimit) : 0;
   const tagsLines = tags.length ? Math.ceil(tags.length / 3) : 0;
-  const height = baseHeight + descLines * lineHeight + tagsLines * lineHeight + CONTENT_PADDING / 2;
+
+  // Text width consideration
+  const titleWidth = title ? Math.min(title.length, charLimit) * 8 : 0;
+  const subtitleWidth = subtitle ? Math.min(subtitle.length, charLimit) * 7 : 0;
+  const badgeWidth = badge ? Math.max(String(badge).length * 7 + 32, 80) : 0;
+  const tagsWidth = tags.length ? Math.max(tags.join(',').length * 5, tags.length * 60) : 0;
+
+  width = Math.max(width, titleWidth + (hasIcon ? ICON_WIDTH_EXTRA : 0), subtitleWidth, tagsWidth, badgeWidth) + CONTENT_PADDING;
+
+  // Height from text content (title is included in base height, so subtract 1)
+  const extraTextLines = Math.max(0, titleLines - 1) + subtitleLines + descLines + techLines + tagsLines;
+  height += extraTextLines * lineHeight;
+
+  // Badge adds some height
+  if (badge) {
+    height += lineHeight;
+  }
+
+  // Special shape padding (LikeC4 pattern)
+  const extraPad = SHAPE_EXTRA_PADDING[shape];
+  if (extraPad) {
+    width += extraPad.width;
+    height += extraPad.height;
+  }
 
   return { width, height };
 }
 
-function buildDot(model: ArchitectureDiagramModel) {
+/**
+ * Find the first leaf node (non-cluster) inside a cluster, recursing into sub-clusters.
+ * pattern: compound edges route through a leaf node with lhead/ltail.
+ */
+function findLeafNode(
+  id: string,
+  childrenByParent: Map<string | undefined, string[]>,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>,
+  visited = new Set<string>()
+): string | undefined {
+  if (visited.has(id)) return undefined;
+  visited.add(id);
+  const children = childrenByParent.get(id);
+  if (!children?.length) return undefined;
+  for (const childId of children) {
+    const child = nodeById.get(childId);
+    if (!child) continue;
+    const childChildren = childrenByParent.get(childId)?.length ?? 0;
+    const isCluster = child.type === 'container' && childChildren > 0;
+    if (!isCluster) return childId;
+    // Recurse into sub-cluster
+    const leaf = findLeafNode(childId, childrenByParent, nodeById, visited);
+    if (leaf) return leaf;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve an edge endpoint for compound edge routing.
+ * If the endpoint is a cluster, returns the leaf node to physically connect to
+ * and the cluster name for lhead/ltail.
+ * @internal Exported for testing
+ */
+export function edgeEndpoint(
+  id: string,
+  childrenByParent: Map<string | undefined, string[]>,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>,
+  toClusterName: (id: string) => string
+): { physicalNode: string; clusterAttr?: string } {
+  const node = nodeById.get(id);
+  if (!node) return { physicalNode: id };
+  const childCount = childrenByParent.get(id)?.length ?? 0;
+  const isCluster = node.type === 'container' && childCount > 0;
+  if (!isCluster) return { physicalNode: id };
+
+  const leaf = findLeafNode(id, childrenByParent, nodeById);
+  if (!leaf) return { physicalNode: id };
+
+  return {
+    physicalNode: leaf,
+    clusterAttr: `cluster_${toClusterName(id)}`,
+  };
+}
+
+/**
+ * Get the ancestor chain from a node to its root.
+ * Returns [id, parentId, grandparentId, ...]
+ */
+function getAncestorChain(
+  id: string,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): string[] {
+  const chain: string[] = [id];
+  const visited = new Set<string>([id]);
+  let current = nodeById.get(id);
+  while (current?.parentId && !visited.has(current.parentId)) {
+    chain.push(current.parentId);
+    visited.add(current.parentId);
+    current = nodeById.get(current.parentId);
+  }
+  return chain;
+}
+
+/**
+ * Compute hierarchy distance between two nodes via their lowest common ancestor.
+ * pattern: count hops through LCA in the parent tree.
+ * @internal Exported for testing
+ */
+export function hierarchyDistance(
+  a: string,
+  b: string,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): number {
+  if (a === b) return 0;
+  const chainA = getAncestorChain(a, nodeById);
+  const chainB = getAncestorChain(b, nodeById);
+  const setA = new Set(chainA);
+  let lcaIndexB = -1;
+  for (let i = 0; i < chainB.length; i++) {
+    if (setA.has(chainB[i])) {
+      lcaIndexB = i;
+      break;
+    }
+  }
+  if (lcaIndexB === -1) return chainA.length + chainB.length;
+  const lca = chainB[lcaIndexB];
+  const lcaIndexA = chainA.indexOf(lca);
+  return lcaIndexA + lcaIndexB;
+}
+
+/**
+ * Compute nesting depth of a node (0 = top-level, 1 = inside one cluster, etc.)
+ */
+function computeDepth(
+  id: string,
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): number {
+  let depth = 0;
+  const visited = new Set<string>([id]);
+  let current = nodeById.get(id);
+  while (current?.parentId && !visited.has(current.parentId)) {
+    visited.add(current.parentId);
+    depth++;
+    current = nodeById.get(current.parentId);
+  }
+  return depth;
+}
+
+/**
+ * pattern: depth-based cluster colors.
+ * Returns fillcolor and border color adjusted by nesting depth.
+ * Deeper clusters get slightly lighter fill and slightly brighter border.
+ * @internal Exported for testing
+ */
+export function clusterColorsByDepth(depth: number): { fillcolor: string; color: string } {
+  // Base: fillcolor=#0f1625, color=#1f2a3d
+  // Lighten fillcolor and color as depth increases
+  const baseFillR = 0x0f, baseFillG = 0x16, baseFillB = 0x25;
+  const baseColorR = 0x1f, baseColorG = 0x2a, baseColorB = 0x3d;
+  const step = 8; // lightness step per depth level
+  const clampC = (v: number) => Math.min(255, v);
+  const toHex = (r: number, g: number, b: number) =>
+    '#' + [r, g, b].map(c => clampC(c).toString(16).padStart(2, '0')).join('');
+  const fillcolor = toHex(
+    baseFillR + depth * step,
+    baseFillG + depth * step,
+    baseFillB + depth * step
+  );
+  const color = toHex(
+    baseColorR + depth * step,
+    baseColorG + depth * step,
+    baseColorB + depth * step
+  );
+  return { fillcolor, color };
+}
+
+/**
+ * pattern: assign group attributes to nodes within clusters.
+ * For clusters with 2-8 internal edges, assigns `group` attribute to
+ * source and target nodes so Graphviz co-locates related nodes.
+ * Max 4 groups per cluster.
+ * @internal Exported for testing
+ */
+export function assignGroups(
+  edges: ArchitectureDiagramModel['edges'],
+  nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
+): Map<string, string> {
+  const nodeGroups = new Map<string, string>();
+
+  // Collect internal edges per container
+  const edgesByContainer = new Map<string, { source: string; target: string }[]>();
+  for (const edge of edges) {
+    const sn = nodeById.get(edge.source);
+    const tn = nodeById.get(edge.target);
+    if (sn?.parentId && sn.parentId === tn?.parentId) {
+      const list = edgesByContainer.get(sn.parentId) ?? [];
+      list.push({ source: edge.source, target: edge.target });
+      edgesByContainer.set(sn.parentId, list);
+    }
+  }
+
+  for (const [containerId, internalEdges] of edgesByContainer) {
+    if (internalEdges.length < 2 || internalEdges.length > 8) continue;
+
+    // Build connected components using union-find for grouping
+    const parent = new Map<string, string>();
+    const find = (x: string): string => {
+      if (!parent.has(x)) parent.set(x, x);
+      if (parent.get(x) !== x) parent.set(x, find(parent.get(x)!));
+      return parent.get(x)!;
+    };
+    const union = (a: string, b: string) => {
+      parent.set(find(a), find(b));
+    };
+
+    for (const { source, target } of internalEdges) {
+      union(source, target);
+    }
+
+    // Collect groups
+    const groups = new Map<string, string[]>();
+    const allNodes = new Set<string>();
+    for (const { source, target } of internalEdges) {
+      allNodes.add(source);
+      allNodes.add(target);
+    }
+    for (const nodeId of allNodes) {
+      const root = find(nodeId);
+      const list = groups.get(root) ?? [];
+      list.push(nodeId);
+      groups.set(root, list);
+    }
+
+    // Assign group names (max 4 groups per cluster)
+    let groupIdx = 0;
+    for (const [, members] of groups) {
+      if (groupIdx >= 4) break;
+      const groupName = `${containerId}_g${groupIdx}`;
+      for (const nodeId of members) {
+        nodeGroups.set(nodeId, groupName);
+      }
+      groupIdx++;
+    }
+  }
+
+  return nodeGroups;
+}
+
+/** @internal Exported for testing */
+export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConfig) {
   const lines: string[] = [];
+  const direction = config.direction ?? defaultAutoLayoutConfig.direction;
+  const nodeSep = config.nodeSep ?? DEFAULT_NODESEP;
+  const rankSep = config.rankSep ?? DEFAULT_RANKSEP;
+  const isHorizontal = direction === 'LR' || direction === 'RL';
+
+  // pattern: labeljust/labelloc depend on direction
+  const labeljust = isHorizontal ? 'l' : 'c';
+  const labelloc = 't';
+
   lines.push('digraph G {');
   lines.push(
-    `  graph [layout=dot, rankdir=LR, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, sep=0.5, esep=0.3, nodesep=${pxToInch(
-      DEFAULT_NODESEP
-    ).toFixed(3)}, ranksep=${pxToInch(DEFAULT_RANKSEP).toFixed(3)}, pad=${pxToInch(
+    `  graph [layout=dot, rankdir=${direction}, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, TBbalance=min, newrank=true, clusterrank=global, labeljust=${labeljust}, labelloc=${labelloc}, sep=0.5, esep=0.3, nodesep=${pxToInch(
+      nodeSep
+    ).toFixed(3)}, ranksep=${pxToInch(rankSep).toFixed(3)}, pad=${pxToInch(
       DEFAULT_PAD
-    ).toFixed(3)}, margin=${pxToInch(GRAPH_CLUSTER_SPACE + CLUSTER_MARGIN).toFixed(3)}]`
+    ).toFixed(3)}, margin=${pxToInch(GRAPH_CLUSTER_SPACE + CLUSTER_MARGIN).toFixed(3)}, fontname="Arial", fontsize=14]`
   );
   lines.push(
-    '  node [shape=rect, style="rounded,filled", fillcolor="#0f1625", color="#1f2a3d", penwidth=0, fontname="Arial"];'
+    '  node [shape=rect, style="rounded,filled", fillcolor="#0f1625", color="#1f2a3d", penwidth=0, fontname="Arial", fontsize=14];'
   );
-  lines.push('  edge [color="#3b82f6", penwidth=2, arrowsize=0.75, fontname="Arial"];');
+  lines.push('  edge [color="#3b82f6", penwidth=2, arrowsize=0.75, fontname="Arial", fontsize=12];');
 
+  // Build parent-children index
   const childrenByParent = new Map<string | undefined, string[]>();
+  const nodeById = new Map<string, ArchitectureDiagramModel['nodes'][number]>();
   for (const node of model.nodes) {
+    nodeById.set(node.id, node);
     const parent = node.parentId;
     const list = childrenByParent.get(parent) ?? [];
     list.push(node.id);
     childrenByParent.set(parent, list);
   }
+
+  // Compute node groups for edge grouping (LikeC4 pattern)
+  const nodeGroups = assignGroups(model.edges, nodeById);
 
   for (const node of model.nodes) {
     const childCount = childrenByParent.get(node.id)?.length ?? 0;
@@ -91,37 +400,97 @@ function buildDot(model: ArchitectureDiagramModel) {
     const { width: estW, height: estH } = estimateSize(node, { allowStyledSize });
     const widthIn = pxToInch(estW);
     const heightIn = pxToInch(estH);
+    const groupAttr = nodeGroups.has(node.id) ? `, group="${nodeGroups.get(node.id)}"` : '';
     lines.push(
       `  "${node.id}" [label="${escapeLabel(label)}", width=${widthIn.toFixed(
         3
-      )}, height=${heightIn.toFixed(3)}];`
+      )}, height=${heightIn.toFixed(3)}${groupAttr}];`
     );
   }
 
-  const plainId = (id: string) => escapeLabel(id).replace(/-/g, '_');
+  /**
+   * Determine chunk size based on child count (LikeC4 pattern):
+   * >11 children → chunks of 4, >4 → chunks of 3, otherwise → chunks of 2
+   */
+  const getChunkSize = (count: number): number => {
+    if (count > 11) return 4;
+    if (count > 4) return 3;
+    return 2;
+  };
 
+  const renderedClusters = new Set<string>();
   const renderCluster = (id: string) => {
+    if (renderedClusters.has(id)) return;
+    renderedClusters.add(id);
     const children = childrenByParent.get(id) ?? [];
     if (!children.length) return;
-    const node = model.nodes.find((n) => n.id === id);
+    const node = nodeById.get(id);
     const label = node && 'title' in node.data ? escapeLabel(node.data.title) : id;
-    const clusterName = plainId(id);
+    const clusterName = sanitizeId(id);
+
+    // pattern: dynamic margin based on child count
+    const clusterMargin = children.length > 1 ? CLUSTER_MARGIN_MULTI : CLUSTER_MARGIN_SINGLE;
+
+    // pattern: depth-based cluster colors
+    const depth = computeDepth(id, nodeById);
+    const colors = clusterColorsByDepth(depth);
+
     lines.push(`  subgraph cluster_${clusterName} {`);
     lines.push(
-      `    label="${label}"; margin=20; style="rounded,filled"; color="#1f2a3d"; fillcolor="#0f1625";`
+      `    label="${label}"; margin=${clusterMargin}; style="rounded,filled"; color="${colors.color}"; fillcolor="${colors.fillcolor}";`
     );
+
+    // Separate sub-clusters from leaf nodes
+    const subClusterIds: string[] = [];
+    const leafIds: string[] = [];
     for (const childId of children) {
-      const child = model.nodes.find((n) => n.id === childId);
+      const child = nodeById.get(childId);
       if (!child) continue;
       const childHasChildren = (childrenByParent.get(childId)?.length ?? 0) > 0;
       const isContainerLike = child.type === 'container';
-
       if (isContainerLike && childHasChildren) {
-        renderCluster(child.id);
+        subClusterIds.push(childId);
       } else {
-        lines.push(`    "${childId}";`);
+        leafIds.push(childId);
       }
     }
+
+    // Render sub-clusters
+    for (const subId of subClusterIds) {
+      renderCluster(subId);
+    }
+
+    // Apply chunking to leaf nodes for balanced rank placement (LikeC4 pattern)
+    if (leafIds.length > 1) {
+      const chunkSize = getChunkSize(leafIds.length);
+      const chunks: string[][] = [];
+      for (let i = 0; i < leafIds.length; i += chunkSize) {
+        chunks.push(leafIds.slice(i, i + chunkSize));
+      }
+
+      // Create rank=same subgraphs for each chunk
+      const chunkHeads: string[] = [];
+      chunks.forEach((chunk, idx) => {
+        chunkHeads.push(chunk[0]);
+        lines.push(`    subgraph chunk_${clusterName}_${idx} {`);
+        lines.push('      rank=same;');
+        for (const cid of chunk) {
+          lines.push(`      "${cid}";`);
+        }
+        lines.push('    }');
+      });
+
+      // Add invisible edges between chunk head nodes for vertical alignment
+      for (let i = 0; i < chunkHeads.length - 1; i++) {
+        lines.push(`    "${chunkHeads[i]}" -> "${chunkHeads[i + 1]}" [style=invis];`);
+      }
+    } else {
+      // Single or no leaf children — no chunking needed
+      for (const cid of leafIds) {
+        lines.push(`    "${cid}";`);
+      }
+    }
+
     lines.push('  }');
   };
 
@@ -133,14 +502,89 @@ function buildDot(model: ArchitectureDiagramModel) {
     }
   }
 
+  // Pre-compute hierarchy distances and max distance for weight calculation (LikeC4 pattern)
+  const edgeDistances = new Map<string, number>();
+  let maxHierarchyDist = 0;
   for (const edge of model.edges) {
-    const attrs = [
-      `id="${escapeLabel(edge.id)}"`,
-      edge.data?.label ? `label="${escapeLabel(edge.data.label)}"` : undefined,
-    ]
-      .filter(Boolean)
-      .join(', ');
-    lines.push(`  "${edge.source}" -> "${edge.target}" [${attrs}];`);
+    const dist = hierarchyDistance(edge.source, edge.target, nodeById);
+    edgeDistances.set(edge.id, dist);
+    maxHierarchyDist = Math.max(maxHierarchyDist, dist);
+  }
+
+  // Count edges within each container for minlen optimization
+  const edgesPerContainer = new Map<string, number>();
+  for (const edge of model.edges) {
+    const sn = nodeById.get(edge.source);
+    const tn = nodeById.get(edge.target);
+    if (sn?.parentId && sn.parentId === tn?.parentId) {
+      edgesPerContainer.set(sn.parentId, (edgesPerContainer.get(sn.parentId) ?? 0) + 1);
+    }
+  }
+
+  // Compound edge routing with weight, direction, and constraint system
+  for (const edge of model.edges) {
+    const src = edgeEndpoint(edge.source, childrenByParent, nodeById, sanitizeId);
+    const tgt = edgeEndpoint(edge.target, childrenByParent, nodeById, sanitizeId);
+    const isCompound = !!(src.clusterAttr || tgt.clusterAttr);
+
+    const attrs: string[] = [`id="${escapeLabel(edge.id)}"`];
+
+    // pattern: use xlabel for compound edges to prevent label collision with cluster border
+    if (edge.data?.label) {
+      const labelAttr = isCompound ? 'xlabel' : 'label';
+      attrs.push(`${labelAttr}="${escapeLabel(edge.data.label)}"`);
+    }
+
+    if (src.clusterAttr) {
+      attrs.push(`ltail="${src.clusterAttr}"`);
+    }
+    if (tgt.clusterAttr) {
+      attrs.push(`lhead="${tgt.clusterAttr}"`);
+    }
+
+    // Edge weight based on hierarchy distance (LikeC4 pattern):
+    // closer nodes get higher weight, pulling them into same rank
+    const dist = edgeDistances.get(edge.id) ?? 0;
+    if (maxHierarchyDist > 0) {
+      const weight = maxHierarchyDist - dist + 1;
+      attrs.push(`weight=${weight}`);
+    }
+
+    // Edge direction: dir=back for back edges, dir=both for bidirectional, dir=none for directionless
+    const edgeDir = edge.data?.direction ?? 'forward';
+    if (edgeDir === 'both') {
+      attrs.push('dir=both');
+    } else if (edgeDir === 'none') {
+      attrs.push('dir=none');
+    } else if (edgeDir === 'back') {
+      attrs.push('dir=back');
+    }
+
+    // Constraint handling (LikeC4 pattern):
+    // constraint=false for 'none' direction edges or cross-cluster with no hierarchy
+    if (edgeDir === 'none') {
+      attrs.push('constraint=false');
+    } else {
+      const chainA = getAncestorChain(edge.source, nodeById);
+      const chainBSet = new Set(getAncestorChain(edge.target, nodeById));
+      const hasLCA = chainA.some(id => chainBSet.has(id));
+      const sNode = nodeById.get(edge.source);
+      const tNode = nodeById.get(edge.target);
+      if (!hasLCA && sNode?.parentId !== tNode?.parentId) {
+        attrs.push('constraint=false');
+      }
+    }
+
+    // minlen=0 when edge is the sole connection within a container (LikeC4 optimization)
+    const srcNode = nodeById.get(edge.source);
+    const tgtNode = nodeById.get(edge.target);
+    if (srcNode?.parentId && srcNode.parentId === tgtNode?.parentId) {
+      if ((edgesPerContainer.get(srcNode.parentId) ?? 0) === 1) {
+        attrs.push('minlen=0');
+      }
+    }
+
+    lines.push(`  "${src.physicalNode}" -> "${tgt.physicalNode}" [${attrs.join(', ')}];`);
   }
 
   lines.push('}');
@@ -206,11 +650,42 @@ function anchorFromPoint(
   };
 }
 
-function parseJsonLayout(json: string): LayoutResult {
+/**
+ * Recursively extract all objects (nodes and clusters) from Graphviz JSON,
+ * handling both flat and potentially nested structures.
+ */
+function extractAllObjects(json: any): any[] {
+  const result: any[] = [];
+  const queue: any[] = [...(json?.objects ?? [])];
+  let qi = 0;
+  while (qi < queue.length) {
+    const obj = queue[qi++];
+    if (!obj || typeof obj !== 'object') continue;
+    result.push(obj);
+    // Handle nested subgraph objects (non-standard but defensive)
+    if (Array.isArray(obj.subgraphs)) {
+      for (const sub of obj.subgraphs) {
+        if (typeof sub === 'object' && sub !== null && sub.name) {
+          queue.push(sub);
+        }
+      }
+    }
+    if (Array.isArray(obj.objects)) {
+      queue.push(...obj.objects);
+    }
+  }
+  return result;
+}
+
+/** @internal Exported for testing */
+export function parseJsonLayout(
+  json: string,
+  options?: { clusterIdMap?: Map<string, string> }
+): LayoutResult {
   const j = JSON.parse(json) as any;
   const nodeEntries = new Map<string, LayoutEntry>();
   const edgeEntries = new Map<string, EdgeLayoutEntry>();
-  const objects: any[] = j?.objects ?? [];
+  const objects = extractAllObjects(j);
   const edgeObjects: any[] = j?.edges ?? [];
   const graphBb = j.bb ? j.bb.split(',').map((p: string) => pointToPx(parseFloat(p))) : [0, 0, 0, 0];
   const graphHeight = graphBb.length === 4 ? graphBb[3] - graphBb[1] : 0;
@@ -225,8 +700,10 @@ function parseJsonLayout(json: string): LayoutResult {
       const yTop = graphHeight ? graphHeight - y2p : y1p;
       const entry = { x: x1p, y: yTop, width, height };
       nodeEntries.set(id, entry);
-      const originalId = id.replace(/_/g, '-');
-      if (originalId !== id) {
+      // Use cluster ID mapping for robust reverse lookup
+      const clusterIdMap = options?.clusterIdMap;
+      const originalId = clusterIdMap?.get(id);
+      if (originalId && originalId !== id) {
         nodeEntries.set(originalId, entry);
       }
       continue;
@@ -255,11 +732,28 @@ function parseJsonLayout(json: string): LayoutResult {
     const drawOps: Array<{ op?: string; points?: [number, number][] }> = Array.isArray(e._draw_)
       ? (e._draw_ as Array<{ op?: string; points?: [number, number][] }>)
       : [];
-    const splineOp = drawOps.find(
+    // Collect ALL Bezier operations for multi-segment edge splines (not just first)
+    const bezierOps = drawOps.filter(
       (op) => typeof op.op === 'string' && op.op.toLowerCase() === 'b' && Array.isArray(op.points)
     );
-    if (splineOp?.points?.length) {
-      pts = splineOp.points
+    if (bezierOps.length > 0) {
+      // Concatenate bezier segments, skipping the duplicate start point of subsequent ops
+      // (consecutive bezier ops share an endpoint, so naively flatMapping produces
+      // arrays where (length-1)%3 !== 0, which normalizeGraphvizPoints rejects)
+      const rawPoints: [number, number][] = [];
+      bezierOps.forEach((op, opIdx) => {
+        const opPts = op.points as [number, number][];
+        if (opIdx === 0) {
+          rawPoints.push(...opPts);
+        } else {
+          // Skip first point if it matches the last accumulated point (shared endpoint)
+          const last = rawPoints[rawPoints.length - 1];
+          const first = opPts[0];
+          const skip = last && first && Math.abs(last[0] - first[0]) < 0.01 && Math.abs(last[1] - first[1]) < 0.01;
+          rawPoints.push(...(skip ? opPts.slice(1) : opPts));
+        }
+      });
+      pts = rawPoints
         .map(([x, y]) => toPoint(x, y))
         .filter((entry) => Number.isFinite(entry.x) && Number.isFinite(entry.y));
     } else if (typeof e.pos === 'string') {
@@ -281,7 +775,23 @@ function parseJsonLayout(json: string): LayoutResult {
     }
 
     let label: { x: number; y: number } | undefined;
-    if (typeof e.lp === 'string') {
+    // Parse _ldraw_ ops for more precise label positioning (pattern: iterate text draw ops with font size tracking)
+    const ldrawOps: any[] = Array.isArray(e._ldraw_) ? e._ldraw_ : [];
+    let fontSize = 14;
+    for (const op of ldrawOps) {
+      if (op.op === 'F' && typeof op.size === 'number') {
+        fontSize = op.size;
+      }
+      if (op.op === 'T' && Array.isArray(op.pt) && op.pt.length >= 2) {
+        const tx = pointToPx(op.pt[0]);
+        const rawTy = pointToPx(op.pt[1]);
+        const ty = graphHeight ? graphHeight - rawTy : rawTy;
+        // Adjust from baseline to approximate center
+        label = { x: tx, y: ty - fontSize * 0.5 };
+      }
+    }
+    // Fall back to lp (label position) if _ldraw_ didn't provide a position
+    if (!label && typeof e.lp === 'string') {
       const [lx, ly] = e.lp.split(',').map((p: string) => pointToPx(parseFloat(p)));
       const y = graphHeight ? graphHeight - ly : ly;
       label = { x: lx, y };
@@ -308,7 +818,7 @@ function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): Arc
     return {
       ...node,
       position,
-      style: { ...node.style, width: l.width, height: node.type == "container" ? l.height+ 20 : '' },
+      style: { ...node.style, width: l.width, height: node.type === "container" ? l.height + 20 : l.height },
     };
   });
 
@@ -334,20 +844,38 @@ function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): Arc
     };
   });
 
-  return { nodes, edges };
+  return { ...model, nodes, edges };
 }
 
-let loaded = false;
+let wasmPromise: Promise<void> | null = null;
 async function ensureWasm() {
-  if (loaded) return;
-  await graphviz.loadWASM();
-  loaded = true;
+  if (!wasmPromise) {
+    wasmPromise = graphviz.loadWASM().catch((err) => {
+      wasmPromise = null;
+      throw err;
+    });
+  }
+  await wasmPromise;
 }
 
-export async function layoutWithGraphviz(model: ArchitectureDiagramModel): Promise<ArchitectureDiagramModel> {
+export async function layoutWithGraphviz(
+  model: ArchitectureDiagramModel,
+  config?: AutoLayoutConfig
+): Promise<ArchitectureDiagramModel> {
   await ensureWasm();
-  const dot = buildDot(model);
+  const effectiveConfig = config ?? model.autoLayoutConfig ?? defaultAutoLayoutConfig;
+  const dot = buildDot(model, effectiveConfig);
   const json = graphviz.layout(dot, 'json', 'dot');
-  const parsed = parseJsonLayout(json);
+  // Build cluster ID mapping for robust reverse lookup during parsing
+  const clusterIdMap = new Map<string, string>();
+  for (const node of model.nodes) {
+    const sanitized = sanitizeId(node.id);
+    const existing = clusterIdMap.get(sanitized);
+    if (existing && existing !== node.id) {
+      console.warn(`sanitizeId collision: "${existing}" and "${node.id}" both map to "${sanitized}"`);
+    }
+    clusterIdMap.set(sanitized, node.id);
+  }
+  const parsed = parseJsonLayout(json, { clusterIdMap });
   return applyLayout(model, parsed);
 }

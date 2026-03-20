@@ -45,7 +45,7 @@ export type RelationshipEdgeData = {
   kind?: RelationshipKind;
   muted?: boolean;
   hovered?: boolean;
-  direction?: 'forward' | 'both' | 'none';
+  direction?: 'forward' | 'back' | 'both' | 'none';
   icon?: string;
   labelSide?: 'above' | 'below' | 'left' | 'right';
   layoutPoints?: { x: number; y: number }[];
@@ -89,8 +89,21 @@ export type FlowDefinition = {
 export type ArchitectureNodeTypes = NodeTypes;
 export type ArchitectureEdgeTypes = EdgeTypes;
 
+export type AutoLayoutDirection = 'TB' | 'BT' | 'LR' | 'RL';
+
+export type AutoLayoutConfig = {
+  direction: AutoLayoutDirection;
+  nodeSep?: number;
+  rankSep?: number;
+};
+
+export const defaultAutoLayoutConfig: AutoLayoutConfig = {
+  direction: 'TB',
+};
+
 export type ArchitectureDiagramModel = {
   nodes: ArchitectureNode[];
   edges: ArchitectureEdge[];
   flows?: FlowDefinition[];
+  autoLayoutConfig?: AutoLayoutConfig;
 };

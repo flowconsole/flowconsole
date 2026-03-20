@@ -54,7 +54,9 @@ pnpm --filter flowconsole vitest run --config ../../vitest.config.ts tests/unit/
 - `NavigationPanel/` - Flow and scope navigation controls for rendered diagrams
 
 ### Diagram Infrastructure (`src/web/diagram/`, `src/web/reactflow/`)
-- Layout engine uses graphviz-wasm for automatic node positioning
+- Layout engine uses graphviz-wasm for automatic node positioning (LikeC4-grade implementation)
+- `AutoLayoutConfig` type in `types.ts`: configurable direction (TB/BT/LR/RL), nodeSep, rankSep
+- `graphvizLayoutService.ts` features: compound edge routing (lhead/ltail), hierarchy-distance edge weights, child chunking for balanced ranks, dynamic cluster margins, edge grouping, shape-aware node sizing, multi-segment spline parsing
 - Custom ReactFlow nodes and edges with animation support
 
 ## Testing Conventions

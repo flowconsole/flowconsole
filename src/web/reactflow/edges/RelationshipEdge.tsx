@@ -382,8 +382,8 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   const stroke = relationshipStroke(data?.kind);
   const direction = data?.direction ?? 'forward';
   const isDirectional = direction !== 'none';
-  const markerStart = direction === 'both' ? `url(#${id}-start)` : undefined;
-  const markerEnd = isDirectional ? `url(#${id}-end)` : undefined;
+  const markerStart = (direction === 'both' || direction === 'back') ? `url(#${id}-start)` : undefined;
+  const markerEnd = (isDirectional && direction !== 'back') ? `url(#${id}-end)` : undefined;
   const hasIcon = Boolean(data?.icon);
   const isAnimated = isDirectional && hovered;
   const animationDirection =
@@ -540,7 +540,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
           >
             <path d="M2,2 L10,6 L2,10 Z" fill={stroke.stroke} />
           </marker>
-          {direction === 'both' ? (
+          {(direction === 'both' || direction === 'back') ? (
             <marker
               id={`${id}-start`}
               markerWidth="18"

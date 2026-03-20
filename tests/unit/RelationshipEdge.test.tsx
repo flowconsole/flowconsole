@@ -187,7 +187,7 @@ describe('RelationshipEdge', () => {
 
   it('prefers manual control points over graphviz path', () => {
     renderEdge({
-      controlPoints: [{ x: 10, y: 10 }],
+      controlPoints: [{ x: 10, y: 10 }, { x: 30, y: 10 }],
       layoutPoints: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -196,7 +196,12 @@ describe('RelationshipEdge', () => {
       ],
     });
     const baseEdge = screen.getByTestId('base-edge');
-    expect(baseEdge.getAttribute('d')).toBe('smooth-path');
+    const path = baseEdge.getAttribute('d')!;
+    // Manual control points produce a d3 catmullRom path, not the graphviz bezier
+    expect(path).not.toBe('bezier-path');
+    expect(path).not.toContain('C 40');
+    // d3 catmullRomOpen with 4+ points produces an SVG path starting with M
+    expect(path.startsWith('M')).toBe(true);
   });
 
   it('shows control points on hover when data has controlPoints', () => {
