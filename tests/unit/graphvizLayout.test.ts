@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance, clusterColorsByDepth, assignGroups } from '../../src/web/diagram/graphvizLayoutService';
+import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance, clusterColorsByDepth, assignGroups, sanitizeId } from '../../src/web/diagram/graphvizLayoutService';
 import type { ArchitectureDiagramModel } from '../../src/web/diagram/types';
 import { defaultAutoLayoutConfig } from '../../src/web/diagram/types';
 
@@ -29,8 +29,8 @@ describe('graphvizLayout', () => {
       expect(dot).toContain('subgraph cluster_parent');
       expect(dot).toContain('"child";');
       expect(dot).toContain('label="Parent \\"quote\\""');
-      // empty container width uses container base size (280) + padding → ~3.125 in
-      expect(dot).toMatch(/"empty-container"\s+\[label="Empty", width=3\.125/);
+      // empty container width uses container base size (280) + padding → ~4.167 in (DPI=72)
+      expect(dot).toMatch(/"empty-container"\s+\[label="Empty", width=4\.167/);
       // edge label preserved (with weight and minlen from edge weight system)
       expect(dot).toMatch(/"child" -> "child" \[id="e", label="edge"/);
     });
@@ -72,9 +72,9 @@ describe('graphvizLayout', () => {
         nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
       });
       const dot = buildDot(model, { direction: 'TB', nodeSep: 200, rankSep: 250 });
-      // 200/96 ≈ 2.083, 250/96 ≈ 2.604
-      expect(dot).toContain('nodesep=2.083');
-      expect(dot).toContain('ranksep=2.604');
+      // 200/72 ≈ 2.778, 250/72 ≈ 3.472 (DPI=72)
+      expect(dot).toContain('nodesep=2.778');
+      expect(dot).toContain('ranksep=3.472');
     });
 
     it('uses default nodeSep/rankSep when not specified in config', () => {
@@ -82,9 +82,9 @@ describe('graphvizLayout', () => {
         nodes: [{ id: 'a', type: 'element', data: { title: 'A' }, position: { x: 0, y: 0 } }] as any,
       });
       const dot = buildDot(model, { direction: 'TB' });
-      // Default nodeSep=110/96 ≈ 1.146, rankSep=120/96 = 1.250
-      expect(dot).toContain('nodesep=1.146');
-      expect(dot).toContain('ranksep=1.250');
+      // Default nodeSep=110/72 ≈ 1.528, rankSep=120/72 ≈ 1.667 (DPI=72)
+      expect(dot).toContain('nodesep=1.528');
+      expect(dot).toContain('ranksep=1.667');
     });
 
     it('includes TBbalance=min attribute for balanced TB layout', () => {
@@ -166,7 +166,7 @@ describe('graphvizLayout', () => {
 
   describe('parseJsonLayout', () => {
     it('parses node positions from objects', () => {
-      const inch100 = (100 / 96).toFixed(4);
+      const inch100 = (100 / 72).toFixed(4);
       const json = makeJson(
         [
           { name: 'a', pos: '37.5,37.5', width: inch100, height: inch100 },
@@ -232,8 +232,8 @@ describe('graphvizLayout', () => {
     });
 
     it('positions child relative to parent cluster', () => {
-      const inch100 = (100 / 96).toFixed(4);
-      const inch200 = (200 / 96).toFixed(4);
+      const inch100 = (100 / 72).toFixed(4);
+      const inch200 = (200 / 72).toFixed(4);
       const json = makeJson(
         [
           { name: 'cluster_parent', bb: '10,10,210,210' },
@@ -1143,6 +1143,276 @@ describe('graphvizLayout', () => {
       });
       const dot = buildDot(model, defaultAutoLayoutConfig);
       expect(dot).not.toContain('group=');
+    });
+  });
+
+  describe('sanitizeId', () => {
+    it('replaces dashes with underscores', () => {
+      expect(sanitizeId('my-service')).toBe('my_service');
+    });
+
+    it('replaces dots with underscores', () => {
+      expect(sanitizeId('my.service')).toBe('my_service');
+    });
+
+    it('replaces colons with underscores', () => {
+      expect(sanitizeId('ns:service')).toBe('ns_service');
+    });
+
+    it('replaces spaces with underscores', () => {
+      expect(sanitizeId('my service')).toBe('my_service');
+    });
+
+    it('preserves alphanumeric and underscores', () => {
+      expect(sanitizeId('my_service_123')).toBe('my_service_123');
+    });
+
+    it('handles multiple special characters', () => {
+      expect(sanitizeId('a-b.c:d e')).toBe('a_b_c_d_e');
+    });
+  });
+
+  describe('parseJsonLayout improvements', () => {
+    it('parses multi-segment splines from multiple Bezier operations', () => {
+      const json = makeJson(
+        [],
+        [
+          {
+            id: 'edge-multi',
+            _draw_: [
+              { op: 'B', points: [[0, 37.5], [18.75, 37.5], [37.5, 37.5], [56.25, 37.5]] },
+              { op: 'B', points: [[56.25, 37.5], [75, 37.5], [93.75, 37.5], [112.5, 37.5]] },
+            ],
+          },
+        ],
+        '0,0,150,75'
+      );
+      const result = parseJsonLayout(json);
+      expect(result.edges.has('edge-multi')).toBe(true);
+      const edge = result.edges.get('edge-multi')!;
+      // Should have 8 points from two Bezier ops (4 + 4)
+      expect(edge.points.length).toBe(8);
+    });
+
+    it('concatenates points from all Bezier ops in order', () => {
+      const json = makeJson(
+        [],
+        [
+          {
+            id: 'edge-concat',
+            _draw_: [
+              { op: 'B', points: [[0, 0], [10, 0]] },
+              { op: 'c', color: '#000' }, // non-bezier op in between
+              { op: 'B', points: [[20, 0], [30, 0]] },
+            ],
+          },
+        ],
+        '0,0,40,10'
+      );
+      const result = parseJsonLayout(json);
+      const edge = result.edges.get('edge-concat')!;
+      expect(edge.points.length).toBe(4);
+      // First two points from first B op, last two from second B op
+      expect(edge.points[0].x).toBeCloseTo(0);
+      expect(edge.points[1].x).toBeCloseTo(10);
+      expect(edge.points[2].x).toBeCloseTo(20);
+      expect(edge.points[3].x).toBeCloseTo(30);
+    });
+
+    it('parses label position from _ldraw_ text operations', () => {
+      const json = makeJson(
+        [],
+        [
+          {
+            id: 'edge-ldraw',
+            _draw_: [{ op: 'B', points: [[0, 37.5], [75, 37.5]] }],
+            _ldraw_: [
+              { op: 'F', size: 12, face: 'Arial' },
+              { op: 'T', pt: [50, 40], align: 'c', width: 30, text: 'HTTP' },
+            ],
+          },
+        ],
+        '0,0,100,80'
+      );
+      const result = parseJsonLayout(json);
+      const edge = result.edges.get('edge-ldraw')!;
+      expect(edge.label).toBeDefined();
+      // With DPI=72, pointToPx is identity. Position from T op: x=50, y=(80-40)-fontSize*0.5=40-6=34
+      expect(edge.label!.x).toBeCloseTo(50);
+      expect(edge.label!.y).toBeCloseTo(34);
+    });
+
+    it('_ldraw_ label takes precedence over lp', () => {
+      const json = makeJson(
+        [],
+        [
+          {
+            id: 'edge-precedence',
+            _draw_: [{ op: 'B', points: [[0, 37.5], [75, 37.5]] }],
+            _ldraw_: [
+              { op: 'F', size: 14, face: 'Arial' },
+              { op: 'T', pt: [60, 50], align: 'c', width: 30, text: 'label' },
+            ],
+            lp: '30,25', // different position — should be ignored
+          },
+        ],
+        '0,0,100,100'
+      );
+      const result = parseJsonLayout(json);
+      const edge = result.edges.get('edge-precedence')!;
+      // Should use _ldraw_ position (60), not lp position (30)
+      expect(edge.label!.x).toBeCloseTo(60);
+    });
+
+    it('falls back to lp when _ldraw_ is absent', () => {
+      const json = makeJson(
+        [],
+        [
+          {
+            id: 'edge-lp-fallback',
+            _draw_: [{ op: 'B', points: [[0, 37.5], [75, 37.5]] }],
+            lp: '50,60',
+          },
+        ],
+        '0,0,100,100'
+      );
+      const result = parseJsonLayout(json);
+      const edge = result.edges.get('edge-lp-fallback')!;
+      expect(edge.label).toBeDefined();
+      // With DPI=72 (identity), lp: 50, 100-60=40
+      expect(edge.label!.x).toBeCloseTo(50);
+      expect(edge.label!.y).toBeCloseTo(40);
+    });
+
+    it('tracks font size changes in _ldraw_ ops', () => {
+      const json = makeJson(
+        [],
+        [
+          {
+            id: 'edge-fontsize',
+            _draw_: [{ op: 'B', points: [[0, 25], [50, 25]] }],
+            _ldraw_: [
+              { op: 'F', size: 10, face: 'Arial' },
+              { op: 'F', size: 20, face: 'Arial' }, // font size changes
+              { op: 'T', pt: [25, 30], align: 'c', width: 40, text: 'big' },
+            ],
+          },
+        ],
+        '0,0,50,50'
+      );
+      const result = parseJsonLayout(json);
+      const edge = result.edges.get('edge-fontsize')!;
+      // Label y should use fontSize=20: y = (50-30) - 20*0.5 = 20 - 10 = 10
+      expect(edge.label!.y).toBeCloseTo(10);
+    });
+
+    it('handles nested cluster objects in subgraphs', () => {
+      // Simulate a JSON where clusters are nested within objects' subgraphs
+      const json = JSON.stringify({
+        objects: [
+          {
+            name: 'cluster_outer',
+            bb: '0,0,200,150',
+            subgraphs: [
+              { name: 'cluster_inner', bb: '10,10,100,80' },
+            ],
+          },
+        ],
+        edges: [],
+        bb: '0,0,300,200',
+      });
+      const result = parseJsonLayout(json);
+      expect(result.nodes.has('outer')).toBe(true);
+      expect(result.nodes.has('inner')).toBe(true);
+    });
+
+    it('uses clusterIdMap for robust cluster ID reverse lookup', () => {
+      const json = makeJson(
+        [{ name: 'cluster_my_service_v2', bb: '0,0,200,150' }],
+        [],
+        '0,0,300,200'
+      );
+      const clusterIdMap = new Map([['my_service_v2', 'my-service.v2']]);
+      const result = parseJsonLayout(json, { clusterIdMap });
+      // Should have both sanitized and original IDs
+      expect(result.nodes.has('my_service_v2')).toBe(true);
+      expect(result.nodes.has('my-service.v2')).toBe(true);
+    });
+
+    it('clusterIdMap handles IDs with dots and colons', () => {
+      const json = makeJson(
+        [{ name: 'cluster_ns_api_v1', bb: '0,0,200,150' }],
+        [],
+        '0,0,300,200'
+      );
+      const clusterIdMap = new Map([['ns_api_v1', 'ns:api.v1']]);
+      const result = parseJsonLayout(json, { clusterIdMap });
+      expect(result.nodes.has('ns:api.v1')).toBe(true);
+    });
+
+    it('falls back to dash heuristic when no clusterIdMap provided', () => {
+      const json = makeJson(
+        [{ name: 'cluster_my_cluster', bb: '0,0,200,150' }],
+        [],
+        '0,0,300,200'
+      );
+      const result = parseJsonLayout(json); // no options
+      expect(result.nodes.has('my_cluster')).toBe(true);
+      expect(result.nodes.has('my-cluster')).toBe(true);
+    });
+
+    it('DPI=72 makes pointToPx identity (1 point = 1 pixel)', () => {
+      // Verify that with DPI=72, positions map 1:1 from points to pixels
+      const json = makeJson(
+        [{ name: 'node_a', pos: '100,50', width: '1.3889', height: '1.3889' }],
+        [],
+        '0,0,200,100'
+      );
+      const result = parseJsonLayout(json);
+      const a = result.nodes.get('node_a')!;
+      // With DPI=72: pointToPx(100)=100, pointToPx(50)=50
+      // graphHeight=100, cy=100-50=50, width=1.3889*72≈100, x=100-50=50
+      expect(a.width).toBeCloseTo(100, 0);
+    });
+  });
+
+  describe('sanitizeId used in buildDot', () => {
+    it('uses sanitizeId for cluster names in DOT output', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'svc-group', type: 'container', data: { title: 'Services' }, position: { x: 0, y: 0 } },
+          { id: 'child', type: 'element', data: { title: 'Child' }, position: { x: 0, y: 0 }, parentId: 'svc-group' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // sanitizeId('svc-group') = 'svc_group'
+      expect(dot).toContain('subgraph cluster_svc_group');
+    });
+
+    it('sanitizes dots in cluster names', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'api.v2', type: 'container', data: { title: 'API v2' }, position: { x: 0, y: 0 } },
+          { id: 'endpoint', type: 'element', data: { title: 'Endpoint' }, position: { x: 0, y: 0 }, parentId: 'api.v2' },
+        ] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // sanitizeId('api.v2') = 'api_v2'
+      expect(dot).toContain('subgraph cluster_api_v2');
+    });
+
+    it('uses sanitizeId for lhead/ltail attributes', () => {
+      const model = makeModel({
+        nodes: [
+          { id: 'ext', type: 'element', data: { title: 'External' }, position: { x: 0, y: 0 } },
+          { id: 'svc.group', type: 'container', data: { title: 'Services' }, position: { x: 0, y: 0 } },
+          { id: 'svc-a', type: 'element', data: { title: 'Svc A' }, position: { x: 0, y: 0 }, parentId: 'svc.group' },
+        ] as any,
+        edges: [{ id: 'e1', source: 'ext', target: 'svc.group', data: {} }] as any,
+      });
+      const dot = buildDot(model, defaultAutoLayoutConfig);
+      // sanitizeId('svc.group') = 'svc_group'
+      expect(dot).toContain('lhead="cluster_svc_group"');
     });
   });
 });

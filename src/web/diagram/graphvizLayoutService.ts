@@ -4,7 +4,7 @@ import { Position } from '@xyflow/react';
 import type { ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, AutoLayoutConfig } from './types';
 import { defaultAutoLayoutConfig } from './types';
 
-const DPI = 96;
+const DPI = 72; // LikeC4-compatible: Graphviz native 72 DPI (1 point = 1 pixel)
 const PT_TO_INCH = 1 / 72;
 const GRAPH_CLUSTER_SPACE = 50.1; // px, same as GraphClusterSpace
 const DEFAULT_NODESEP = 110;
@@ -29,6 +29,11 @@ function pointToPx(pt: number) {
 
 function inchToPx(inch: number) {
   return inch * DPI;
+}
+
+/** Sanitize an ID for use as a Graphviz cluster identifier. @internal Exported for testing */
+export function sanitizeId(id: string): string {
+  return id.replace(/[^a-zA-Z0-9_]/g, '_');
 }
 
 /** Shape-specific base dimensions (width, height in px) */
@@ -398,8 +403,6 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     );
   }
 
-  const plainId = (id: string) => escapeLabel(id).replace(/-/g, '_');
-
   /**
    * Determine chunk size based on child count (LikeC4 pattern):
    * >11 children → chunks of 4, >4 → chunks of 3, otherwise → chunks of 2
@@ -415,7 +418,7 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     if (!children.length) return;
     const node = model.nodes.find((n) => n.id === id);
     const label = node && 'title' in node.data ? escapeLabel(node.data.title) : id;
-    const clusterName = plainId(id);
+    const clusterName = sanitizeId(id);
 
     // LikeC4 pattern: dynamic margin based on child count
     const clusterMargin = children.length > 1 ? CLUSTER_MARGIN_MULTI : CLUSTER_MARGIN_SINGLE;
@@ -512,8 +515,8 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
 
   // Compound edge routing with weight, direction, and constraint system
   for (const edge of model.edges) {
-    const src = edgeEndpoint(edge.source, childrenByParent, nodeById, plainId);
-    const tgt = edgeEndpoint(edge.target, childrenByParent, nodeById, plainId);
+    const src = edgeEndpoint(edge.source, childrenByParent, nodeById, sanitizeId);
+    const tgt = edgeEndpoint(edge.target, childrenByParent, nodeById, sanitizeId);
     const isCompound = !!(src.clusterAttr || tgt.clusterAttr);
 
     const attrs: string[] = [`id="${escapeLabel(edge.id)}"`];
@@ -639,12 +642,41 @@ function anchorFromPoint(
   };
 }
 
+/**
+ * Recursively extract all objects (nodes and clusters) from Graphviz JSON,
+ * handling both flat and potentially nested structures.
+ */
+function extractAllObjects(json: any): any[] {
+  const result: any[] = [];
+  const queue: any[] = [...(json?.objects ?? [])];
+  while (queue.length > 0) {
+    const obj = queue.shift();
+    if (!obj || typeof obj !== 'object') continue;
+    result.push(obj);
+    // Handle nested subgraph objects (non-standard but defensive)
+    if (Array.isArray(obj.subgraphs)) {
+      for (const sub of obj.subgraphs) {
+        if (typeof sub === 'object' && sub !== null && sub.name) {
+          queue.push(sub);
+        }
+      }
+    }
+    if (Array.isArray(obj.objects)) {
+      queue.push(...obj.objects);
+    }
+  }
+  return result;
+}
+
 /** @internal Exported for testing */
-export function parseJsonLayout(json: string): LayoutResult {
+export function parseJsonLayout(
+  json: string,
+  options?: { clusterIdMap?: Map<string, string> }
+): LayoutResult {
   const j = JSON.parse(json) as any;
   const nodeEntries = new Map<string, LayoutEntry>();
   const edgeEntries = new Map<string, EdgeLayoutEntry>();
-  const objects: any[] = j?.objects ?? [];
+  const objects = extractAllObjects(j);
   const edgeObjects: any[] = j?.edges ?? [];
   const graphBb = j.bb ? j.bb.split(',').map((p: string) => pointToPx(parseFloat(p))) : [0, 0, 0, 0];
   const graphHeight = graphBb.length === 4 ? graphBb[3] - graphBb[1] : 0;
@@ -659,9 +691,17 @@ export function parseJsonLayout(json: string): LayoutResult {
       const yTop = graphHeight ? graphHeight - y2p : y1p;
       const entry = { x: x1p, y: yTop, width, height };
       nodeEntries.set(id, entry);
-      const originalId = id.replace(/_/g, '-');
-      if (originalId !== id) {
+      // Use cluster ID mapping for robust reverse lookup
+      const clusterIdMap = options?.clusterIdMap;
+      const originalId = clusterIdMap?.get(id);
+      if (originalId && originalId !== id) {
         nodeEntries.set(originalId, entry);
+      } else if (!clusterIdMap) {
+        // Fallback heuristic: underscore to dash (when no mapping provided)
+        const dashId = id.replace(/_/g, '-');
+        if (dashId !== id) {
+          nodeEntries.set(dashId, entry);
+        }
       }
       continue;
     }
@@ -689,11 +729,13 @@ export function parseJsonLayout(json: string): LayoutResult {
     const drawOps: Array<{ op?: string; points?: [number, number][] }> = Array.isArray(e._draw_)
       ? (e._draw_ as Array<{ op?: string; points?: [number, number][] }>)
       : [];
-    const splineOp = drawOps.find(
+    // Collect ALL Bezier operations for multi-segment edge splines (not just first)
+    const bezierOps = drawOps.filter(
       (op) => typeof op.op === 'string' && op.op.toLowerCase() === 'b' && Array.isArray(op.points)
     );
-    if (splineOp?.points?.length) {
-      pts = splineOp.points
+    if (bezierOps.length > 0) {
+      pts = bezierOps
+        .flatMap((op) => op.points as [number, number][])
         .map(([x, y]) => toPoint(x, y))
         .filter((entry) => Number.isFinite(entry.x) && Number.isFinite(entry.y));
     } else if (typeof e.pos === 'string') {
@@ -715,7 +757,23 @@ export function parseJsonLayout(json: string): LayoutResult {
     }
 
     let label: { x: number; y: number } | undefined;
-    if (typeof e.lp === 'string') {
+    // Parse _ldraw_ ops for more precise label positioning (LikeC4 pattern: iterate text draw ops with font size tracking)
+    const ldrawOps: any[] = Array.isArray(e._ldraw_) ? e._ldraw_ : [];
+    let fontSize = 14;
+    for (const op of ldrawOps) {
+      if (op.op === 'F' && typeof op.size === 'number') {
+        fontSize = op.size;
+      }
+      if (op.op === 'T' && Array.isArray(op.pt) && op.pt.length >= 2) {
+        const tx = pointToPx(op.pt[0]);
+        const rawTy = pointToPx(op.pt[1]);
+        const ty = graphHeight ? graphHeight - rawTy : rawTy;
+        // Adjust from baseline to approximate center
+        label = { x: tx, y: ty - fontSize * 0.5 };
+      }
+    }
+    // Fall back to lp (label position) if _ldraw_ didn't provide a position
+    if (!label && typeof e.lp === 'string') {
       const [lx, ly] = e.lp.split(',').map((p: string) => pointToPx(parseFloat(p)));
       const y = graphHeight ? graphHeight - ly : ly;
       label = { x: lx, y };
@@ -786,6 +844,12 @@ export async function layoutWithGraphviz(
   const effectiveConfig = config ?? model.autoLayoutConfig ?? defaultAutoLayoutConfig;
   const dot = buildDot(model, effectiveConfig);
   const json = graphviz.layout(dot, 'json', 'dot');
-  const parsed = parseJsonLayout(json);
+  // Build cluster ID mapping for robust reverse lookup during parsing
+  const clusterIdMap = new Map<string, string>();
+  for (const node of model.nodes) {
+    const sanitized = sanitizeId(node.id);
+    clusterIdMap.set(sanitized, node.id);
+  }
+  const parsed = parseJsonLayout(json, { clusterIdMap });
   return applyLayout(model, parsed);
 }
