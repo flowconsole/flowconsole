@@ -186,7 +186,7 @@ export function ArchitectureDiagram({
     return () => {
       cancelled = true;
     };
-  }, [modelToRender, autoLayout, autoLayoutConfig, setNodes, setEdges]);
+  }, [modelToRender, autoLayout, autoLayoutConfig, model.autoLayoutConfig, setNodes, setEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {
@@ -200,8 +200,10 @@ export function ArchitectureDiagram({
   );
 
   useEffect(() => {
-    setEdges(modelToRender.edges);
-  }, [modelToRender.edges, setEdges]);
+    if (!autoLayout) {
+      setEdges(modelToRender.edges);
+    }
+  }, [modelToRender.edges, autoLayout, setEdges]);
 
   useEffect(() => {
     setPendingFocus(scopeId ?? ROOT_FOCUS_ID);
@@ -433,7 +435,7 @@ export function ArchitectureDiagram({
         onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
         themeControls={themeControls}
       />
-      {flows.length && isFlowPanelVisible ? (
+      {flows.length > 0 && isFlowPanelVisible ? (
         <Panel position="top-left" style={{ marginTop: 42 }}>
           <div className="flow-panel">
             <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
