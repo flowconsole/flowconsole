@@ -15,12 +15,10 @@ import type { RelationshipEdgeType } from '../../diagram/types';
 
 type Point = XYPosition;
 type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
-function getCatmullRomLine() {
-  return line<Point>()
-    .curve(curveCatmullRomOpen.alpha(0.7))
-    .x((d) => Math.round(d.x))
-    .y((d) => Math.round(d.y));
-}
+const catmullRomLine = line<Point>()
+  .curve(curveCatmullRomOpen.alpha(0.7))
+  .x((d) => Math.round(d.x))
+  .y((d) => Math.round(d.y));
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -188,7 +186,7 @@ function normalizeGraphvizPoints(
 
 function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
-  return getCatmullRomLine()(points) ?? undefined;
+  return catmullRomLine(points) ?? undefined;
 }
 
 function distance(a: Point, b: Point) {

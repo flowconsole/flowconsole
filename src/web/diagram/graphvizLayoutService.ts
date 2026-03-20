@@ -657,8 +657,9 @@ function anchorFromPoint(
 function extractAllObjects(json: any): any[] {
   const result: any[] = [];
   const queue: any[] = [...(json?.objects ?? [])];
-  while (queue.length > 0) {
-    const obj = queue.shift();
+  let qi = 0;
+  while (qi < queue.length) {
+    const obj = queue[qi++];
     if (!obj || typeof obj !== 'object') continue;
     result.push(obj);
     // Handle nested subgraph objects (non-standard but defensive)
