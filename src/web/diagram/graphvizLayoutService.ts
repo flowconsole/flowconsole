@@ -29,31 +29,100 @@ function inchToPx(inch: number) {
   return inch * DPI;
 }
 
-function estimateSize(
+/** Shape-specific base dimensions (width, height in px) */
+const SHAPE_BASE_SIZES: Record<string, { width: number; height: number }> = {
+  person: { width: 180, height: 200 },
+  database: { width: 200, height: 160 },
+  queue: { width: 240, height: 130 },
+  storage: { width: 200, height: 140 },
+  service: { width: 240, height: 120 },
+  boundary: { width: 280, height: 140 },
+  container: { width: 280, height: 140 },
+};
+const DEFAULT_BASE_SIZE = { width: 240, height: 120 };
+
+/** Extra px added when an icon is present */
+const ICON_WIDTH_EXTRA = 36;
+const ICON_HEIGHT_EXTRA = 24;
+
+/** Extra padding for special shapes (LikeC4 pattern: queue, mobile get extra) */
+const SHAPE_EXTRA_PADDING: Record<string, { width: number; height: number }> = {
+  queue: { width: 20, height: 10 },
+  person: { width: 0, height: 30 },
+  database: { width: 0, height: 20 },
+  storage: { width: 10, height: 10 },
+};
+
+/** LikeC4 pattern: character limits based on node width category (xs/sm=30, md=40, lg/xl=55) */
+function getCharLimit(width: number): number {
+  if (width <= 180) return 30;
+  if (width <= 240) return 40;
+  return 55;
+}
+
+/** @internal Exported for testing */
+export function estimateSize(
   node: ArchitectureDiagramModel['nodes'][number],
   options?: { allowStyledSize?: boolean }
 ) {
   const allowStyledSize = options?.allowStyledSize ?? true;
-  const title = 'title' in node.data ? node.data.title ?? '' : '';
-  const subtitle = node.data?.subtitle ?? '';
-  const desc = node.data?.description ?? '';
-  const tags = Array.isArray(node.data?.tags) ? (node.data?.tags as string[]) : [];
-  const badge = node.data?.badge ?? '';
+  const data = node.data;
+  const title = 'title' in data ? data.title ?? '' : '';
+  const subtitle = data?.subtitle ?? '';
+  const desc = data?.description ?? '';
+  const technology = (data as any)?.technology ?? '';
+  const tags = Array.isArray(data?.tags) ? (data?.tags as string[]) : [];
+  const badge = data?.badge ?? '';
 
-  const baseWidth =
-    (allowStyledSize && typeof node.style?.width === 'number' && node.style.width) ||
-    node.width || 240;
-  const baseHeight = 90;
+  // Determine shape from node data
+  const shape = ('shape' in data && data.shape) ? String(data.shape) : (node.type === 'container' ? 'container' : 'service');
+  const baseSize = SHAPE_BASE_SIZES[shape] ?? DEFAULT_BASE_SIZE;
 
-  const textWidth = Math.max(title.length * 7, subtitle.length * 6, 120);
-  const tagsWidth = tags.length ? Math.max(tags.join(',').length * 5, tags.length * 60) : 0;
-  const badgeWidth = badge ? Math.max(String(badge).length * 7 + 32, 80) : 0;
-  const width = Math.max(baseWidth, textWidth, tagsWidth, badgeWidth) + CONTENT_PADDING;
+  // Start from styled/node width or shape-specific base
+  const styledWidth = (allowStyledSize && typeof node.style?.width === 'number' && node.style.width) || node.width;
+  let width = styledWidth || baseSize.width;
+  let height = baseSize.height;
 
+  // Icon awareness: left/right icons add width, top/bottom icons add height
+  const hasIcon = 'icon' in data && !!data.icon;
+  if (hasIcon) {
+    width += ICON_WIDTH_EXTRA;
+    height += ICON_HEIGHT_EXTRA;
+  }
+
+  // Text wrapping estimation with size-dependent character limits
+  const charLimit = getCharLimit(width);
   const lineHeight = 18;
-  const descLines = desc ? Math.ceil(desc.length / 40) : 0;
+
+  const titleLines = title ? Math.ceil(title.length / charLimit) : 0;
+  const subtitleLines = subtitle ? Math.ceil(subtitle.length / charLimit) : 0;
+  const descLines = desc ? Math.ceil(desc.length / charLimit) : 0;
+  const techLines = technology ? Math.ceil(technology.length / charLimit) : 0;
   const tagsLines = tags.length ? Math.ceil(tags.length / 3) : 0;
-  const height = baseHeight + descLines * lineHeight + tagsLines * lineHeight + CONTENT_PADDING / 2;
+
+  // Text width consideration
+  const titleWidth = title ? Math.min(title.length, charLimit) * 8 : 0;
+  const subtitleWidth = subtitle ? Math.min(subtitle.length, charLimit) * 7 : 0;
+  const badgeWidth = badge ? Math.max(String(badge).length * 7 + 32, 80) : 0;
+  const tagsWidth = tags.length ? Math.max(tags.join(',').length * 5, tags.length * 60) : 0;
+
+  width = Math.max(width, titleWidth + (hasIcon ? ICON_WIDTH_EXTRA : 0), subtitleWidth, tagsWidth, badgeWidth) + CONTENT_PADDING;
+
+  // Height from text content (title is included in base height, so subtract 1)
+  const extraTextLines = Math.max(0, titleLines - 1) + subtitleLines + descLines + techLines + tagsLines;
+  height += extraTextLines * lineHeight;
+
+  // Badge adds some height
+  if (badge) {
+    height += lineHeight;
+  }
+
+  // Special shape padding (LikeC4 pattern)
+  const extraPad = SHAPE_EXTRA_PADDING[shape];
+  if (extraPad) {
+    width += extraPad.width;
+    height += extraPad.height;
+  }
 
   return { width, height };
 }

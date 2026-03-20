@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDot, parseJsonLayout } from '../../src/web/diagram/graphvizLayoutService';
+import { buildDot, parseJsonLayout, estimateSize } from '../../src/web/diagram/graphvizLayoutService';
 import type { ArchitectureDiagramModel } from '../../src/web/diagram/types';
 import { defaultAutoLayoutConfig } from '../../src/web/diagram/types';
 
@@ -29,8 +29,8 @@ describe('graphvizLayout', () => {
       expect(dot).toContain('subgraph cluster_parent');
       expect(dot).toContain('"child";');
       expect(dot).toContain('label="Parent \\"quote\\""');
-      // empty container width should fall back to default (~2.708 in)
-      expect(dot).toMatch(/"empty-container"\s+\[label="Empty", width=2\.708/);
+      // empty container width uses container base size (280) + padding → ~3.125 in
+      expect(dot).toMatch(/"empty-container"\s+\[label="Empty", width=3\.125/);
       // edge label preserved
       expect(dot).toContain('"child" -> "child" [id="e", label="edge"]');
     });
@@ -270,6 +270,132 @@ describe('graphvizLayout', () => {
       const dot = buildDot(model, { direction: 'BT' });
       expect(dot).toContain('rankdir=BT');
       expect(dot).not.toContain('rankdir=TB');
+    });
+  });
+
+  describe('estimateSize', () => {
+    function makeNode(overrides: any) {
+      return {
+        id: 'test',
+        type: 'element',
+        position: { x: 0, y: 0 },
+        data: { title: 'Test' },
+        ...overrides,
+      } as any;
+    }
+
+    it('produces different base sizes for different shapes', () => {
+      const person = estimateSize(makeNode({ data: { title: 'X', shape: 'person' } }));
+      const database = estimateSize(makeNode({ data: { title: 'X', shape: 'database' } }));
+      const service = estimateSize(makeNode({ data: { title: 'X', shape: 'service' } }));
+      const queue = estimateSize(makeNode({ data: { title: 'X', shape: 'queue' } }));
+      const storage = estimateSize(makeNode({ data: { title: 'X', shape: 'storage' } }));
+
+      // Person is taller than service (200 vs 120 base height)
+      expect(person.height).toBeGreaterThan(service.height);
+      // Database is taller than service (160 vs 120 base height)
+      expect(database.height).toBeGreaterThan(service.height);
+      // Person is narrower than service (180 vs 240 base width)
+      expect(person.width).toBeLessThan(service.width);
+      // Queue and storage have distinct sizes
+      expect(queue.width).not.toEqual(storage.width);
+    });
+
+    it('uses service as default shape for element nodes', () => {
+      const noShape = estimateSize(makeNode({ data: { title: 'X' } }));
+      const service = estimateSize(makeNode({ data: { title: 'X', shape: 'service' } }));
+      expect(noShape.width).toEqual(service.width);
+      expect(noShape.height).toEqual(service.height);
+    });
+
+    it('uses container base size for container nodes', () => {
+      const container = estimateSize(makeNode({ type: 'container', data: { title: 'X' } }));
+      const service = estimateSize(makeNode({ data: { title: 'X', shape: 'service' } }));
+      // Container base width (280) > service base width (240)
+      expect(container.width).toBeGreaterThan(service.width);
+    });
+
+    it('adds extra width when icon is present', () => {
+      const withIcon = estimateSize(makeNode({ data: { title: 'Test', shape: 'service', icon: 'server' } }));
+      const noIcon = estimateSize(makeNode({ data: { title: 'Test', shape: 'service' } }));
+      expect(withIcon.width).toBeGreaterThan(noIcon.width);
+    });
+
+    it('adds extra height when icon is present', () => {
+      const withIcon = estimateSize(makeNode({ data: { title: 'Test', shape: 'service', icon: 'server' } }));
+      const noIcon = estimateSize(makeNode({ data: { title: 'Test', shape: 'service' } }));
+      expect(withIcon.height).toBeGreaterThan(noIcon.height);
+    });
+
+    it('uses smaller char limit for narrow shapes (person = xs/sm = 30 chars)', () => {
+      // Person base width is 180, so charLimit = 30
+      // A 60-char title should wrap into 2 lines with limit 30
+      const longTitle = 'A'.repeat(60);
+      const personLong = estimateSize(makeNode({ data: { title: longTitle, shape: 'person' } }));
+      const personShort = estimateSize(makeNode({ data: { title: 'X', shape: 'person' } }));
+      // Long title wraps and adds height
+      expect(personLong.height).toBeGreaterThan(personShort.height);
+    });
+
+    it('accounts for subtitle in height', () => {
+      const withSub = estimateSize(makeNode({ data: { title: 'T', subtitle: 'Subtitle text here' } }));
+      const noSub = estimateSize(makeNode({ data: { title: 'T' } }));
+      expect(withSub.height).toBeGreaterThan(noSub.height);
+    });
+
+    it('accounts for description in height', () => {
+      const withDesc = estimateSize(makeNode({ data: { title: 'T', description: 'A long description that spans many characters to test wrapping behavior' } }));
+      const noDesc = estimateSize(makeNode({ data: { title: 'T' } }));
+      expect(withDesc.height).toBeGreaterThan(noDesc.height);
+    });
+
+    it('accounts for technology field in height', () => {
+      const withTech = estimateSize(makeNode({ data: { title: 'T', technology: 'TypeScript / React / Node.js' } }));
+      const noTech = estimateSize(makeNode({ data: { title: 'T' } }));
+      expect(withTech.height).toBeGreaterThan(noTech.height);
+    });
+
+    it('accounts for tags in height', () => {
+      const withTags = estimateSize(makeNode({ data: { title: 'T', tags: ['tag1', 'tag2', 'tag3', 'tag4'] } }));
+      const noTags = estimateSize(makeNode({ data: { title: 'T' } }));
+      expect(withTags.height).toBeGreaterThan(noTags.height);
+    });
+
+    it('accounts for badge in height', () => {
+      const withBadge = estimateSize(makeNode({ data: { title: 'T', badge: 'NEW' } }));
+      const noBadge = estimateSize(makeNode({ data: { title: 'T' } }));
+      expect(withBadge.height).toBeGreaterThan(noBadge.height);
+    });
+
+    it('adds extra padding for queue shape', () => {
+      const queue = estimateSize(makeNode({ data: { title: 'X', shape: 'queue' } }));
+      const service = estimateSize(makeNode({ data: { title: 'X', shape: 'service' } }));
+      // Queue gets extra padding on both width and height
+      expect(queue.height).toBeGreaterThan(service.height);
+    });
+
+    it('adds extra padding for person shape', () => {
+      const person = estimateSize(makeNode({ data: { title: 'X', shape: 'person' } }));
+      // Person gets +30 height from shape extra padding, plus 200 base (vs 120 for service)
+      expect(person.height).toBeGreaterThan(200);
+    });
+
+    it('adds extra padding for database shape', () => {
+      const database = estimateSize(makeNode({ data: { title: 'X', shape: 'database' } }));
+      // Database gets +20 height from shape extra padding on top of 160 base
+      expect(database.height).toBeGreaterThan(160);
+    });
+
+    it('respects styled width when allowStyledSize is true', () => {
+      const withStyled = estimateSize(makeNode({ data: { title: 'X' }, style: { width: 500 } }));
+      const noStyled = estimateSize(makeNode({ data: { title: 'X' } }));
+      expect(withStyled.width).toBeGreaterThan(noStyled.width);
+    });
+
+    it('ignores styled width when allowStyledSize is false', () => {
+      const ignored = estimateSize(makeNode({ data: { title: 'X' }, style: { width: 500 } }), { allowStyledSize: false });
+      const noStyled = estimateSize(makeNode({ data: { title: 'X' } }));
+      expect(ignored.width).toEqual(noStyled.width);
     });
   });
 });
