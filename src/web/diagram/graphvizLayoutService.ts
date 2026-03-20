@@ -5,7 +5,6 @@ import type { ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, Auto
 import { defaultAutoLayoutConfig } from './types';
 
 const DPI = 72; // LikeC4-compatible: Graphviz native 72 DPI (1 point = 1 pixel)
-const PT_TO_INCH = 1 / 72;
 const GRAPH_CLUSTER_SPACE = 50.1; // px, same as GraphClusterSpace
 const DEFAULT_NODESEP = 110;
 const DEFAULT_RANKSEP = 120;
@@ -16,16 +15,15 @@ const CLUSTER_MARGIN_SINGLE = 32; // LikeC4 pattern: 32px for clusters with sing
 const CONTENT_PADDING = 20;
 
 function escapeLabel(text: string) {
-  return text.replace(/"/g, '\\"');
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function pxToInch(px: number) {
   return px / DPI;
 }
 
-function pointToPx(pt: number) {
-  return pt * PT_TO_INCH * DPI;
-}
+/** Graphviz points to pixels. At DPI=72, 1 point = 1 pixel (identity). */
+const pointToPx = (pt: number) => pt;
 
 function inchToPx(inch: number) {
   return inch * DPI;
@@ -355,7 +353,7 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
 
   // LikeC4 pattern: labeljust/labelloc depend on direction
   const labeljust = isHorizontal ? 'l' : 'c';
-  const labelloc = isHorizontal ? 't' : 't';
+  const labelloc = 't';
 
   lines.push('digraph G {');
   lines.push(
@@ -416,7 +414,7 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
   const renderCluster = (id: string) => {
     const children = childrenByParent.get(id) ?? [];
     if (!children.length) return;
-    const node = model.nodes.find((n) => n.id === id);
+    const node = nodeById.get(id);
     const label = node && 'title' in node.data ? escapeLabel(node.data.title) : id;
     const clusterName = sanitizeId(id);
 
@@ -436,7 +434,7 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     const subClusterIds: string[] = [];
     const leafIds: string[] = [];
     for (const childId of children) {
-      const child = model.nodes.find((n) => n.id === childId);
+      const child = nodeById.get(childId);
       if (!child) continue;
       const childHasChildren = (childrenByParent.get(childId)?.length ?? 0) > 0;
       const isContainerLike = child.type === 'container';
@@ -543,7 +541,7 @@ export function buildDot(model: ArchitectureDiagramModel, config: AutoLayoutConf
     }
 
     // Edge direction: dir=back for back edges, dir=both for bidirectional, dir=none for directionless
-    const edgeDir = (edge.data?.direction as string) ?? 'forward';
+    const edgeDir = edge.data?.direction ?? 'forward';
     if (edgeDir === 'both') {
       attrs.push('dir=both');
     } else if (edgeDir === 'none') {
@@ -696,12 +694,6 @@ export function parseJsonLayout(
       const originalId = clusterIdMap?.get(id);
       if (originalId && originalId !== id) {
         nodeEntries.set(originalId, entry);
-      } else if (!clusterIdMap) {
-        // Fallback heuristic: underscore to dash (when no mapping provided)
-        const dashId = id.replace(/_/g, '-');
-        if (dashId !== id) {
-          nodeEntries.set(dashId, entry);
-        }
       }
       continue;
     }
@@ -800,7 +792,7 @@ function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): Arc
     return {
       ...node,
       position,
-      style: { ...node.style, width: l.width, height: node.type == "container" ? l.height+ 20 : '' },
+      style: { ...node.style, width: l.width, height: node.type === "container" ? l.height + 20 : l.height },
     };
   });
 
@@ -826,14 +818,15 @@ function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): Arc
     };
   });
 
-  return { nodes, edges };
+  return { ...model, nodes, edges };
 }
 
-let loaded = false;
+let wasmPromise: Promise<void> | null = null;
 async function ensureWasm() {
-  if (loaded) return;
-  await graphviz.loadWASM();
-  loaded = true;
+  if (!wasmPromise) {
+    wasmPromise = graphviz.loadWASM();
+  }
+  await wasmPromise;
 }
 
 export async function layoutWithGraphviz(

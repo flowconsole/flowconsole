@@ -191,7 +191,17 @@ describe('graphvizLayout', () => {
       );
       const result = parseJsonLayout(json);
       expect(result.nodes.has('my_cluster')).toBe(true);
-      // Also check reverse ID mapping (underscore to dash)
+    });
+
+    it('maps cluster IDs back to original via clusterIdMap', () => {
+      const json = makeJson(
+        [{ name: 'cluster_my_cluster', bb: '0,0,200,150' }],
+        [],
+        '0,0,300,200'
+      );
+      const clusterIdMap = new Map([['my_cluster', 'my-cluster']]);
+      const result = parseJsonLayout(json, { clusterIdMap });
+      expect(result.nodes.has('my_cluster')).toBe(true);
       expect(result.nodes.has('my-cluster')).toBe(true);
     });
 
@@ -1350,7 +1360,7 @@ describe('graphvizLayout', () => {
       expect(result.nodes.has('ns:api.v1')).toBe(true);
     });
 
-    it('falls back to dash heuristic when no clusterIdMap provided', () => {
+    it('stores only sanitized ID when no clusterIdMap provided', () => {
       const json = makeJson(
         [{ name: 'cluster_my_cluster', bb: '0,0,200,150' }],
         [],
@@ -1358,7 +1368,8 @@ describe('graphvizLayout', () => {
       );
       const result = parseJsonLayout(json); // no options
       expect(result.nodes.has('my_cluster')).toBe(true);
-      expect(result.nodes.has('my-cluster')).toBe(true);
+      // Without clusterIdMap, no reverse mapping is attempted
+      expect(result.nodes.has('my-cluster')).toBe(false);
     });
 
     it('DPI=72 makes pointToPx identity (1 point = 1 pixel)', () => {
@@ -1564,7 +1575,7 @@ describe('graphvizLayout', () => {
         'postgres-db', 'redis-cache', 'message-queue', 'user', 'external-api'];
 
       for (const id of leafNodeIds) {
-        const definitionPattern = new RegExp(`"${id.replace('-', '\\-')}"\\s+\\[label=`, 'g');
+        const definitionPattern = new RegExp(`"${id.replace(/-/g, '\\-')}"\\s+\\[label=`, 'g');
         const matches = dot.match(definitionPattern);
         expect(matches?.length).toBe(1);
       }

@@ -45,7 +45,7 @@ export type RelationshipEdgeData = {
   kind?: RelationshipKind;
   muted?: boolean;
   hovered?: boolean;
-  direction?: 'forward' | 'both' | 'none';
+  direction?: 'forward' | 'back' | 'both' | 'none';
   icon?: string;
   labelSide?: 'above' | 'below' | 'left' | 'right';
   layoutPoints?: { x: number; y: number }[];
