@@ -23,7 +23,10 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@vitejs/plugin-react": "^5.1.2",
+    "@monaco-editor/react": "^4.7.0",
     "@xyflow/react": "^12.10.0",
+    "d3-shape": "^3.2.0",
+    "graphviz-wasm": "^3.0.2",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "vitest": "^4.0.15"

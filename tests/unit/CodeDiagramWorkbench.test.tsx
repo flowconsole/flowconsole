@@ -78,7 +78,7 @@ describe('CodeDiagramWorkbench', () => {
 
   it('triggers evaluation when mounted', async () => {
     render(
-        <CodeDiagramWorkbench />
+        <CodeDiagramWorkbench apiBaseUrl="http://localhost" />
     );
 
     await act(async () => {
@@ -89,7 +89,7 @@ describe('CodeDiagramWorkbench', () => {
 
   it('shows error when evaluation fails', async () => {
     mockEvaluate.mockResolvedValueOnce({ ok: false, error: 'Syntax error' });
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost" />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });
@@ -109,15 +109,16 @@ describe('CodeDiagramWorkbench', () => {
   });
 
   it('switches samples via dropdown', () => {
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost" />);
     const select = screen.getByTestId('sample-select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'oss-collab' } });
-    expect(select.value).toBe('oss-collab');
-    expect(screen.getByTestId('sample-description')).toHaveTextContent('open-source dev platform');
+    expect(select.value).toBe('test-sample');
+    fireEvent.change(select, { target: { value: 'test-sample' } });
+    expect(select.value).toBe('test-sample');
+    expect(screen.getByTestId('sample-description')).toHaveTextContent('Test sample from unit tests');
   });
 
   it('debounces rapid code edits into a single evaluation', async () => {
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost" />);
 
     // initial evaluation
     await act(async () => {
@@ -140,7 +141,7 @@ describe('CodeDiagramWorkbench', () => {
   });
 
   it('hides overlay after successful evaluation', async () => {
-    render(<CodeDiagramWorkbench />);
+    render(<CodeDiagramWorkbench apiBaseUrl="http://localhost" />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(250);
     });
