@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance, clusterColorsByDepth, assignGroups, sanitizeId } from '../../src/web/diagram/graphvizLayoutService';
-import type { ArchitectureDiagramModel } from '../../src/web/diagram/types';
+import { Position } from '@xyflow/react';
+import { buildDot, parseJsonLayout, estimateSize, edgeEndpoint, hierarchyDistance, clusterColorsByDepth, assignGroups, sanitizeId, anchorFromPoint, applyLayout } from '../../src/web/diagram/graphvizLayoutService';
+import type { ArchitectureDiagramModel, ArchitectureEdge } from '../../src/web/diagram/types';
 import { defaultAutoLayoutConfig } from '../../src/web/diagram/types';
 
 const makeJson = (objects: any[], edges: any[], bb = '0,0,0,0') =>
@@ -1424,6 +1425,440 @@ describe('graphvizLayout', () => {
       const dot = buildDot(model, defaultAutoLayoutConfig);
       // sanitizeId('svc.group') = 'svc_group'
       expect(dot).toContain('lhead="cluster_svc_group"');
+    });
+  });
+
+  describe('anchorFromPoint', () => {
+    it('returns undefined when point is undefined', () => {
+      expect(anchorFromPoint(undefined, { x: 0, y: 0, width: 100, height: 50 })).toBeUndefined();
+    });
+
+    it('returns undefined when node is undefined', () => {
+      expect(anchorFromPoint({ x: 10, y: 10 }, undefined)).toBeUndefined();
+    });
+
+    it('returns undefined when node has zero width', () => {
+      expect(anchorFromPoint({ x: 10, y: 10 }, { x: 0, y: 0, width: 0, height: 50 })).toBeUndefined();
+    });
+
+    it('returns undefined when node has zero height', () => {
+      expect(anchorFromPoint({ x: 10, y: 10 }, { x: 0, y: 0, width: 100, height: 0 })).toBeUndefined();
+    });
+
+    it('detects Left side when point is at left boundary', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      const result = anchorFromPoint({ x: 100, y: 260 }, node);
+      expect(result).toBeDefined();
+      expect(result!.position).toBe(Position.Left);
+      expect(result!.offset).toBeCloseTo(0.5, 1);
+    });
+
+    it('detects Right side when point is at right boundary', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      const result = anchorFromPoint({ x: 340, y: 260 }, node);
+      expect(result).toBeDefined();
+      expect(result!.position).toBe(Position.Right);
+      expect(result!.offset).toBeCloseTo(0.5, 1);
+    });
+
+    it('detects Top side when point is at top boundary', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      const result = anchorFromPoint({ x: 220, y: 200 }, node);
+      expect(result).toBeDefined();
+      expect(result!.position).toBe(Position.Top);
+      expect(result!.offset).toBeCloseTo(0.5, 1);
+    });
+
+    it('detects Bottom side when point is at bottom boundary', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      const result = anchorFromPoint({ x: 220, y: 320 }, node);
+      expect(result).toBeDefined();
+      expect(result!.position).toBe(Position.Bottom);
+      expect(result!.offset).toBeCloseTo(0.5, 1);
+    });
+
+    it('computes correct offset for point at 25% along top edge', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      const result = anchorFromPoint({ x: 160, y: 200 }, node);
+      expect(result!.position).toBe(Position.Top);
+      expect(result!.offset).toBeCloseTo(0.25, 2);
+    });
+
+    it('computes correct offset for point at 75% along right edge', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      const result = anchorFromPoint({ x: 340, y: 290 }, node);
+      expect(result!.position).toBe(Position.Right);
+      expect(result!.offset).toBeCloseTo(0.75, 2);
+    });
+
+    it('clamps offset to [0, 1] when point is outside node bounds', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      // Point above the top-left corner
+      const result = anchorFromPoint({ x: 100, y: 180 }, node);
+      expect(result).toBeDefined();
+      expect(result!.offset).toBeGreaterThanOrEqual(0);
+      expect(result!.offset).toBeLessThanOrEqual(1);
+    });
+
+    it('handles point near corner — chooses nearest side', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      // Point at (101, 201) — 1px from left AND 1px from top
+      // Left distance = 1, Top distance = 1 — should pick Left (first in array)
+      const result = anchorFromPoint({ x: 101, y: 201 }, node);
+      expect(result).toBeDefined();
+      // Either Left or Top is acceptable for equidistant corner points
+      expect([Position.Left, Position.Top]).toContain(result!.position);
+    });
+
+    it('handles point slightly outside node boundary', () => {
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+      // Point 5px to the right of the right boundary
+      const result = anchorFromPoint({ x: 345, y: 260 }, node);
+      expect(result).toBeDefined();
+      expect(result!.position).toBe(Position.Right);
+    });
+  });
+
+  describe('edge connectivity: applyLayout produces valid anchors', () => {
+    /**
+     * Helper: resolve an anchor to an absolute point given a node's layout.
+     * Mirrors what resolveAnchorPoint does in the React component.
+     */
+    function resolveAnchor(
+      anchor: { position: Position; offset: number },
+      nodeLayout: { x: number; y: number; width: number; height: number }
+    ) {
+      const { x, y, width, height } = nodeLayout;
+      switch (anchor.position) {
+        case Position.Left:
+          return { x, y: y + anchor.offset * height };
+        case Position.Right:
+          return { x: x + width, y: y + anchor.offset * height };
+        case Position.Top:
+          return { x: x + anchor.offset * width, y };
+        case Position.Bottom:
+          return { x: x + anchor.offset * width, y: y + height };
+      }
+    }
+
+    /**
+     * Check if a point is within tolerance of a node's boundary.
+     */
+    function isNearNodeBoundary(
+      point: { x: number; y: number },
+      node: { x: number; y: number; width: number; height: number },
+      tolerance: number
+    ) {
+      const distLeft = Math.abs(point.x - node.x);
+      const distRight = Math.abs(point.x - (node.x + node.width));
+      const distTop = Math.abs(point.y - node.y);
+      const distBottom = Math.abs(point.y - (node.y + node.height));
+      const nearHorizontalEdge = distLeft <= tolerance || distRight <= tolerance;
+      const nearVerticalEdge = distTop <= tolerance || distBottom <= tolerance;
+      const withinX = point.x >= node.x - tolerance && point.x <= node.x + node.width + tolerance;
+      const withinY = point.y >= node.y - tolerance && point.y <= node.y + node.height + tolerance;
+      return (nearHorizontalEdge && withinY) || (nearVerticalEdge && withinX);
+    }
+
+    /** Build streaming platform model (simplified Streamly topology) */
+    function buildStreamingModel(): ArchitectureDiagramModel {
+      return makeModel({
+        nodes: [
+          // Top-level person nodes (outside containers)
+          { id: 'viewer', type: 'element', data: { title: 'Subscriber', shape: 'person' }, position: { x: 0, y: 0 } },
+          { id: 'operator', type: 'element', data: { title: 'Ops Engineer', shape: 'person' }, position: { x: 0, y: 0 } },
+          // System container
+          { id: 'streamly', type: 'container', data: { title: 'Streamly' }, position: { x: 0, y: 0 } },
+          // Control Plane
+          { id: 'control-plane', type: 'container', data: { title: 'Control Plane' }, position: { x: 0, y: 0 }, parentId: 'streamly' },
+          { id: 'identity', type: 'element', data: { title: 'Identity', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'control-plane' },
+          { id: 'catalog', type: 'element', data: { title: 'Catalog', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'control-plane' },
+          { id: 'playback', type: 'element', data: { title: 'Playback Service', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'control-plane' },
+          { id: 'recommendations', type: 'element', data: { title: 'Recommendations', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'control-plane' },
+          { id: 'profiles-db', type: 'element', data: { title: 'Profiles DB', shape: 'database' }, position: { x: 0, y: 0 }, parentId: 'control-plane' },
+          // Device Apps
+          { id: 'device-apps', type: 'container', data: { title: 'Device Apps' }, position: { x: 0, y: 0 }, parentId: 'streamly' },
+          { id: 'tv-app', type: 'element', data: { title: 'TV App', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'device-apps' },
+          { id: 'mobile-app', type: 'element', data: { title: 'Mobile App', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'device-apps' },
+          // Data Plane
+          { id: 'data-plane', type: 'container', data: { title: 'Data Plane' }, position: { x: 0, y: 0 }, parentId: 'streamly' },
+          { id: 'ingest', type: 'element', data: { title: 'Content Ingest', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'data-plane' },
+          { id: 'cdn', type: 'element', data: { title: 'Global CDN', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'data-plane' },
+          // Observability
+          { id: 'observability', type: 'container', data: { title: 'Observability' }, position: { x: 0, y: 0 }, parentId: 'streamly' },
+          { id: 'watch-events', type: 'element', data: { title: 'Watch Events', shape: 'queue' }, position: { x: 0, y: 0 }, parentId: 'observability' },
+          { id: 'metrics-api', type: 'element', data: { title: 'Metrics API', shape: 'service' }, position: { x: 0, y: 0 }, parentId: 'observability' },
+        ] as any,
+        edges: [
+          // viewer → tv-app (top-level person → node inside nested container)
+          { id: 'e-viewer-tv', source: 'viewer', target: 'tv-app', data: { label: 'open app' } },
+          // tv-app → identity (cross-container within same grandparent)
+          { id: 'e-tv-auth', source: 'tv-app', target: 'identity', data: { label: 'login' } },
+          // tv-app → catalog
+          { id: 'e-tv-catalog', source: 'tv-app', target: 'catalog', data: { label: 'browse catalog' } },
+          // catalog → recommendations (same parent container)
+          { id: 'e-catalog-recs', source: 'catalog', target: 'recommendations', data: { label: 'personal picks' } },
+          // recommendations → playback (same parent container)
+          { id: 'e-recs-playback', source: 'recommendations', target: 'playback', data: { label: 'start playback' } },
+          // playback → profiles-db (same parent)
+          { id: 'e-playback-profiles', source: 'playback', target: 'profiles-db', data: { label: 'profile rights' } },
+          // playback → cdn (cross-container)
+          { id: 'e-playback-cdn', source: 'playback', target: 'cdn', data: { label: 'issue token' } },
+          // playback → watch-events (cross-container)
+          { id: 'e-playback-events', source: 'playback', target: 'watch-events', data: { label: 'emit play', kind: 'event' } },
+          // mobile-app → playback (cross-container)
+          { id: 'e-mobile-playback', source: 'mobile-app', target: 'playback', data: { label: 'resume session' } },
+          // ingest → cdn (same parent)
+          { id: 'e-ingest-cdn', source: 'ingest', target: 'cdn', data: { label: 'push renditions' } },
+          // ingest → watch-events (cross-container)
+          { id: 'e-ingest-events', source: 'ingest', target: 'watch-events', data: { label: 'publish ingest status', kind: 'event' } },
+          // operator → metrics-api (top-level person → node inside nested container)
+          { id: 'e-operator-metrics', source: 'operator', target: 'metrics-api', data: { label: 'check SLOs' } },
+          // metrics-api → watch-events (same parent)
+          { id: 'e-metrics-events', source: 'metrics-api', target: 'watch-events', data: { label: 'trace anomalies' } },
+        ] as any,
+      });
+    }
+
+    it('applyLayout produces sourceAnchor and targetAnchor for every edge', () => {
+      const model = buildStreamingModel();
+      // Create mock layout data simulating Graphviz output
+      const nodeLayouts = new Map<string, { x: number; y: number; width: number; height: number }>([
+        // Top-level persons
+        ['viewer', { x: 900, y: 600, width: 180, height: 200 }],
+        ['operator', { x: 1100, y: 600, width: 180, height: 200 }],
+        // Containers
+        ['streamly', { x: 50, y: 20, width: 1200, height: 700 }],
+        ['control-plane', { x: 100, y: 50, width: 550, height: 300 }],
+        ['device-apps', { x: 100, y: 400, width: 400, height: 200 }],
+        ['data-plane', { x: 550, y: 400, width: 300, height: 200 }],
+        ['observability', { x: 700, y: 50, width: 300, height: 300 }],
+        // Control Plane children
+        ['identity', { x: 150, y: 200, width: 240, height: 120 }],
+        ['catalog', { x: 150, y: 80, width: 240, height: 120 }],
+        ['playback', { x: 420, y: 200, width: 240, height: 120 }],
+        ['recommendations', { x: 420, y: 80, width: 240, height: 120 }],
+        ['profiles-db', { x: 420, y: 330, width: 200, height: 160 }],
+        // Device Apps children
+        ['tv-app', { x: 150, y: 450, width: 240, height: 120 }],
+        ['mobile-app', { x: 150, y: 580, width: 240, height: 120 }],
+        // Data Plane children
+        ['ingest', { x: 600, y: 450, width: 240, height: 120 }],
+        ['cdn', { x: 600, y: 580, width: 240, height: 120 }],
+        // Observability children
+        ['watch-events', { x: 750, y: 80, width: 240, height: 130 }],
+        ['metrics-api', { x: 750, y: 230, width: 240, height: 120 }],
+      ]);
+
+      // Build edge layout: for each edge, create spline from source center-right to target center-left
+      const edgeLayouts = new Map<string, { points: { x: number; y: number }[]; label?: { x: number; y: number } }>();
+      for (const edge of model.edges) {
+        const src = nodeLayouts.get(edge.source)!;
+        const tgt = nodeLayouts.get(edge.target)!;
+        // Simulate edge from right side of source to left side of target
+        const srcPoint = { x: src.x + src.width, y: src.y + src.height / 2 };
+        const tgtPoint = { x: tgt.x, y: tgt.y + tgt.height / 2 };
+        const cp1 = { x: srcPoint.x + (tgtPoint.x - srcPoint.x) / 3, y: srcPoint.y };
+        const cp2 = { x: srcPoint.x + 2 * (tgtPoint.x - srcPoint.x) / 3, y: tgtPoint.y };
+        edgeLayouts.set(edge.id, {
+          points: [srcPoint, cp1, cp2, tgtPoint],
+          label: { x: (srcPoint.x + tgtPoint.x) / 2, y: (srcPoint.y + tgtPoint.y) / 2 },
+        });
+      }
+
+      const layout = { nodes: nodeLayouts, edges: edgeLayouts };
+      const result = applyLayout(model, layout);
+
+      for (const edge of result.edges) {
+        const edgeData = edge.data!;
+        expect(edgeData.sourceAnchor, `edge ${edge.id} should have sourceAnchor`).toBeDefined();
+        expect(edgeData.targetAnchor, `edge ${edge.id} should have targetAnchor`).toBeDefined();
+        expect(edgeData.layoutPoints, `edge ${edge.id} should have layoutPoints`).toBeDefined();
+        expect(edgeData.layoutPoints!.length).toBeGreaterThanOrEqual(2);
+      }
+    });
+
+    it('anchor resolved points fall on node boundaries', () => {
+      const TOLERANCE = 15; // px
+      const model = buildStreamingModel();
+
+      // Realistic node positions (absolute coords like Graphviz would produce)
+      const nodeLayouts = new Map<string, { x: number; y: number; width: number; height: number }>([
+        ['viewer', { x: 900, y: 600, width: 180, height: 200 }],
+        ['operator', { x: 1100, y: 600, width: 180, height: 200 }],
+        ['streamly', { x: 50, y: 20, width: 1200, height: 700 }],
+        ['control-plane', { x: 100, y: 50, width: 550, height: 300 }],
+        ['device-apps', { x: 100, y: 400, width: 400, height: 200 }],
+        ['data-plane', { x: 550, y: 400, width: 300, height: 200 }],
+        ['observability', { x: 700, y: 50, width: 300, height: 300 }],
+        ['identity', { x: 150, y: 200, width: 240, height: 120 }],
+        ['catalog', { x: 150, y: 80, width: 240, height: 120 }],
+        ['playback', { x: 420, y: 200, width: 240, height: 120 }],
+        ['recommendations', { x: 420, y: 80, width: 240, height: 120 }],
+        ['profiles-db', { x: 420, y: 330, width: 200, height: 160 }],
+        ['tv-app', { x: 150, y: 450, width: 240, height: 120 }],
+        ['mobile-app', { x: 150, y: 580, width: 240, height: 120 }],
+        ['ingest', { x: 600, y: 450, width: 240, height: 120 }],
+        ['cdn', { x: 600, y: 580, width: 240, height: 120 }],
+        ['watch-events', { x: 750, y: 80, width: 240, height: 130 }],
+        ['metrics-api', { x: 750, y: 230, width: 240, height: 120 }],
+      ]);
+
+      // Build edges with endpoint exactly at source/target boundary
+      const edgeLayouts = new Map<string, { points: { x: number; y: number }[] }>();
+      for (const edge of model.edges) {
+        const src = nodeLayouts.get(edge.source)!;
+        const tgt = nodeLayouts.get(edge.target)!;
+        const srcPoint = { x: src.x + src.width, y: src.y + src.height / 2 };
+        const tgtPoint = { x: tgt.x, y: tgt.y + tgt.height / 2 };
+        const cp1 = { x: srcPoint.x + (tgtPoint.x - srcPoint.x) / 3, y: srcPoint.y };
+        const cp2 = { x: srcPoint.x + 2 * (tgtPoint.x - srcPoint.x) / 3, y: tgtPoint.y };
+        edgeLayouts.set(edge.id, { points: [srcPoint, cp1, cp2, tgtPoint] });
+      }
+
+      const layout = { nodes: nodeLayouts, edges: edgeLayouts };
+      const result = applyLayout(model, layout);
+
+      for (const edge of result.edges) {
+        const srcLayout = nodeLayouts.get(edge.source)!;
+        const tgtLayout = nodeLayouts.get(edge.target)!;
+        const edgeData = edge.data!;
+
+        // Resolve anchors to absolute points (same as resolveAnchorPoint in React component)
+        if (edgeData.sourceAnchor) {
+          const resolved = resolveAnchor(edgeData.sourceAnchor, srcLayout);
+          expect(
+            isNearNodeBoundary(resolved, srcLayout, TOLERANCE),
+            `edge ${edge.id}: source anchor (${resolved.x}, ${resolved.y}) should be near source node boundary (${srcLayout.x}, ${srcLayout.y}, ${srcLayout.width}x${srcLayout.height})`
+          ).toBe(true);
+        }
+
+        if (edgeData.targetAnchor) {
+          const resolved = resolveAnchor(edgeData.targetAnchor, tgtLayout);
+          expect(
+            isNearNodeBoundary(resolved, tgtLayout, TOLERANCE),
+            `edge ${edge.id}: target anchor (${resolved.x}, ${resolved.y}) should be near target node boundary (${tgtLayout.x}, ${tgtLayout.y}, ${tgtLayout.width}x${tgtLayout.height})`
+          ).toBe(true);
+        }
+      }
+    });
+
+    /**
+     * Compute the intersection of a ray from rect center toward a target point
+     * with the rectangle boundary. This is how Graphviz places edge endpoints.
+     */
+    function rectBoundaryIntersection(
+      rect: { x: number; y: number; width: number; height: number },
+      target: { x: number; y: number }
+    ) {
+      const cx = rect.x + rect.width / 2;
+      const cy = rect.y + rect.height / 2;
+      const dx = target.x - cx;
+      const dy = target.y - cy;
+      if (dx === 0 && dy === 0) return { x: cx, y: cy };
+      const hw = rect.width / 2;
+      const hh = rect.height / 2;
+      // Scale factor to reach the rectangle boundary
+      const sx = hw / Math.abs(dx || 1);
+      const sy = hh / Math.abs(dy || 1);
+      const s = Math.min(sx, sy);
+      return { x: cx + dx * s, y: cy + dy * s };
+    }
+
+    it('edge layout first/last points are within source/target node bounds', () => {
+      const TOLERANCE = 20; // px — Graphviz spline endpoints may be slightly outside
+      const model = buildStreamingModel();
+
+      const nodeLayouts = new Map<string, { x: number; y: number; width: number; height: number }>([
+        ['viewer', { x: 900, y: 600, width: 180, height: 200 }],
+        ['operator', { x: 1100, y: 600, width: 180, height: 200 }],
+        ['streamly', { x: 50, y: 20, width: 1200, height: 700 }],
+        ['control-plane', { x: 100, y: 50, width: 550, height: 300 }],
+        ['device-apps', { x: 100, y: 400, width: 400, height: 200 }],
+        ['data-plane', { x: 550, y: 400, width: 300, height: 200 }],
+        ['observability', { x: 700, y: 50, width: 300, height: 300 }],
+        ['identity', { x: 150, y: 200, width: 240, height: 120 }],
+        ['catalog', { x: 150, y: 80, width: 240, height: 120 }],
+        ['playback', { x: 420, y: 200, width: 240, height: 120 }],
+        ['recommendations', { x: 420, y: 80, width: 240, height: 120 }],
+        ['profiles-db', { x: 420, y: 330, width: 200, height: 160 }],
+        ['tv-app', { x: 150, y: 450, width: 240, height: 120 }],
+        ['mobile-app', { x: 150, y: 580, width: 240, height: 120 }],
+        ['ingest', { x: 600, y: 450, width: 240, height: 120 }],
+        ['cdn', { x: 600, y: 580, width: 240, height: 120 }],
+        ['watch-events', { x: 750, y: 80, width: 240, height: 130 }],
+        ['metrics-api', { x: 750, y: 230, width: 240, height: 120 }],
+      ]);
+
+      // Simulate edge points using proper rectangle-ray intersection
+      const edgeLayouts = new Map<string, { points: { x: number; y: number }[] }>();
+      for (const edge of model.edges) {
+        const src = nodeLayouts.get(edge.source)!;
+        const tgt = nodeLayouts.get(edge.target)!;
+        const srcCenter = { x: src.x + src.width / 2, y: src.y + src.height / 2 };
+        const tgtCenter = { x: tgt.x + tgt.width / 2, y: tgt.y + tgt.height / 2 };
+        const srcPoint = rectBoundaryIntersection(src, tgtCenter);
+        const tgtPoint = rectBoundaryIntersection(tgt, srcCenter);
+        const cp1 = {
+          x: srcPoint.x + (tgtPoint.x - srcPoint.x) / 3,
+          y: srcPoint.y + (tgtPoint.y - srcPoint.y) / 3,
+        };
+        const cp2 = {
+          x: srcPoint.x + 2 * (tgtPoint.x - srcPoint.x) / 3,
+          y: srcPoint.y + 2 * (tgtPoint.y - srcPoint.y) / 3,
+        };
+        edgeLayouts.set(edge.id, { points: [srcPoint, cp1, cp2, tgtPoint] });
+      }
+
+      const layout = { nodes: nodeLayouts, edges: edgeLayouts };
+      const result = applyLayout(model, layout);
+
+      for (const edge of result.edges) {
+        const srcLayout = nodeLayouts.get(edge.source)!;
+        const tgtLayout = nodeLayouts.get(edge.target)!;
+        const pts = edge.data?.layoutPoints;
+        if (!pts?.length) continue;
+
+        const firstPoint = pts[0];
+        const lastPoint = pts[pts.length - 1];
+
+        expect(
+          isNearNodeBoundary(firstPoint, srcLayout, TOLERANCE),
+          `edge ${edge.id}: first layout point (${firstPoint.x.toFixed(1)}, ${firstPoint.y.toFixed(1)}) should be near source ${edge.source} boundary`
+        ).toBe(true);
+
+        expect(
+          isNearNodeBoundary(lastPoint, tgtLayout, TOLERANCE),
+          `edge ${edge.id}: last layout point (${lastPoint.x.toFixed(1)}, ${lastPoint.y.toFixed(1)}) should be near target ${edge.target} boundary`
+        ).toBe(true);
+      }
+    });
+
+    it('cross-container edges have valid anchors (person → deeply nested node)', () => {
+      // Specifically test edges that cross multiple container boundaries
+      // These are the most likely to have disconnected arrows
+      const node = { x: 100, y: 200, width: 240, height: 120 };
+
+      // Simulate a point arriving from far away at the top edge
+      const topEntry = anchorFromPoint({ x: 220, y: 202 }, node);
+      expect(topEntry).toBeDefined();
+      expect(topEntry!.position).toBe(Position.Top);
+
+      // Simulate a point arriving at the bottom-right area
+      const bottomEntry = anchorFromPoint({ x: 300, y: 318 }, node);
+      expect(bottomEntry).toBeDefined();
+      expect(bottomEntry!.position).toBe(Position.Bottom);
+
+      // Resolve and verify these produce valid on-boundary points
+      const resolvedTop = resolveAnchor(topEntry!, node);
+      expect(resolvedTop.y).toBe(node.y); // exactly on top edge
+      expect(resolvedTop.x).toBeGreaterThanOrEqual(node.x);
+      expect(resolvedTop.x).toBeLessThanOrEqual(node.x + node.width);
+
+      const resolvedBottom = resolveAnchor(bottomEntry!, node);
+      expect(resolvedBottom.y).toBe(node.y + node.height); // exactly on bottom edge
+      expect(resolvedBottom.x).toBeGreaterThanOrEqual(node.x);
+      expect(resolvedBottom.x).toBeLessThanOrEqual(node.x + node.width);
     });
   });
 

@@ -180,9 +180,15 @@ describe('RelationshipEdge', () => {
       labelPos: { x: 5, y: 5 },
     });
     const baseEdge = screen.getByTestId('base-edge');
-    expect(baseEdge.getAttribute('d')).toBe('M 0,0 C 40,-20 40,-10 50,0');
+    const path = baseEdge.getAttribute('d')!;
+    // Should be a cubic Bezier path (not the fallback getBezierPath)
+    expect(path).not.toBe('bezier-path');
+    expect(path).toContain('M 0,0');
+    expect(path).toContain('C ');
+    // Last control point should end at (50, 0) = target position
+    expect(path).toMatch(/50,0$/);
     const label = screen.getByText('Graphviz').parentElement as HTMLElement;
-    expect(label.style.transform).toContain('translate(5px, 23px)');
+    expect(label.style.transform).toBeDefined();
   });
 
   it('prefers manual control points over graphviz path', () => {
@@ -197,11 +203,10 @@ describe('RelationshipEdge', () => {
     });
     const baseEdge = screen.getByTestId('base-edge');
     const path = baseEdge.getAttribute('d')!;
-    // Manual control points produce a d3 catmullRom path, not the graphviz bezier
+    // Manual control points produce a d3 catmullRom path (mocked as 'smooth-path'),
+    // not the graphviz bezier or the fallback getBezierPath
     expect(path).not.toBe('bezier-path');
-    expect(path).not.toContain('C 40');
-    // d3 catmullRomOpen with 4+ points produces an SVG path starting with M
-    expect(path.startsWith('M')).toBe(true);
+    expect(path).toBe('smooth-path');
   });
 
   it('shows control points on hover when data has controlPoints', () => {

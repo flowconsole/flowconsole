@@ -617,7 +617,8 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function anchorFromPoint(
+/** @internal Exported for testing */
+export function anchorFromPoint(
   point: { x: number; y: number } | undefined,
   node: LayoutEntry | undefined
 ): AnchorData | undefined {
@@ -802,7 +803,8 @@ export function parseJsonLayout(
   return { nodes: nodeEntries, edges: edgeEntries };
 }
 
-function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): ArchitectureDiagramModel {
+/** @internal Exported for testing */
+export function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): ArchitectureDiagramModel {
   const nodes: ArchitectureNode[] = model.nodes.map((node) => {
     const l = layout.nodes.get(node.id);
     if (!l) return node;

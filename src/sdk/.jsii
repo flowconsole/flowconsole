@@ -20,7 +20,7 @@
         "hasDefaultInterfaces": true
       }
     },
-    "tscRootDir": "/Users/vmg/FlowConsole/flowconsole/src/sdk"
+    "tscRootDir": "/Users/vmg/FlowConsole/oss/src/sdk"
   },
   "name": "@flowconsole/sdk",
   "readme": {
@@ -1160,5 +1160,5 @@
     }
   },
   "version": "1.0.2",
-  "fingerprint": "J0YxfxtukJwPkUrMlxGL/oUUOgBzBg9n9dgVOO/X6CE="
+  "fingerprint": "q+6v+yScvgidcf/CT+mGaJBHu9W+UZlQzd+w3tzxpvQ="
 }

@@ -12,6 +12,7 @@ import { curveCatmullRomOpen, line } from 'd3-shape';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { relationshipStroke } from '../../diagram/theme';
 import type { RelationshipEdgeType } from '../../diagram/types';
+import { bezierPathFromGraphviz, normalizeGraphvizPoints } from '../../diagram/edgePathUtils';
 
 type Point = XYPosition;
 type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
@@ -141,48 +142,7 @@ export function getEdgeParams(source: InternalNodeInstance, target: InternalNode
   };
 }
 
-function bezierPathFromGraphviz(points: Point[] | undefined) {
-  if (!points?.length) return undefined;
-  let path = `M ${points[0].x},${points[0].y}`;
-  for (let i = 1; i + 2 < points.length; i += 3) {
-    const cp1 = points[i];
-    const cp2 = points[i + 1];
-    const end = points[i + 2];
-    if (!cp1 || !cp2 || !end) break;
-    path += ` C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${end.x},${end.y}`;
-  }
-  return path;
-}
-
-function normalizeGraphvizPoints(
-  basePoints: Point[] | undefined,
-  source: Point,
-  target: Point
-): Point[] | undefined {
-  if (!basePoints?.length || basePoints.length < 4) return undefined;
-  if ((basePoints.length - 1) % 3 !== 0) return undefined;
-  const shiftX = source.x - basePoints[0].x;
-  const shiftY = source.y - basePoints[0].y;
-  const adjusted = basePoints.map((p, idx) =>
-    idx === 0
-      ? { x: source.x, y: source.y }
-      : {
-          x: p.x + shiftX,
-          y: p.y + shiftY,
-        }
-  );
-  const n = adjusted.length;
-  const targetShiftX = target.x - adjusted[n - 1].x;
-  const targetShiftY = target.y - adjusted[n - 1].y;
-  for (let i = Math.max(1, n - 3); i < n; i++) {
-    adjusted[i] = {
-      x: adjusted[i].x + targetShiftX,
-      y: adjusted[i].y + targetShiftY,
-    };
-  }
-  adjusted[n - 1] = { x: target.x, y: target.y };
-  return adjusted;
-}
+// bezierPathFromGraphviz and normalizeGraphvizPoints imported from edgePathUtils
 
 function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
