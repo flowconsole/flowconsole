@@ -15,7 +15,7 @@ const CLUSTER_MARGIN_SINGLE = 32; // LikeC4 pattern: 32px for clusters with sing
 const CONTENT_PADDING = 20;
 
 function escapeLabel(text: string) {
-  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '');
 }
 
 function pxToInch(px: number) {
@@ -192,9 +192,11 @@ function getAncestorChain(
   nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
 ): string[] {
   const chain: string[] = [id];
+  const visited = new Set<string>([id]);
   let current = nodeById.get(id);
-  while (current?.parentId) {
+  while (current?.parentId && !visited.has(current.parentId)) {
     chain.push(current.parentId);
+    visited.add(current.parentId);
     current = nodeById.get(current.parentId);
   }
   return chain;
@@ -235,8 +237,10 @@ function computeDepth(
   nodeById: Map<string, ArchitectureDiagramModel['nodes'][number]>
 ): number {
   let depth = 0;
+  const visited = new Set<string>([id]);
   let current = nodeById.get(id);
-  while (current?.parentId) {
+  while (current?.parentId && !visited.has(current.parentId)) {
+    visited.add(current.parentId);
     depth++;
     current = nodeById.get(current.parentId);
   }
@@ -844,6 +848,10 @@ export async function layoutWithGraphviz(
   const clusterIdMap = new Map<string, string>();
   for (const node of model.nodes) {
     const sanitized = sanitizeId(node.id);
+    const existing = clusterIdMap.get(sanitized);
+    if (existing && existing !== node.id) {
+      console.warn(`sanitizeId collision: "${existing}" and "${node.id}" both map to "${sanitized}"`);
+    }
     clusterIdMap.set(sanitized, node.id);
   }
   const parsed = parseJsonLayout(json, { clusterIdMap });
