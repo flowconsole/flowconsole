@@ -12,7 +12,7 @@ import { curveCatmullRomOpen, line } from 'd3-shape';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { relationshipStroke } from '../../diagram/theme';
 import type { RelationshipEdgeType } from '../../diagram/types';
-import { bezierPathFromGraphviz, normalizeGraphvizPoints } from '../../diagram/edgePathUtils';
+import { bezierPathFromGraphviz } from '../../diagram/edgePathUtils';
 
 type Point = XYPosition;
 type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
@@ -280,10 +280,20 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     [targetNode, data?.targetAnchor]
   );
 
-  const sx = sourceAnchorPoint?.x ?? fallbackGeometry.sx;
-  const sy = sourceAnchorPoint?.y ?? fallbackGeometry.sy;
-  const tx = targetAnchorPoint?.x ?? fallbackGeometry.tx;
-  const ty = targetAnchorPoint?.y ?? fallbackGeometry.ty;
+  // When Graphviz layoutPoints are available, use their endpoints directly
+  // as the source/target positions. This avoids depending on React Flow's
+  // positionAbsolute (via resolveAnchorPoint), which may not be stable on
+  // the initial render for deeply nested nodes — causing the normalization
+  // to apply a massive shift that distorts the entire spline.
+  const layoutFirst = data?.layoutPoints?.[0];
+  const layoutLast = data?.layoutPoints?.length
+    ? data.layoutPoints[data.layoutPoints.length - 1]
+    : undefined;
+
+  const sx = layoutFirst?.x ?? sourceAnchorPoint?.x ?? fallbackGeometry.sx;
+  const sy = layoutFirst?.y ?? sourceAnchorPoint?.y ?? fallbackGeometry.sy;
+  const tx = layoutLast?.x ?? targetAnchorPoint?.x ?? fallbackGeometry.tx;
+  const ty = layoutLast?.y ?? targetAnchorPoint?.y ?? fallbackGeometry.ty;
   const sourcePos = data?.sourceAnchor?.position ?? fallbackGeometry.sourcePos;
   const targetPos = data?.targetAnchor?.position ?? fallbackGeometry.targetPos;
 
@@ -316,24 +326,18 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
       : undefined;
   }, [controlPoints, sx, sy, tx, ty]);
 
-  const graphvizPoints = useMemo(() => {
-    if (!data?.layoutPoints?.length) return undefined;
-    return normalizeGraphvizPoints(data.layoutPoints, { x: sx, y: sy }, { x: tx, y: ty });
-  }, [data?.layoutPoints, sx, sy, tx, ty]);
-
+  // Use Graphviz path directly — layoutPoints are already in correct absolute
+  // coordinates. Normalization is skipped since sx/sy/tx/ty now match the
+  // layoutPoints endpoints (shift ≈ 0).
   const graphvizPath = useMemo(
-    () => bezierPathFromGraphviz(graphvizPoints),
-    [graphvizPoints]
+    () => bezierPathFromGraphviz(data?.layoutPoints),
+    [data?.layoutPoints]
   );
 
   const graphvizLabel = useMemo(() => {
     if (!data?.labelPos) return undefined;
-    if (!data?.layoutPoints?.length) return data.labelPos;
-    const base = data.layoutPoints[0];
-    const dx = sx - (base?.x ?? sx);
-    const dy = sy - (base?.y ?? sy);
-    return { x: data.labelPos.x + dx, y: data.labelPos.y + dy };
-  }, [data?.labelPos, data?.layoutPoints, sx, sy]);
+    return data.labelPos;
+  }, [data?.labelPos]);
 
   const resolvedPath = manualPath?.path ?? graphvizPath ?? fallbackPath;
   const resolvedLabelPoint =

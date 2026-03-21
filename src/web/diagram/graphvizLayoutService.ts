@@ -824,11 +824,27 @@ export function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResul
     };
   });
 
+  // Build a map of adjusted layout entries for anchor computation.
+  // Container nodes get +20 height in applyLayout, so anchors must use
+  // the same adjusted dimensions to avoid offset mismatches at render time.
+  const nodeById = new Map<string, ArchitectureDiagramModel['nodes'][number]>();
+  for (const node of model.nodes) nodeById.set(node.id, node);
+
+  const adjustedLayoutForAnchors = (nodeId: string): LayoutEntry | undefined => {
+    const l = layout.nodes.get(nodeId);
+    if (!l) return undefined;
+    const node = nodeById.get(nodeId);
+    if (node?.type === 'container') {
+      return { ...l, height: l.height + 20 };
+    }
+    return l;
+  };
+
   const edges: ArchitectureEdge[] = model.edges.map((edge) => {
     const eLayout = layout.edges.get(edge.id);
     if (!eLayout || !eLayout.points.length) return edge;
-    const sourceLayout = layout.nodes.get(edge.source);
-    const targetLayout = layout.nodes.get(edge.target);
+    const sourceLayout = adjustedLayoutForAnchors(edge.source);
+    const targetLayout = adjustedLayoutForAnchors(edge.target);
     const sourceAnchor = anchorFromPoint(eLayout.points[0], sourceLayout);
     const targetAnchor = anchorFromPoint(
       eLayout.points[eLayout.points.length - 1],

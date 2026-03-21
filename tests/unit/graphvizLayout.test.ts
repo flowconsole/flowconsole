@@ -1860,6 +1860,58 @@ describe('graphvizLayout', () => {
       expect(resolvedBottom.x).toBeGreaterThanOrEqual(node.x);
       expect(resolvedBottom.x).toBeLessThanOrEqual(node.x + node.width);
     });
+
+    it('applyLayout uses adjusted +20 height for container anchor computation', () => {
+      // Container node with an edge entering at the bottom boundary.
+      // The anchor offset should be computed against the Graphviz height,
+      // but when resolved with the actual node height (+20), the point
+      // should still land on the correct boundary.
+      const containerHeight = 300;
+      const model = makeModel({
+        nodes: [
+          { id: 'container-a', type: 'container', data: { title: 'Container A' }, position: { x: 0, y: 0 } },
+          { id: 'child-a', type: 'element', data: { title: 'Child A' }, position: { x: 0, y: 0 }, parentId: 'container-a' },
+          { id: 'external', type: 'element', data: { title: 'External' }, position: { x: 0, y: 0 } },
+        ] as any,
+        edges: [
+          { id: 'e1', source: 'external', target: 'container-a', data: {} },
+        ] as any,
+      });
+
+      const nodeLayouts = new Map([
+        ['container-a', { x: 100, y: 100, width: 400, height: containerHeight }],
+        ['child-a', { x: 150, y: 150, width: 240, height: 120 }],
+        ['external', { x: 600, y: 350, width: 240, height: 120 }],
+      ]);
+
+      // Edge arrives at the right side of the container, halfway down
+      const srcPoint = { x: 600, y: 410 };
+      const tgtPoint = { x: 500, y: 250 }; // right edge of container, mid-height
+      const edgeLayouts = new Map([
+        ['e1', { points: [srcPoint, { x: 560, y: 380 }, { x: 530, y: 310 }, tgtPoint] }],
+      ]);
+
+      const layout = { nodes: nodeLayouts, edges: edgeLayouts };
+      const result = applyLayout(model, layout);
+
+      const containerNode = result.nodes.find(n => n.id === 'container-a')!;
+      // Container should have height + 20
+      expect(containerNode.style?.height).toBe(containerHeight + 20);
+
+      const edge = result.edges.find(e => e.id === 'e1')!;
+      const targetAnchor = edge.data!.targetAnchor!;
+      expect(targetAnchor).toBeDefined();
+
+      // Resolve anchor against the ACTUAL node dimensions (with +20)
+      const actualHeight = containerHeight + 20;
+      const resolvedWithActual = resolveAnchor(targetAnchor, {
+        x: 100, y: 100, width: 400, height: actualHeight,
+      });
+
+      // The resolved point should be near the original spline endpoint
+      expect(Math.abs(resolvedWithActual.x - tgtPoint.x)).toBeLessThan(5);
+      expect(Math.abs(resolvedWithActual.y - tgtPoint.y)).toBeLessThan(15);
+    });
   });
 
   describe('acceptance: complex diagram with 15+ nodes, 3+ nested containers', () => {
