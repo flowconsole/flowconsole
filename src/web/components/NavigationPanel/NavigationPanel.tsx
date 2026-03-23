@@ -25,6 +25,8 @@ type Props = {
   viewId?: string;
   viewTitle?: string;
   viewDescription?: string;
+  currentScopeId?: string;
+  scopeTrail?: ArchitectureNode[];
   flows?: FlowDefinition[];
   activeFlowId?: string;
   activeFlowStep?: number;
@@ -127,6 +129,8 @@ export function NavigationPanel({
   viewId,
   viewTitle,
   viewDescription,
+  currentScopeId,
+  scopeTrail = [],
   onNavigate,
   onToggleFlowPanel,
   themeControls,
@@ -196,12 +200,19 @@ export function NavigationPanel({
   };
 
   const breadcrumbs = useMemo(() => {
+    const scopeBreadcrumbs =
+      scopeTrail.length > 0
+        ? scopeTrail.map((item) => ({ id: item.id, title: item.data.title }))
+        : breadcrumbsFor(currentScopeId, index);
+    if (scopeBreadcrumbs.length > 0) {
+      return scopeBreadcrumbs;
+    }
     const base = breadcrumbsFor(activeId, index);
     if (base.length === 0 && (viewTitle || viewId)) {
       return [{ id: viewId ?? 'view', title: viewTitle ?? viewId ?? 'Current view' }];
     }
     return base;
-  }, [activeId, index, viewId, viewTitle]);
+  }, [activeId, currentScopeId, index, scopeTrail, viewId, viewTitle]);
 
   const handleBack = () => {
     if (!history.canBack) return;

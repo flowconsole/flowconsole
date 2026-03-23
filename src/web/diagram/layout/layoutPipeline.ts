@@ -27,6 +27,8 @@ export type LayoutRunDiagnostics = {
 
 type LayoutPipelineOptions = {
   scopeId?: string;
+  cacheKey?: string;
+  modelIdentity?: string;
   reason?: RelayoutReason;
   forceRelayout?: boolean;
   onDiagnostics?: (diagnostics: LayoutRunDiagnostics) => void;
@@ -183,10 +185,11 @@ export async function layoutPipeline(
   const notationId = config.notation ?? notation.notationId;
   const preset = config.preset ?? notation.defaultPreset;
   const modelHash = hashModel(model);
+  const modelIdentity = options.modelIdentity ?? modelHash;
 
   if (
     lastModelHash &&
-    (lastModelHash !== modelHash ||
+    (lastModelHash !== modelIdentity ||
       lastDirection !== (config.direction ?? '') ||
       lastNotation !== notationId ||
       lastPreset !== preset)
@@ -194,14 +197,15 @@ export async function layoutPipeline(
     invalidateAllCache();
   }
 
-  lastModelHash = modelHash;
+  lastModelHash = modelIdentity;
   lastDirection = config.direction ?? '';
   lastNotation = notationId;
   lastPreset = preset;
 
   const profile = analyzeGraph(model);
   const strategy = selectStrategy(profile, config, notation);
-  const cacheKey = makeCacheKey(modelHash, options.scopeId, strategy.direction, notationId, preset);
+  const cacheKey =
+    options.cacheKey ?? makeCacheKey(modelHash, options.scopeId, strategy.direction, notationId, preset);
 
   if (!options.forceRelayout) {
     const cached = cacheGet(cacheKey);

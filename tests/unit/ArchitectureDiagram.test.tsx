@@ -75,7 +75,24 @@ vi.mock('../../src/theme/ThemeProvider', () => ({
 }));
 
 vi.mock('../../src/web/diagram/utils/scopedModel', () => ({
-  buildScopedModel: (model: ArchitectureDiagramModel) => model,
+  buildLayoutViewState: (model: ArchitectureDiagramModel, options?: { scopeId?: string }) => ({
+    scopeId: options?.scopeId,
+    visibleNodeIds: new Set(model.nodes.map((node) => node.id)),
+    representativeNodeIds: new Map(model.nodes.map((node) => [node.id, node.id])),
+    aggregatedEdgeGroups: new Map(model.edges.map((edge) => [`${edge.source}|${edge.target}|${edge.data?.kind ?? ''}`, [edge.id]])),
+    notation: 'architecture',
+    preset: 'c4-like',
+    direction: 'LR',
+    cacheKey: `cache:${options?.scopeId ?? 'root'}`,
+  }),
+  buildScopedModelFromViewState: (model: ArchitectureDiagramModel) => model,
+  hashDiagramModel: () => 'model-hash',
+  resolveScopeAwareTarget: (_model: ArchitectureDiagramModel, _viewState: unknown, nodeId: string) => ({
+    scopeId: nodeId === 'child' ? 'parent' : undefined,
+    focusId: nodeId,
+    representativeId: nodeId,
+  }),
+  resolveVisibleNodeId: (_viewState: unknown, nodeId?: string) => nodeId,
   scopeTrail: (model: ArchitectureDiagramModel, scopeId: string | undefined) =>
     scopeId ? [{ id: scopeId, data: { title: 'Child' } }] : [],
 }));

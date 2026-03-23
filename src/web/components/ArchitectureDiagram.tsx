@@ -23,7 +23,14 @@ import type {
 } from '../diagram/types';
 import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
-import { buildScopedModel, scopeTrail } from '../diagram/utils/scopedModel';
+import {
+  buildLayoutViewState,
+  buildScopedModelFromViewState,
+  hashDiagramModel,
+  resolveScopeAwareTarget,
+  resolveVisibleNodeId,
+  scopeTrail,
+} from '../diagram/utils/scopedModel';
 import { layoutPipeline, type LayoutRunDiagnostics } from '../diagram/layout';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
@@ -132,7 +139,22 @@ export function ArchitectureDiagram({
 }: ArchitectureDiagramProps) {
   const effectiveScheme = themeControls?.resolvedScheme;
   const [scopeId, setScopeId] = useState<string | undefined>();
-  const modelToRender = useMemo(() => buildScopedModel(model, scopeId), [model, scopeId]);
+  const effectiveLayoutDirection = layoutDirection ?? 'LR';
+  const layoutViewState = useMemo(
+    () =>
+      buildLayoutViewState(model, {
+        scopeId,
+        notation,
+        preset: layoutPreset,
+        direction: effectiveLayoutDirection,
+      }),
+    [effectiveLayoutDirection, layoutPreset, model, notation, scopeId]
+  );
+  const modelToRender = useMemo(
+    () => buildScopedModelFromViewState(model, layoutViewState),
+    [layoutViewState, model]
+  );
+  const modelIdentity = useMemo(() => hashDiagramModel(model), [model]);
   const [nodes, setNodes] = useNodesState<ArchitectureNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ArchitectureEdge>([]);
   const [layoutDiagnostics, setLayoutDiagnostics] = useState<LayoutRunDiagnostics>();
@@ -148,6 +170,7 @@ export function ArchitectureDiagram({
   const trail = useMemo(() => scopeTrail(model, scopeId), [model, scopeId]);
   const ROOT_FOCUS_ID = '__root__';
   const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>(ROOT_FOCUS_ID);
+  const scopeFocusRef = useRef<string | string[] | undefined>(undefined);
   const flows = model.flows ?? [];
   const [isFlowPanelVisible, setFlowPanelVisible] = useState(false);
   const defaultFlow = useMemo(
@@ -163,18 +186,9 @@ export function ArchitectureDiagram({
     model.nodes.forEach((n) => map.set(n.id, n.data.title));
     return map;
   }, [model.nodes]);
-  const nodeIndex = useMemo(() => {
-    const map = new Map<string, ArchitectureNode>();
-    model.nodes.forEach((n) => map.set(n.id, n));
-    return map;
-  }, [model.nodes]);
-  const visibleNodeMap = useMemo(() => {
-    const map = new Map<string, ArchitectureNode>();
-    nodes.forEach((n) => map.set(n.id, n));
-    return map;
-  }, [nodes]);
 
   useEffect(() => {
+    scopeFocusRef.current = ROOT_FOCUS_ID;
     setScopeId(undefined);
   }, [model]);
 
@@ -182,6 +196,7 @@ export function ArchitectureDiagram({
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ id?: string }>).detail;
       if (!detail?.id) return;
+      scopeFocusRef.current = detail.id;
       setScopeId(detail.id);
     };
     window.addEventListener('container:open', handler as EventListener);
@@ -231,6 +246,8 @@ export function ArchitectureDiagram({
       const baseModel = autoLayout
         ? await layoutPipeline(modelToRender, layoutConfig, {
             scopeId,
+            cacheKey: layoutViewState.cacheKey,
+            modelIdentity,
             reason: relayoutReason,
             onDiagnostics: setLayoutDiagnostics,
           })
@@ -249,11 +266,25 @@ export function ArchitectureDiagram({
     };
 
     void update();
-    
+
     return () => {
       cancelled = true;
     };
-  }, [modelToRender, autoLayout, setNodes, setEdges]);
+  }, [
+    autoLayout,
+    layoutDebug,
+    layoutDirection,
+    layoutEngine,
+    layoutPreset,
+    layoutViewState.cacheKey,
+    model,
+    modelIdentity,
+    modelToRender,
+    notation,
+    scopeId,
+    setEdges,
+    setNodes,
+  ]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {
@@ -271,7 +302,9 @@ export function ArchitectureDiagram({
   }, [modelToRender.edges, setEdges]);
 
   useEffect(() => {
-    setPendingFocus(scopeId ?? ROOT_FOCUS_ID);
+    const nextFocus = scopeFocusRef.current ?? scopeId ?? ROOT_FOCUS_ID;
+    scopeFocusRef.current = undefined;
+    setPendingFocus(nextFocus);
     setFlowAnimationTick((tick) => tick + 1);
   }, [scopeId]);
 
@@ -341,11 +374,21 @@ export function ArchitectureDiagram({
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
     const currentStep = flow?.steps[activeFlowStep];
-    const involved = new Set<string>();
-    flow?.steps.forEach((s) => {
-      involved.add(s.sourceId);
-      involved.add(s.targetId);
+    const involvedVisibleIds = new Set<string>();
+    flow?.steps.forEach((step) => {
+      const sourceId = resolveVisibleNodeId(layoutViewState, step.sourceId);
+      const targetId = resolveVisibleNodeId(layoutViewState, step.targetId);
+      if (sourceId) {
+        involvedVisibleIds.add(sourceId);
+      }
+      if (targetId) {
+        involvedVisibleIds.add(targetId);
+      }
     });
+    const currentSourceId = resolveVisibleNodeId(layoutViewState, currentStep?.sourceId);
+    const currentTargetId = resolveVisibleNodeId(layoutViewState, currentStep?.targetId);
+    const involved = new Set<string>();
+    involvedVisibleIds.forEach((nodeId) => involved.add(nodeId));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setNodes((nds: any) => {
       let changed = false;
@@ -353,9 +396,9 @@ export function ArchitectureDiagram({
       const next = nds.map((node: any) => {
         const highlighted = involved.has(node.id);
         const currentRole =
-          currentStep?.sourceId === node.id
+          currentSourceId === node.id
             ? 'source'
-            : currentStep?.targetId === node.id
+            : currentTargetId === node.id
               ? 'target'
               : undefined;
         const nextData = {
@@ -374,24 +417,19 @@ export function ArchitectureDiagram({
       });
       return changed ? next : nds;
     });
-  }, [activeFlowId, activeFlowStep, flows, setNodes, scopeId]);
+  }, [activeFlowId, activeFlowStep, flows, layoutViewState, setNodes, scopeId]);
 
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
     const currentStep = flow?.steps[activeFlowStep];
     if (currentStep) {
-      const resolveVisible = (id: string | undefined) => {
-        if (!id) return undefined;
-        let currentId: string | undefined = id;
-        while (currentId) {
-          if (visibleNodeMap.has(currentId)) return currentId;
-          currentId = nodeIndex.get(currentId)?.parentId;
-        }
-        return undefined;
-      };
-      const targets = [resolveVisible(currentStep.sourceId), resolveVisible(currentStep.targetId)].filter(
-        Boolean
-      ) as string[];
+      const targets = Array.from(
+        new Set(
+          [resolveVisibleNodeId(layoutViewState, currentStep.sourceId), resolveVisibleNodeId(layoutViewState, currentStep.targetId)].filter(
+            Boolean
+          ) as string[]
+        )
+      );
       setPendingFocus((prev) => {
         if (Array.isArray(prev) && prev.length === targets.length && prev.every((id, idx) => id === targets[idx])) {
           return prev;
@@ -401,35 +439,20 @@ export function ArchitectureDiagram({
         return targets;
       });
     }
-  }, [activeFlowId, activeFlowStep, flows, nodeIndex, visibleNodeMap]);
-
-
-  const findClosestContainer = useCallback(
-    (nodeId: string) => {
-      let current = nodeIndex.get(nodeId);
-      while (current?.parentId) {
-        const parent = nodeIndex.get(current.parentId);
-        if (!parent) break;
-        if (parent.type === 'container') return parent.id;
-        current = parent;
-      }
-      return undefined;
-    },
-    [nodeIndex]
-  );
+  }, [activeFlowId, activeFlowStep, flows, layoutViewState]);
 
   const handleNavigate = useCallback(
     (nodeId: string) => {
-      const target = nodeIndex.get(nodeId);
+      const target = resolveScopeAwareTarget(model, layoutViewState, nodeId);
       if (!target) return;
-      const targetScope =
-        target.type === 'container' ? target.id : findClosestContainer(nodeId);
-      if (targetScope !== scopeId) {
-        setScopeId(targetScope);
+      if (target.scopeId !== scopeId) {
+        scopeFocusRef.current = target.focusId;
+        setScopeId(target.scopeId);
+        return;
       }
-      setPendingFocus(nodeId);
+      setPendingFocus(target.focusId);
     },
-    [findClosestContainer, nodeIndex, scopeId]
+    [layoutViewState, model, scopeId]
   );
 
   const parentScopeId = trail.length > 1 ? trail[trail.length - 2].id : undefined;
@@ -495,6 +518,8 @@ export function ArchitectureDiagram({
         viewId={viewId}
         viewTitle={viewTitle}
         viewDescription={viewDescription}
+        currentScopeId={scopeId}
+        scopeTrail={trail}
         flows={flows}
         activeFlowId={activeFlowId}
         activeFlowStep={activeFlowStep}
