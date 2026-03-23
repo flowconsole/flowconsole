@@ -6,16 +6,18 @@ const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? `http://${host}:${port}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 5000,
+  timeout: 20000,
   fullyParallel: true,
   workers: 20,
+  snapshotPathTemplate: '{testDir}/snapshots/{testFilePath}/{arg}{ext}',
   expect: {
-    timeout: 3000,
+    timeout: 5000,
   },
   use: {
     baseURL: baseUrl,
     trace: 'on-first-retry',
     video: 'retain-on-failure',
+    viewport: { width: 1600, height: 1000 },
   },
   projects: [
     {

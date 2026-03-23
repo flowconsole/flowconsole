@@ -221,6 +221,29 @@
   opacity: 0.08;
 }
 
+.diagram-card--hex-service {
+  clip-path: polygon(12% 0%, 88% 0%, 100% 50%, 88% 100%, 12% 100%, 0% 50%);
+  border-radius: 0;
+}
+
+.diagram-card--hex-service .diagram-card__shell::before {
+  inset: 10px 16px;
+  border: 1px solid currentColor;
+  clip-path: polygon(14% 0%, 86% 0%, 100% 50%, 86% 100%, 14% 100%, 0% 50%);
+  opacity: 0.18;
+}
+
+.diagram-card--capsule-worker {
+  border-radius: 999px;
+}
+
+.diagram-card--capsule-worker .diagram-card__shell::before {
+  inset: 10px 14px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  opacity: 0.18;
+}
+
 .diagram-card--boundary .diagram-card__shell::before {
   inset: 8px;
   border: 1px dashed currentColor;

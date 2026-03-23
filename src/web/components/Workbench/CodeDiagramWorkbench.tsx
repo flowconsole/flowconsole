@@ -1,13 +1,29 @@
 import { Editor, type Monaco } from '@monaco-editor/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArchitectureDiagram } from '../ArchitectureDiagram';
-import { architectureEdgeTypes, architectureNodeTypes } from '../../diagram/registry';
+import { architectureEdgeTypes, architectureNodeTypes, registerArchitectureShape } from '../../diagram/registry';
 import type { ArchitectureDiagramModel } from '../../diagram/types';
+import type { LayoutDirection, ShapeDefinition } from '../../diagram/layout';
 import { VerticalSplit } from '../VerticalSplit';
 import './styles.css';
 import { DEFAULT_LANGUAGE, findLanguage, LANGUAGES } from '../../languages';
 import type { EvaluationContext, LanguageDefinition } from '../../languages/types';
 import type { ThemeControls } from '../../types/theme';
+
+type LayoutFixtureHarnessPayload = {
+  model: ArchitectureDiagramModel;
+  direction?: LayoutDirection;
+  debug?: boolean;
+  customShapes?: readonly ShapeDefinition[];
+};
+
+declare global {
+  interface Window {
+    __FLOWCONSOLE_E2E__?: {
+      loadLayoutFixture: (payload: LayoutFixtureHarnessPayload) => void;
+    };
+  }
+}
 
 type Props = {
   resolvedScheme?: 'light' | 'dark';
@@ -29,6 +45,8 @@ export function CodeDiagramWorkbench({ themeControls, apiBaseUrl }: Props) {
     [initialLanguage.id]: initialSample?.code ?? '',
   });
   const [diagramModel, setDiagramModel] = useState<ArchitectureDiagramModel>({ nodes: [], edges: [] });
+  const [fixtureDirection, setFixtureDirection] = useState<LayoutDirection | undefined>();
+  const [fixtureDebug, setFixtureDebug] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [overlayVisible, setOverlayVisible] = useState(true);
   const evaluationCounter = useRef(0);
@@ -149,6 +167,27 @@ export function CodeDiagramWorkbench({ themeControls, apiBaseUrl }: Props) {
     };
   }, [activeLanguage.id]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    window.__FLOWCONSOLE_E2E__ = {
+      loadLayoutFixture: (payload) => {
+        payload.customShapes?.forEach((definition) => registerArchitectureShape(definition));
+        setDiagramModel(payload.model);
+        setFixtureDirection(payload.direction);
+        setFixtureDebug(payload.debug ?? false);
+        setOverlayVisible(false);
+        setError(null);
+      },
+    };
+
+    return () => {
+      delete window.__FLOWCONSOLE_E2E__;
+    };
+  }, []);
+
   const handleEditorBeforeMount = useCallback(
     (monaco: Monaco) => {
       activeLanguage.monacoSetup?.(monaco);
@@ -232,6 +271,8 @@ export function CodeDiagramWorkbench({ themeControls, apiBaseUrl }: Props) {
               edgeTypes={architectureEdgeTypes}
               editable={true}
               themeControls={themeControls}
+              layoutDirection={fixtureDirection}
+              layoutDebug={fixtureDebug}
             />
           </div>
           {overlayVisible ? (
