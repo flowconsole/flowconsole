@@ -147,7 +147,7 @@ function buildDot(model: ArchitectureDiagramModel) {
   return lines.join('\n');
 }
 
-type LayoutEntry = {
+export type LayoutEntry = {
   x: number;
   y: number;
   width: number;
@@ -173,7 +173,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function anchorFromPoint(
+export function anchorFromPoint(
   point: { x: number; y: number } | undefined,
   node: LayoutEntry | undefined
 ): AnchorData | undefined {
