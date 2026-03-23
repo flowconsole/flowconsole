@@ -3,6 +3,13 @@ export { layoutPipeline } from './layoutPipeline';
 export { architectureNotation } from './notation/architectureNotation';
 export { edgePriority, routeEdges, selectPortSides } from './edgeRouter';
 export { buildElkGraphInput, positionNodes } from './positioningEngine';
+export { refineAndScoreLayout, refineLayout } from './layoutRefiner';
+export {
+  QUALITY_THRESHOLDS,
+  computeQualityScore,
+  isQualityAcceptable,
+  qualityScoreValue,
+} from './qualityScore';
 export { rankSemantically } from './semanticRanker';
 export { computeSize, sizeRankedGraph } from './shapeSizing';
 export { builtInShapes, createBuiltInShapeRegistry, defaultShapeRegistry } from './shapes/builtins';

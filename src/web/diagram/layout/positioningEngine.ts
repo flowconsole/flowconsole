@@ -2,6 +2,7 @@ import type { ArchitectureDiagramModel, ArchitectureNode } from '../types';
 import { layoutWithGraphviz } from '../graphvizLayoutService';
 import type { SizedGraph, SizedNode } from './shapeSizing';
 import type { RankedNode } from './types';
+import { computeQualityScore, qualityScoreValue } from './qualityScore';
 
 type ElkNodeLike = {
   id: string;
@@ -150,44 +151,7 @@ function withAbsolutePositions(nodes: SizedNode[]) {
 }
 
 function scorePositionedGraph(graph: PositionedGraph) {
-  let overlaps = 0;
-  const nodes = graph.nodes;
-
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const a = nodes[i];
-      const b = nodes[j];
-      const aX2 = a.absolutePosition.x + a.size.width;
-      const aY2 = a.absolutePosition.y + a.size.height;
-      const bX2 = b.absolutePosition.x + b.size.width;
-      const bY2 = b.absolutePosition.y + b.size.height;
-      const overlap = !(
-        aX2 <= b.absolutePosition.x ||
-        bX2 <= a.absolutePosition.x ||
-        aY2 <= b.absolutePosition.y ||
-        bY2 <= a.absolutePosition.y
-      );
-      if (overlap) {
-        overlaps += 1;
-      }
-    }
-  }
-
-  let totalEdgeLength = 0;
-  for (const edge of graph.edges) {
-    const source = nodes.find((node) => node.id === edge.source);
-    const target = nodes.find((node) => node.id === edge.target);
-    if (!source || !target) {
-      continue;
-    }
-    totalEdgeLength += Math.hypot(
-      target.absolutePosition.x - source.absolutePosition.x,
-      target.absolutePosition.y - source.absolutePosition.y
-    );
-  }
-
-  const lengthPenalty = graph.edges.length ? Math.min(0.3, totalEdgeLength / (graph.edges.length * 2400)) : 0;
-  return Math.max(0, 1 - overlaps * 0.25 - lengthPenalty);
+  return qualityScoreValue(computeQualityScore(graph), graph.nodes.length);
 }
 
 function buildTree(graph: SizedGraph) {
