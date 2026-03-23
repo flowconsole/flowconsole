@@ -1,3 +1,4 @@
+export { analyzeGraph, classifyNodeRole } from './graphAnalyzer';
 export { layoutPipeline } from './layoutPipeline';
 export type {
   GraphProfile,
