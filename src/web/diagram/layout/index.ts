@@ -1,7 +1,11 @@
 export { analyzeGraph, classifyNodeRole } from './graphAnalyzer';
-export { layoutPipeline } from './layoutPipeline';
 export { architectureNotation } from './notation/architectureNotation';
 export { edgePriority, routeEdges, selectPortSides } from './edgeRouter';
+export {
+  clearLayoutPipelineCache,
+  getLastLayoutDiagnostics,
+  layoutPipeline,
+} from './layoutPipeline';
 export { buildElkGraphInput, positionNodes } from './positioningEngine';
 export { refineAndScoreLayout, refineLayout } from './layoutRefiner';
 export {
@@ -33,6 +37,7 @@ export type {
   SemanticNode,
 } from './types';
 export type { LabelPolicy, NotationAdapter } from './notation/types';
+export type { LayoutRunDiagnostics } from './layoutPipeline';
 export type { RoutedEdge, RoutedGraph, RoutingStyle } from './edgeRouter';
 export type { ElkGraphInput, PositionedGraph, PositionedNode } from './positioningEngine';
 export type { ShapeDefinition } from './shapes/shapeRegistry';

@@ -13,7 +13,7 @@ describe('layoutPipeline', () => {
     mocks.layoutWithGraphviz.mockReset();
   });
 
-  it('delegates to graphviz during the pipeline shell phase', async () => {
+  it('delegates to graphviz when graphviz is explicitly requested', async () => {
     const model = {
       nodes: [{ id: 'a', type: 'element', position: { x: 0, y: 0 }, data: { title: 'A' } }],
       edges: [],
@@ -26,12 +26,10 @@ describe('layoutPipeline', () => {
 
     const { layoutPipeline } = await import('../../../src/web/diagram/layout/layoutPipeline');
     const result = await layoutPipeline(model as never, {
-      direction: 'LR',
-      notation: 'architecture',
-      preset: 'c4-like',
+      engine: 'graphviz',
     });
 
-    expect(mocks.layoutWithGraphviz).toHaveBeenCalledWith(model);
-    expect(result).toBe(laidOut);
+    expect(mocks.layoutWithGraphviz).toHaveBeenCalledTimes(1);
+    expect(result.nodes[0]?.position).toMatchObject({ x: expect.any(Number), y: expect.any(Number) });
   });
 });

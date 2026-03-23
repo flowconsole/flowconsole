@@ -41,8 +41,33 @@ vi.mock('@xyflow/react', () => {
   };
 });
 
-vi.mock('../../src/web/diagram/graphvizLayoutService', () => ({
-  layoutWithGraphviz: vi.fn(async (model) => model),
+vi.mock('../../src/web/diagram/layout', () => ({
+  layoutPipeline: vi.fn(async (model, _config, options) => {
+    options?.onDiagnostics?.({
+      cacheKey: 'cache-key',
+      cacheHit: false,
+      reason: 'graph_changed',
+      strategy: 'layered',
+      direction: 'LR',
+      notation: 'architecture',
+      preset: 'c4-like',
+      engine: 'graphviz',
+      fallbackEngineUsed: true,
+      qualityScore: {
+        edgeCrossings: 0,
+        nodeOverlaps: 0,
+        containerViolations: 0,
+        labelOverlaps: 0,
+        edgeLengthVariance: 0,
+        siblingAlignmentScore: 1,
+        laneViolations: 0,
+        gatewayPlacementViolations: 0,
+        disconnectedPackingScore: 1,
+      },
+      qualityValue: 0.95,
+    });
+    return model;
+  }),
 }));
 
 vi.mock('../../src/theme/ThemeProvider', () => ({
@@ -95,12 +120,41 @@ describe('ArchitectureDiagram', () => {
   let originalRaf: typeof globalThis.requestAnimationFrame;
   let originalCancel: typeof globalThis.cancelAnimationFrame;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     nodesState = [];
     edgesState = [];
     navProps = null;
     fitView.mockClear();
     setCenter.mockClear();
+    const { layoutPipeline } = await import('../../src/web/diagram/layout');
+    (layoutPipeline as any).mockImplementation(
+      async (nextModel: ArchitectureDiagramModel, _config: unknown, options: any) => {
+        options?.onDiagnostics?.({
+          cacheKey: 'cache-key',
+          cacheHit: false,
+          reason: 'graph_changed',
+          strategy: 'layered',
+          direction: 'LR',
+          notation: 'architecture',
+          preset: 'c4-like',
+          engine: 'graphviz',
+          fallbackEngineUsed: true,
+          qualityScore: {
+            edgeCrossings: 0,
+            nodeOverlaps: 0,
+            containerViolations: 0,
+            labelOverlaps: 0,
+            edgeLengthVariance: 0,
+            siblingAlignmentScore: 1,
+            laneViolations: 0,
+            gatewayPlacementViolations: 0,
+            disconnectedPackingScore: 1,
+          },
+          qualityValue: 0.95,
+        });
+        return nextModel;
+      }
+    );
     originalRaf = globalThis.requestAnimationFrame;
     originalCancel = globalThis.cancelAnimationFrame;
     globalThis.requestAnimationFrame = ((cb: FrameRequestCallback) => {
@@ -127,8 +181,8 @@ describe('ArchitectureDiagram', () => {
   });
 
   it('uses graphviz layout when autoLayout is true', async () => {
-    const { layoutWithGraphviz } = await import('../../src/web/diagram/graphvizLayoutService');
-    (layoutWithGraphviz as any).mockResolvedValue({
+    const { layoutPipeline } = await import('../../src/web/diagram/layout');
+    (layoutPipeline as any).mockResolvedValue({
       nodes: [{ id: 'x', data: { title: 'X' }, position: { x: 1, y: 1 } }],
       edges: [{ id: 'e2', source: 'x', target: 'x', data: {} }],
       flows: [],
@@ -171,5 +225,16 @@ describe('ArchitectureDiagram', () => {
     await act(async () => Promise.resolve());
     expect(fitView).toHaveBeenCalled();
     expect(setCenter).not.toHaveBeenCalled();
+  });
+
+  it('exposes stable layout diagnostics attributes when ready', async () => {
+    const { getByTestId } = render(<ArchitectureDiagram model={model} autoLayout />);
+    await act(async () => Promise.resolve());
+
+    const ready = getByTestId('diagram-ready');
+    expect(ready.getAttribute('data-layout-engine')).toBe('graphviz');
+    expect(ready.getAttribute('data-layout-reason')).toBe('graph_changed');
+    expect(ready.getAttribute('data-layout-strategy')).toBe('layered');
+    expect(ready.getAttribute('data-layout-direction')).toBe('LR');
   });
 });

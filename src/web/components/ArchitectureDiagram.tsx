@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -18,11 +18,13 @@ import type {
   ArchitectureNodeTypes,
   ArchitectureEdge,
   FlowDefinition,
+  AutoLayoutConfig,
+  LayoutDirection,
 } from '../diagram/types';
 import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
 import { buildScopedModel, scopeTrail } from '../diagram/utils/scopedModel';
-import { layoutWithGraphviz } from '../diagram/graphvizLayoutService';
+import { layoutPipeline, type LayoutRunDiagnostics } from '../diagram/layout';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
 
@@ -37,6 +39,11 @@ type ArchitectureDiagramProps = {
   viewDescription?: string;
   resolvedScheme?: 'light' | 'dark';
   themeControls?: ThemeControls;
+  notation?: string;
+  layoutPreset?: string;
+  layoutEngine?: 'elk' | 'graphviz';
+  layoutDirection?: LayoutDirection;
+  layoutDebug?: boolean;
 };
 
 const PADDING = 32;
@@ -117,12 +124,27 @@ export function ArchitectureDiagram({
   viewTitle,
   viewDescription,
   themeControls,
+  notation = 'architecture',
+  layoutPreset = 'c4-like',
+  layoutEngine = 'elk',
+  layoutDirection,
+  layoutDebug = false,
 }: ArchitectureDiagramProps) {
   const effectiveScheme = themeControls?.resolvedScheme;
   const [scopeId, setScopeId] = useState<string | undefined>();
   const modelToRender = useMemo(() => buildScopedModel(model, scopeId), [model, scopeId]);
   const [nodes, setNodes] = useNodesState<ArchitectureNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ArchitectureEdge>([]);
+  const [layoutDiagnostics, setLayoutDiagnostics] = useState<LayoutRunDiagnostics>();
+  const [isLayoutReady, setLayoutReady] = useState(false);
+  const layoutContextRef = useRef<{
+    model: ArchitectureDiagramModel;
+    scopeId?: string;
+    notation: string;
+    preset: string;
+    engine: 'elk' | 'graphviz';
+    direction?: LayoutDirection;
+  } | undefined>(undefined);
   const trail = useMemo(() => scopeTrail(model, scopeId), [model, scopeId]);
   const ROOT_FOCUS_ID = '__root__';
   const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>(ROOT_FOCUS_ID);
@@ -170,12 +192,60 @@ export function ArchitectureDiagram({
 
   useEffect(() => {
     let cancelled = false;
+    setLayoutReady(false);
+
+    const previous = layoutContextRef.current;
+    const relayoutReason: LayoutRunDiagnostics['reason'] = !previous
+      ? 'cache_miss'
+      : previous.model !== model
+        ? 'graph_changed'
+        : previous.scopeId !== scopeId
+          ? 'scope_changed'
+          : previous.notation !== notation
+            ? 'notation_changed'
+            : previous.preset !== layoutPreset
+              ? 'preset_changed'
+              : previous.engine !== layoutEngine
+                ? 'engine_fallback'
+                : previous.direction !== layoutDirection
+                  ? 'direction_changed'
+                  : 'cache_miss';
+
+    layoutContextRef.current = {
+      model,
+      scopeId,
+      notation,
+      preset: layoutPreset,
+      engine: layoutEngine,
+      direction: layoutDirection,
+    };
 
     const update = async () => {
-      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender) : modelToRender;
+      const layoutConfig: AutoLayoutConfig = {
+        direction: layoutDirection,
+        notation,
+        preset: layoutPreset,
+        engine: layoutEngine,
+        debug: layoutDebug,
+      };
+      const baseModel = autoLayout
+        ? await layoutPipeline(modelToRender, layoutConfig, {
+            scopeId,
+            reason: relayoutReason,
+            onDiagnostics: setLayoutDiagnostics,
+          })
+        : modelToRender;
       if (cancelled) return;
-      setNodes(autoResizeParents(withParentAutoResize(baseModel.nodes)));
+      const preparedNodes = autoLayout
+        ? withParentAutoResize(baseModel.nodes)
+        : autoResizeParents(withParentAutoResize(baseModel.nodes));
+      setNodes(preparedNodes);
       setEdges(baseModel.edges);
+      requestAnimationFrame(() => {
+        if (!cancelled) {
+          setLayoutReady(true);
+        }
+      });
     };
 
     void update();
@@ -382,12 +452,20 @@ export function ArchitectureDiagram({
   );
 
   return (
-    <ReactFlow
-      className={`architecture-diagram theme-${effectiveScheme}`}
-      fitView
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
+    <div
+      style={{ width: '100%', height: '100%' }}
+      {...(isLayoutReady ? { 'data-testid': 'diagram-ready' } : {})}
+      data-layout-engine={layoutDiagnostics?.engine}
+      data-layout-reason={layoutDiagnostics?.reason}
+      data-layout-strategy={layoutDiagnostics?.strategy}
+      data-layout-direction={layoutDiagnostics?.direction}
+    >
+      <ReactFlow
+        className={`architecture-diagram theme-${effectiveScheme}`}
+        fitView
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -403,8 +481,8 @@ export function ArchitectureDiagram({
       maxZoom={2}
       connectionLineComponent={FloatingConnectionLine}
       panActivationKeyCode={'Shift'}
-    >
-      <MiniMap
+      >
+        <MiniMap
         pannable
         zoomable
         style={{ background: minimapTheme.background, border: '1px solid var(--diagram-border)' }}
@@ -412,7 +490,7 @@ export function ArchitectureDiagram({
         nodeStrokeColor={() => minimapTheme.stroke}
         maskColor={minimapTheme.mask}
       />
-      <NavigationPanel
+        <NavigationPanel
         model={model}
         viewId={viewId}
         viewTitle={viewTitle}
@@ -430,8 +508,8 @@ export function ArchitectureDiagram({
         onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
         themeControls={themeControls}
       />
-      {flows.length && isFlowPanelVisible ? (
-        <Panel position="top-left" style={{ marginTop: 42 }}>
+        {flows.length && isFlowPanelVisible ? (
+          <Panel position="top-left" style={{ marginTop: 42 }}>
           <div className="flow-panel">
             <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
               <strong style={{ fontSize: 12 }}>Flow</strong>
@@ -502,11 +580,11 @@ export function ArchitectureDiagram({
               );
             })()}
           </div>
-        </Panel>
-      ) : null}
-      <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
-      {scopeId ? (
-        <Panel position="top-right">
+          </Panel>
+        ) : null}
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
+        {scopeId ? (
+          <Panel position="top-right">
           <div
             style={{
               display: 'flex',
@@ -551,15 +629,16 @@ export function ArchitectureDiagram({
               Root view
             </button>
           </div>
-        </Panel>
-      ) : null}
-      <ViewportController
+          </Panel>
+        ) : null}
+        <ViewportController
         focusTarget={pendingFocus}
         onFocused={() => setPendingFocus(undefined)}
         nodes={nodes}
         rootMarker={ROOT_FOCUS_ID}
       />
-    </ReactFlow>
+      </ReactFlow>
+    </div>
   );
 }
 

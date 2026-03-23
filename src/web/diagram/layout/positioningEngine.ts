@@ -48,6 +48,7 @@ type PositioningEngineOptions = {
   fallbackLayout?: (model: ArchitectureDiagramModel) => Promise<ArchitectureDiagramModel>;
   qualityEvaluator?: (graph: PositionedGraph) => number;
   minQuality?: number;
+  forceGraphviz?: boolean;
 };
 
 const DEFAULT_MIN_QUALITY = 0.55;
@@ -456,6 +457,16 @@ export async function positionNodes(
   const qualityEvaluator = options.qualityEvaluator ?? scorePositionedGraph;
   const minQuality = options.minQuality ?? DEFAULT_MIN_QUALITY;
   const fallbackLayout = options.fallbackLayout ?? layoutWithGraphviz;
+  const fallbackCandidate = async () => {
+    const laidOut = await fallbackLayout(toGraphvizModel(graph));
+    const candidate = fromGraphvizModel(graph, laidOut);
+    candidate.qualityScore = qualityEvaluator(candidate);
+    return candidate;
+  };
+
+  if (options.forceGraphviz) {
+    return fallbackCandidate();
+  }
 
   if (graph.strategy.type === 'compact') {
     return positionCompact(graph);
@@ -476,13 +487,6 @@ export async function positionNodes(
   } catch {
     elkCandidate = undefined;
   }
-
-  const fallbackCandidate = async () => {
-    const laidOut = await fallbackLayout(toGraphvizModel(graph));
-    const candidate = fromGraphvizModel(graph, laidOut);
-    candidate.qualityScore = qualityEvaluator(candidate);
-    return candidate;
-  };
 
   if (!elkCandidate) {
     return fallbackCandidate();

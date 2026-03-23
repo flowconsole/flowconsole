@@ -5,6 +5,7 @@ export { FlowConsoleLogo } from './components/FlowConsoleLogo';
 export * from './languages';
 export * from './languages/types';
 export * from './diagram/types';
+export * from './diagram/layout';
 export { architectureNodeTypes, architectureEdgeTypes } from './diagram/registry';
 export * from './types/theme';
 export { ThemeProvider, useTheme } from './theme/ThemeProvider';
