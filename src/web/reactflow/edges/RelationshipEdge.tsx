@@ -12,7 +12,6 @@ import { curveCatmullRomOpen, line } from 'd3-shape';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { relationshipStroke } from '../../diagram/theme';
 import type { RelationshipEdgeType } from '../../diagram/types';
-import { bezierPathFromGraphviz } from '../../diagram/edgePathUtils';
 
 type Point = XYPosition;
 type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
@@ -142,7 +141,48 @@ export function getEdgeParams(source: InternalNodeInstance, target: InternalNode
   };
 }
 
-// bezierPathFromGraphviz and normalizeGraphvizPoints imported from edgePathUtils
+function bezierPathFromGraphviz(points: Point[] | undefined) {
+  if (!points?.length) return undefined;
+  let path = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i + 2 < points.length; i += 3) {
+    const cp1 = points[i];
+    const cp2 = points[i + 1];
+    const end = points[i + 2];
+    if (!cp1 || !cp2 || !end) break;
+    path += ` C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${end.x},${end.y}`;
+  }
+  return path;
+}
+
+function normalizeGraphvizPoints(
+  basePoints: Point[] | undefined,
+  source: Point,
+  target: Point
+): Point[] | undefined {
+  if (!basePoints?.length || basePoints.length < 4) return undefined;
+  if ((basePoints.length - 1) % 3 !== 0) return undefined;
+  const shiftX = source.x - basePoints[0].x;
+  const shiftY = source.y - basePoints[0].y;
+  const adjusted = basePoints.map((p, idx) =>
+    idx === 0
+      ? { x: source.x, y: source.y }
+      : {
+          x: p.x + shiftX,
+          y: p.y + shiftY,
+        }
+  );
+  const n = adjusted.length;
+  const targetShiftX = target.x - adjusted[n - 1].x;
+  const targetShiftY = target.y - adjusted[n - 1].y;
+  for (let i = Math.max(1, n - 3); i < n; i++) {
+    adjusted[i] = {
+      x: adjusted[i].x + targetShiftX,
+      y: adjusted[i].y + targetShiftY,
+    };
+  }
+  adjusted[n - 1] = { x: target.x, y: target.y };
+  return adjusted;
+}
 
 function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
@@ -280,20 +320,10 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     [targetNode, data?.targetAnchor]
   );
 
-  // When Graphviz layoutPoints are available, use their endpoints directly
-  // as the source/target positions. This avoids depending on React Flow's
-  // positionAbsolute (via resolveAnchorPoint), which may not be stable on
-  // the initial render for deeply nested nodes — causing the normalization
-  // to apply a massive shift that distorts the entire spline.
-  const layoutFirst = data?.layoutPoints?.[0];
-  const layoutLast = data?.layoutPoints?.length
-    ? data.layoutPoints[data.layoutPoints.length - 1]
-    : undefined;
-
-  const sx = layoutFirst?.x ?? sourceAnchorPoint?.x ?? fallbackGeometry.sx;
-  const sy = layoutFirst?.y ?? sourceAnchorPoint?.y ?? fallbackGeometry.sy;
-  const tx = layoutLast?.x ?? targetAnchorPoint?.x ?? fallbackGeometry.tx;
-  const ty = layoutLast?.y ?? targetAnchorPoint?.y ?? fallbackGeometry.ty;
+  const sx = sourceAnchorPoint?.x ?? fallbackGeometry.sx;
+  const sy = sourceAnchorPoint?.y ?? fallbackGeometry.sy;
+  const tx = targetAnchorPoint?.x ?? fallbackGeometry.tx;
+  const ty = targetAnchorPoint?.y ?? fallbackGeometry.ty;
   const sourcePos = data?.sourceAnchor?.position ?? fallbackGeometry.sourcePos;
   const targetPos = data?.targetAnchor?.position ?? fallbackGeometry.targetPos;
 
@@ -326,18 +356,24 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
       : undefined;
   }, [controlPoints, sx, sy, tx, ty]);
 
-  // Use Graphviz path directly — layoutPoints are already in correct absolute
-  // coordinates. Normalization is skipped since sx/sy/tx/ty now match the
-  // layoutPoints endpoints (shift ≈ 0).
+  const graphvizPoints = useMemo(() => {
+    if (!data?.layoutPoints?.length) return undefined;
+    return normalizeGraphvizPoints(data.layoutPoints, { x: sx, y: sy }, { x: tx, y: ty });
+  }, [data?.layoutPoints, sx, sy, tx, ty]);
+
   const graphvizPath = useMemo(
-    () => bezierPathFromGraphviz(data?.layoutPoints),
-    [data?.layoutPoints]
+    () => bezierPathFromGraphviz(graphvizPoints),
+    [graphvizPoints]
   );
 
   const graphvizLabel = useMemo(() => {
     if (!data?.labelPos) return undefined;
-    return data.labelPos;
-  }, [data?.labelPos]);
+    if (!data?.layoutPoints?.length) return data.labelPos;
+    const base = data.layoutPoints[0];
+    const dx = sx - (base?.x ?? sx);
+    const dy = sy - (base?.y ?? sy);
+    return { x: data.labelPos.x + dx, y: data.labelPos.y + dy };
+  }, [data?.labelPos, data?.layoutPoints, sx, sy]);
 
   const resolvedPath = manualPath?.path ?? graphvizPath ?? fallbackPath;
   const resolvedLabelPoint =
@@ -346,8 +382,8 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   const stroke = relationshipStroke(data?.kind);
   const direction = data?.direction ?? 'forward';
   const isDirectional = direction !== 'none';
-  const markerStart = (direction === 'both' || direction === 'back') ? `url(#${id}-start)` : undefined;
-  const markerEnd = (isDirectional && direction !== 'back') ? `url(#${id}-end)` : undefined;
+  const markerStart = direction === 'both' ? `url(#${id}-start)` : undefined;
+  const markerEnd = isDirectional ? `url(#${id}-end)` : undefined;
   const hasIcon = Boolean(data?.icon);
   const isAnimated = isDirectional && hovered;
   const animationDirection =
@@ -504,7 +540,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
           >
             <path d="M2,2 L10,6 L2,10 Z" fill={stroke.stroke} />
           </marker>
-          {(direction === 'both' || direction === 'back') ? (
+          {direction === 'both' ? (
             <marker
               id={`${id}-start`}
               markerWidth="18"

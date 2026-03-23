@@ -180,21 +180,14 @@ describe('RelationshipEdge', () => {
       labelPos: { x: 5, y: 5 },
     });
     const baseEdge = screen.getByTestId('base-edge');
-    const path = baseEdge.getAttribute('d')!;
-    // Should be a cubic Bezier path rendered directly from layoutPoints
-    // (no normalization — layoutPoints are already in correct absolute coords)
-    expect(path).not.toBe('bezier-path');
-    expect(path).toContain('M 0,0');
-    expect(path).toContain('C ');
-    // Last point should be the last layoutPoint (20,20)
-    expect(path).toMatch(/20,20$/);
+    expect(baseEdge.getAttribute('d')).toBe('M 0,0 C 40,-20 40,-10 50,0');
     const label = screen.getByText('Graphviz').parentElement as HTMLElement;
-    expect(label.style.transform).toBeDefined();
+    expect(label.style.transform).toContain('translate(5px, 23px)');
   });
 
   it('prefers manual control points over graphviz path', () => {
     renderEdge({
-      controlPoints: [{ x: 10, y: 10 }, { x: 30, y: 10 }],
+      controlPoints: [{ x: 10, y: 10 }],
       layoutPoints: [
         { x: 0, y: 0 },
         { x: 10, y: 0 },
@@ -203,11 +196,7 @@ describe('RelationshipEdge', () => {
       ],
     });
     const baseEdge = screen.getByTestId('base-edge');
-    const path = baseEdge.getAttribute('d')!;
-    // Manual control points produce a d3 catmullRom path (mocked as 'smooth-path'),
-    // not the graphviz bezier or the fallback getBezierPath
-    expect(path).not.toBe('bezier-path');
-    expect(path).toBe('smooth-path');
+    expect(baseEdge.getAttribute('d')).toBe('smooth-path');
   });
 
   it('shows control points on hover when data has controlPoints', () => {
@@ -232,103 +221,6 @@ describe('RelationshipEdge', () => {
     const updated = reactFlow.lastEdges?.[0]?.data?.controlPoints;
     expect(updated).toBeDefined();
     expect(updated).toHaveLength(1);
-  });
-
-  /**
-   * Regression: when React Flow hasn't computed positionAbsolute yet for
-   * deeply-nested nodes, resolveAnchorPoint resolves to (0+offset, 0)
-   * instead of the real position. The old code fed that into
-   * normalizeGraphvizPoints, which shifted the ENTIRE Graphviz spline
-   * by hundreds of pixels — producing huge arcs disconnected from nodes.
-   *
-   * The fix: use the Graphviz layoutPoints endpoints directly as sx/sy/tx/ty.
-   * The path must always match the layoutPoints, regardless of what
-   * positionAbsolute returns.
-   */
-  it('graphviz path is stable when positionAbsolute is not yet computed (regression)', () => {
-    // Simulate a deeply-nested target node whose positionAbsolute is
-    // still at (0,0) — React Flow hasn't resolved it yet.
-    nodes = {
-      [baseProps.source]: {
-        measured: { width: 180, height: 200 },
-        internals: { positionAbsolute: { x: 900, y: 50 } },
-      },
-      [baseProps.target]: {
-        // positionAbsolute NOT computed yet → defaults to (0,0)
-        measured: { width: 260, height: 120 },
-        internals: { positionAbsolute: { x: 0, y: 0 } },
-      },
-    };
-
-    // Graphviz placed the spline correctly: source near (1080, 150),
-    // target near (200, 400) — a long cross-container edge.
-    const layoutPoints = [
-      { x: 1080, y: 150 },
-      { x: 900, y: 200 },
-      { x: 400, y: 350 },
-      { x: 200, y: 400 },
-    ];
-
-    renderEdge(
-      {
-        layoutPoints,
-        sourceAnchor: { position: Position.Right, offset: 0.5 },
-        targetAnchor: { position: Position.Left, offset: 0.5 },
-      },
-      { sourceX: 1080, sourceY: 150, targetX: 200, targetY: 400 }
-    );
-
-    const baseEdge = screen.getByTestId('base-edge');
-    const path = baseEdge.getAttribute('d')!;
-
-    // Path must use the Graphviz layoutPoints, NOT the broken
-    // resolveAnchorPoint result that would put the target at (0, 60).
-    expect(path).toContain('M 1080,150');
-    expect(path).toMatch(/200,400$/);
-
-    // The old code would have produced a path ending near (0, 60)
-    // because normalizeGraphvizPoints shifted everything toward the
-    // broken positionAbsolute. Verify this doesn't happen:
-    expect(path).not.toContain('M 0,');
-    expect(path).not.toMatch(/0,60/);
-  });
-
-  it('graphviz path is stable when positionAbsolute lags behind for BOTH endpoints (regression)', () => {
-    // Both source and target have positionAbsolute at (0,0).
-    // Without the fix, the edge path degenerates to a tiny spline near the origin.
-    nodes = {
-      [baseProps.source]: {
-        measured: { width: 180, height: 200 },
-        internals: { positionAbsolute: { x: 0, y: 0 } },
-      },
-      [baseProps.target]: {
-        measured: { width: 260, height: 120 },
-        internals: { positionAbsolute: { x: 0, y: 0 } },
-      },
-    };
-
-    const layoutPoints = [
-      { x: 500, y: 100 },
-      { x: 450, y: 150 },
-      { x: 300, y: 250 },
-      { x: 200, y: 300 },
-    ];
-
-    renderEdge(
-      {
-        layoutPoints,
-        sourceAnchor: { position: Position.Bottom, offset: 0.5 },
-        targetAnchor: { position: Position.Top, offset: 0.5 },
-      },
-      { sourceX: 500, sourceY: 100, targetX: 200, targetY: 300 }
-    );
-
-    const baseEdge = screen.getByTestId('base-edge');
-    const path = baseEdge.getAttribute('d')!;
-
-    // Path must still use the correct Graphviz coordinates
-    expect(path).toContain('M 500,100');
-    expect(path).toMatch(/200,300$/);
   });
 
   it('removes control point on right-click of handler', () => {

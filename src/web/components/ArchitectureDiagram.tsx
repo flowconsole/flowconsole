@@ -18,7 +18,6 @@ import type {
   ArchitectureNodeTypes,
   ArchitectureEdge,
   FlowDefinition,
-  AutoLayoutConfig,
 } from '../diagram/types';
 import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
@@ -33,7 +32,6 @@ type ArchitectureDiagramProps = {
   edgeTypes?: ArchitectureEdgeTypes;
   editable?: boolean;
   autoLayout?: boolean;
-  autoLayoutConfig?: AutoLayoutConfig;
   viewId?: string;
   viewTitle?: string;
   viewDescription?: string;
@@ -115,7 +113,6 @@ export function ArchitectureDiagram({
   edgeTypes = {},
   editable = true,
   autoLayout = true,
-  autoLayoutConfig,
   viewId,
   viewTitle,
   viewDescription,
@@ -175,18 +172,18 @@ export function ArchitectureDiagram({
     let cancelled = false;
 
     const update = async () => {
-      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender, autoLayoutConfig ?? model.autoLayoutConfig) : modelToRender;
+      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender) : modelToRender;
       if (cancelled) return;
       setNodes(autoResizeParents(withParentAutoResize(baseModel.nodes)));
       setEdges(baseModel.edges);
     };
 
     void update();
-
+    
     return () => {
       cancelled = true;
     };
-  }, [modelToRender, autoLayout, autoLayoutConfig, model.autoLayoutConfig, setNodes, setEdges]);
+  }, [modelToRender, autoLayout, setNodes, setEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {
@@ -200,10 +197,8 @@ export function ArchitectureDiagram({
   );
 
   useEffect(() => {
-    if (!autoLayout) {
-      setEdges(modelToRender.edges);
-    }
-  }, [modelToRender.edges, autoLayout, setEdges]);
+    setEdges(modelToRender.edges);
+  }, [modelToRender.edges, setEdges]);
 
   useEffect(() => {
     setPendingFocus(scopeId ?? ROOT_FOCUS_ID);
@@ -435,7 +430,7 @@ export function ArchitectureDiagram({
         onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
         themeControls={themeControls}
       />
-      {flows.length > 0 && isFlowPanelVisible ? (
+      {flows.length && isFlowPanelVisible ? (
         <Panel position="top-left" style={{ marginTop: 42 }}>
           <div className="flow-panel">
             <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
