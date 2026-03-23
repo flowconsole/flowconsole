@@ -32,6 +32,7 @@ import {
   scopeTrail,
 } from '../diagram/utils/scopedModel';
 import { layoutPipeline, type LayoutRunDiagnostics } from '../diagram/layout';
+import { LayoutDebugOverlay } from '../diagram/layout/debug/layoutDebugOverlay';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
 
@@ -654,6 +655,11 @@ export function ArchitectureDiagram({
               Root view
             </button>
           </div>
+          </Panel>
+        ) : null}
+        {layoutDebug && layoutDiagnostics ? (
+          <Panel position="top-right" style={{ marginTop: scopeId ? 64 : 0 }}>
+          <LayoutDebugOverlay diagnostics={layoutDiagnostics} />
           </Panel>
         ) : null}
         <ViewportController
