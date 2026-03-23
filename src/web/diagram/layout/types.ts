@@ -104,3 +104,50 @@ export type LayoutViewState = {
   cacheKey: string;
 };
 
+export const SEMANTIC_LANES = [
+  'leading',
+  'central-early',
+  'central',
+  'central-late',
+  'supporting',
+  'trailing',
+] as const;
+
+export type SemanticLane = (typeof SEMANTIC_LANES)[number];
+
+export type LaneAxis = 'x' | 'y';
+
+export type RankedNode = SemanticNode & {
+  layout: {
+    role: NodeRole;
+    lane: SemanticLane;
+    laneIndex: number;
+    semanticRank: number;
+    axis: LaneAxis;
+    direction: LayoutDirection;
+    inDegree: number;
+    outDegree: number;
+    order: number;
+  };
+};
+
+export type RankedEdge = SemanticEdge & {
+  layout: {
+    sourceLane: SemanticLane;
+    targetLane: SemanticLane;
+    semanticPriority: number;
+    isBackEdge: boolean;
+  };
+};
+
+export type RankedGraph = {
+  nodes: RankedNode[];
+  edges: RankedEdge[];
+  profile: GraphProfile;
+  strategy: LayoutStrategy;
+  notation: string;
+  preset: string;
+  direction: LayoutDirection;
+  laneAxis: LaneAxis;
+  laneOrder: ReadonlyArray<SemanticLane>;
+};

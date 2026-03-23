@@ -1,7 +1,15 @@
 import type { Edge, EdgeTypes, Node, NodeTypes, Position } from '@xyflow/react';
 import type { LayoutDirection } from './layout/types';
 
-export type ElementShape = 'person' | 'service' | 'database' | 'queue' | 'storage' | 'boundary';
+export type ElementShape =
+  | 'person'
+  | 'service'
+  | 'database'
+  | 'queue'
+  | 'storage'
+  | 'boundary'
+  | 'gateway'
+  | 'generic';
 
 export type ElementTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
