@@ -56,92 +56,7 @@ function resolveAnchorPoint(
   }
 }
 
-// this helper function returns the intersection point
-// of the line between the center of the intersectionNode and the target node
-function getNodeIntersection(
-  intersectionNode: InternalNodeInstance,
-  targetNode: InternalNodeInstance
-) {
-  // https://math.stackexchange.com/questions/1724792/an-algorithm-for-finding-the-intersection-point-between-a-center-of-vision-and-a
-  const intersectionNodeWidth = intersectionNode.measured?.width;
-  const intersectionNodeHeight = intersectionNode.measured?.height;
-  const intersectionNodePosition = intersectionNode.internals.positionAbsolute;
-  const targetPosition = targetNode.internals.positionAbsolute;
-  const targetWidth = targetNode.measured?.width;
-  const targetHeight = targetNode.measured?.height;
-
-  if (!intersectionNodeWidth || !intersectionNodeHeight || !targetWidth || !targetHeight) {
-    return targetPosition;
-  }
- 
-  const w = intersectionNodeWidth / 2;
-  const h = intersectionNodeHeight / 2;
- 
-  const x2 = intersectionNodePosition.x + w;
-  const y2 = intersectionNodePosition.y + h;
-  const x1 = targetPosition.x + targetWidth / 2;
-  const y1 = targetPosition.y + targetHeight / 2;
- 
-  const xx1 = (x1 - x2) / (2 * w) - (y1 - y2) / (2 * h);
-  const yy1 = (x1 - x2) / (2 * w) + (y1 - y2) / (2 * h);
-  const a = 1 / (Math.abs(xx1) + Math.abs(yy1));
-  const xx3 = a * xx1;
-  const yy3 = a * yy1;
-  const x = w * (xx3 + yy3) + x2;
-  const y = h * (-xx3 + yy3) + y2;
- 
-  return { x, y };
-}
-
-// returns the position (top,right,bottom or right) passed node compared to the intersection point
-function getEdgePosition(node: InternalNodeInstance, intersectionPoint: Point) {
-  const measured = node.measured;
-  if (!measured?.width || !measured?.height) {
-    return Position.Top;
-  }
-  const width = measured.width;
-  const height = measured.height;
-  const n = { ...node.internals.positionAbsolute };
-  const nx = Math.round(n.x);
-  const ny = Math.round(n.y);
-  const px = Math.round(intersectionPoint.x);
-  const py = Math.round(intersectionPoint.y);
-
-  if (px <= nx + 1) {
-    return Position.Left;
-  }
-  if (px >= nx + width - 1) {
-    return Position.Right;
-  }
-  if (py <= ny + 1) {
-    return Position.Top;
-  }
-  if (py >= ny + height - 1) {
-    return Position.Bottom;
-  }
- 
-  return Position.Top;
-}
-
-// returns the parameters (sx, sy, tx, ty, sourcePos, targetPos) you need to create an edge
-export function getEdgeParams(source: InternalNodeInstance, target: InternalNodeInstance) {
-  const sourceIntersectionPoint = getNodeIntersection(source, target);
-  const targetIntersectionPoint = getNodeIntersection(target, source);
- 
-  const sourcePos = getEdgePosition(source, sourceIntersectionPoint);
-  const targetPos = getEdgePosition(target, targetIntersectionPoint);
- 
-  return {
-    sx: sourceIntersectionPoint.x,
-    sy: sourceIntersectionPoint.y,
-    tx: targetIntersectionPoint.x,
-    ty: targetIntersectionPoint.y,
-    sourcePos,
-    targetPos,
-  };
-}
-
-function bezierPathFromGraphviz(points: Point[] | undefined) {
+function cubicPath(points: Point[] | undefined) {
   if (!points?.length) return undefined;
   let path = `M ${points[0].x},${points[0].y}`;
   for (let i = 1; i + 2 < points.length; i += 3) {
@@ -154,39 +69,39 @@ function bezierPathFromGraphviz(points: Point[] | undefined) {
   return path;
 }
 
-function normalizeGraphvizPoints(
-  basePoints: Point[] | undefined,
-  source: Point,
-  target: Point
-): Point[] | undefined {
-  if (!basePoints?.length || basePoints.length < 4) return undefined;
-  if ((basePoints.length - 1) % 3 !== 0) return undefined;
-  const shiftX = source.x - basePoints[0].x;
-  const shiftY = source.y - basePoints[0].y;
-  const adjusted = basePoints.map((p, idx) =>
-    idx === 0
-      ? { x: source.x, y: source.y }
-      : {
-          x: p.x + shiftX,
-          y: p.y + shiftY,
-        }
-  );
-  const n = adjusted.length;
-  const targetShiftX = target.x - adjusted[n - 1].x;
-  const targetShiftY = target.y - adjusted[n - 1].y;
-  for (let i = Math.max(1, n - 3); i < n; i++) {
-    adjusted[i] = {
-      x: adjusted[i].x + targetShiftX,
-      y: adjusted[i].y + targetShiftY,
-    };
-  }
-  adjusted[n - 1] = { x: target.x, y: target.y };
-  return adjusted;
-}
-
 function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
   return catmullRomLine(points) ?? undefined;
+}
+
+function polylinePath(points: Point[]) {
+  if (points.length < 2) return undefined;
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x},${point.y}`)
+    .join(' ');
+}
+
+function isAxisAlignedPolyline(points: Point[]) {
+  if (points.length < 2) return false;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const current = points[index];
+    const next = points[index + 1];
+    if (Math.round(current.x) !== Math.round(next.x) && Math.round(current.y) !== Math.round(next.y)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function pathFromLayoutPoints(points: Point[] | undefined) {
+  if (!points || points.length < 2) return undefined;
+  if (isAxisAlignedPolyline(points)) {
+    return polylinePath(points);
+  }
+  if ((points.length - 1) % 3 === 0) {
+    return cubicPath(points);
+  }
+  return smoothPath(points) ?? polylinePath(points);
 }
 
 function distance(a: Point, b: Point) {
@@ -297,20 +212,6 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     };
   }, []);
 
-  const fallbackGeometry = useMemo(() => {
-    if (sourceNode && targetNode) {
-      return getEdgeParams(sourceNode, targetNode);
-    }
-    return {
-      sx: sourceX,
-      sy: sourceY,
-      tx: targetX,
-      ty: targetY,
-      sourcePos: sourcePosition ?? Position.Right,
-      targetPos: targetPosition ?? Position.Left,
-    };
-  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
-
   const sourceAnchorPoint = useMemo(
     () => resolveAnchorPoint(sourceNode, data?.sourceAnchor),
     [sourceNode, data?.sourceAnchor]
@@ -320,12 +221,12 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     [targetNode, data?.targetAnchor]
   );
 
-  const sx = sourceAnchorPoint?.x ?? fallbackGeometry.sx;
-  const sy = sourceAnchorPoint?.y ?? fallbackGeometry.sy;
-  const tx = targetAnchorPoint?.x ?? fallbackGeometry.tx;
-  const ty = targetAnchorPoint?.y ?? fallbackGeometry.ty;
-  const sourcePos = data?.sourceAnchor?.position ?? fallbackGeometry.sourcePos;
-  const targetPos = data?.targetAnchor?.position ?? fallbackGeometry.targetPos;
+  const sx = sourceAnchorPoint?.x ?? sourceX;
+  const sy = sourceAnchorPoint?.y ?? sourceY;
+  const tx = targetAnchorPoint?.x ?? targetX;
+  const ty = targetAnchorPoint?.y ?? targetY;
+  const sourcePos = data?.sourceAnchor?.position ?? sourcePosition ?? Position.Right;
+  const targetPos = data?.targetAnchor?.position ?? targetPosition ?? Position.Left;
 
   const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(
     () =>
@@ -356,28 +257,20 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
       : undefined;
   }, [controlPoints, sx, sy, tx, ty]);
 
-  const graphvizPoints = useMemo(() => {
-    if (!data?.layoutPoints?.length) return undefined;
-    return normalizeGraphvizPoints(data.layoutPoints, { x: sx, y: sy }, { x: tx, y: ty });
-  }, [data?.layoutPoints, sx, sy, tx, ty]);
+  const routedPath = useMemo(() => pathFromLayoutPoints(data?.layoutPoints), [data?.layoutPoints]);
+  const layoutLabelPoint = useMemo(() => {
+    if (data?.labelPos) {
+      return data.labelPos;
+    }
+    if (data?.layoutPoints?.length) {
+      return midpoint(data.layoutPoints);
+    }
+    return undefined;
+  }, [data?.labelPos, data?.layoutPoints]);
 
-  const graphvizPath = useMemo(
-    () => bezierPathFromGraphviz(graphvizPoints),
-    [graphvizPoints]
-  );
-
-  const graphvizLabel = useMemo(() => {
-    if (!data?.labelPos) return undefined;
-    if (!data?.layoutPoints?.length) return data.labelPos;
-    const base = data.layoutPoints[0];
-    const dx = sx - (base?.x ?? sx);
-    const dy = sy - (base?.y ?? sy);
-    return { x: data.labelPos.x + dx, y: data.labelPos.y + dy };
-  }, [data?.labelPos, data?.layoutPoints, sx, sy]);
-
-  const resolvedPath = manualPath?.path ?? graphvizPath ?? fallbackPath;
+  const resolvedPath = manualPath?.path ?? routedPath ?? fallbackPath;
   const resolvedLabelPoint =
-    manualPath?.labelPoint ?? graphvizLabel ?? { x: fallbackLabelX, y: fallbackLabelY };
+    manualPath?.labelPoint ?? layoutLabelPoint ?? { x: fallbackLabelX, y: fallbackLabelY };
 
   const stroke = relationshipStroke(data?.kind);
   const direction = data?.direction ?? 'forward';

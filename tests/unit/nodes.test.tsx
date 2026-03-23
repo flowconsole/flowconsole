@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ContainerNodeType, ElementNodeType } from '../../src/web/diagram/types';
+import { ShapeRegistry } from '../../src/web/diagram/layout/shapes/shapeRegistry';
+import { createArchitectureNodeTypes } from '../../src/web/diagram/registry';
 import { ContainerNode } from '../../src/web/reactflow/nodes/ContainerNode';
 import { ElementNode } from '../../src/web/reactflow/nodes/ElementNode';
 
@@ -73,6 +75,13 @@ describe('Diagram nodes', () => {
       expect(container.querySelector('.diagram-card__subtitle')).toBeNull();
       expect(container.querySelector('.diagram-container__body')).toBeNull();
     });
+
+    it('exposes boundary shape metadata for drilldown-compatible containers', () => {
+      const { container } = renderContainer({ expanded: false, notationShape: 'boundary' });
+      const card = container.querySelector('.diagram-container') as HTMLElement;
+      expect(card.getAttribute('data-shape-id')).toBe('boundary');
+      expect(card.getAttribute('data-shape-geometry')).toBe('card');
+    });
   });
 
   describe('ElementNode', () => {
@@ -133,6 +142,30 @@ describe('Diagram nodes', () => {
       const { container } = renderElement({ shape: 'unknown' as unknown as ElementNodeType['data']['shape'] });
       expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--generic');
       expect(container.querySelector('.diagram-icon svg')).not.toBeNull();
+    });
+
+    it('renders custom visual shells from a registered shape definition', () => {
+      const registry = new ShapeRegistry([
+        {
+          shapeId: 'hex-service',
+          geometryKind: 'custom',
+          defaultDimensions: { width: 220, height: 96 },
+          minDimensions: { width: 180, height: 90 },
+          portModel: 'card',
+          labelZones: ['header', 'body'],
+          renderClassName: 'diagram-card--hex-service',
+        },
+      ]);
+      const nodeTypes = createArchitectureNodeTypes(registry);
+      const ElementRenderer = nodeTypes.element as any;
+      const { container } = render(
+        <ElementRenderer id="element-hex" data={{ title: 'Hex Service', notationShape: 'hex-service' }} selected={false} />
+      );
+
+      const card = container.querySelector('.diagram-card') as HTMLElement;
+      expect(card).toHaveClass('diagram-card--hex-service');
+      expect(card.getAttribute('data-shape-id')).toBe('hex-service');
+      expect(card.getAttribute('data-shape-geometry')).toBe('custom');
     });
 
     it('prefers custom icon over default svg icon', () => {

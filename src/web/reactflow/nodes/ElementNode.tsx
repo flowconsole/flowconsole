@@ -2,6 +2,8 @@ import { IconDatabase, IconPackage, IconServer2, IconSquareRounded, IconStack2, 
 import { type CSSProperties } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import type { ElementNodeType } from '../../diagram/types';
+import { defaultShapeRegistry } from '../../diagram/layout/shapes/builtins';
+import type { ShapeRegistry } from '../../diagram/layout/shapes/shapeRegistry';
 import { toneToColor } from '../../diagram/theme';
 import { HiddenHandles } from './HiddenHandles';
 import './styles.css';
@@ -14,6 +16,17 @@ const shapeIcons: Record<string, typeof IconUser> = {
   storage: IconPackage,
   boundary: IconSquareRounded,
 };
+
+const geometryIcons = {
+  card: IconServer2,
+  pill: IconSquareRounded,
+  person: IconUser,
+  database: IconDatabase,
+  queue: IconStack2,
+  storage: IconPackage,
+  gateway: IconSquareRounded,
+  custom: IconSquareRounded,
+} as const;
 
 function statusColor(status: ElementNodeType['data']['status']) {
   switch (status) {
@@ -28,11 +41,38 @@ function statusColor(status: ElementNodeType['data']['status']) {
   }
 }
 
-export function ElementNode({ data, selected }: NodeProps<ElementNodeType>) {
+type ElementNodeProps = NodeProps<ElementNodeType> & {
+  shapeRegistry?: ShapeRegistry;
+};
+
+function iconVariant(shapeId: string, geometryKind: string) {
+  if (shapeId === 'database' || geometryKind === 'database') {
+    return 'database';
+  }
+  if (shapeId === 'queue' || geometryKind === 'queue') {
+    return 'queue';
+  }
+  if (shapeId === 'gateway' || geometryKind === 'gateway') {
+    return 'gateway';
+  }
+  if (shapeId === 'person' || geometryKind === 'person') {
+    return 'person';
+  }
+  return 'generic';
+}
+
+export function ElementNode({
+  data,
+  selected,
+  shapeRegistry = defaultShapeRegistry,
+}: ElementNodeProps) {
   const accent = toneToColor(data.tone);
-  const shape = data.shape ?? 'service';
-  const visualShape = shape in shapeIcons ? shape : 'generic';
-  const Icon = shapeIcons[shape] ?? IconSquareRounded;
+  const requestedShapeId = data.notationShape ?? data.shape ?? 'service';
+  const shapeDefinition = shapeRegistry.resolve(requestedShapeId, 'generic');
+  const shapeId = shapeDefinition?.shapeId ?? 'generic';
+  const geometryKind = shapeDefinition?.geometryKind ?? 'card';
+  const visualShape = iconVariant(shapeId, geometryKind);
+  const Icon = shapeIcons[shapeId] ?? geometryIcons[geometryKind] ?? IconSquareRounded;
   const customIcon = data.icon?.trim();
   const cardStyle = {
     borderColor: accent,
@@ -42,10 +82,12 @@ export function ElementNode({ data, selected }: NodeProps<ElementNodeType>) {
 
   return (
     <div
-      className={`diagram-card diagram-card--${visualShape}`}
+      className={`diagram-card ${shapeDefinition?.renderClassName ?? 'diagram-card--generic'}`}
       style={cardStyle}
+      data-shape-id={shapeId}
+      data-shape-geometry={geometryKind}
     >
-      <div className={`diagram-card__shell diagram-card__shell--${visualShape}`} aria-hidden="true" />
+      <div className={`diagram-card__shell diagram-card__shell--${geometryKind}`} aria-hidden="true" />
       <div className="diagram-card__content">
         <div className="diagram-card__header">
           <div className="diagram-card__heading">

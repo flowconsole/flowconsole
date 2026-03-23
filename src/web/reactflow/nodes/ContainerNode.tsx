@@ -2,13 +2,26 @@ import { IconZoomScan } from '@tabler/icons-react';
 import { type NodeProps } from '@xyflow/react';
 import { useCallback } from 'react';
 import type { ContainerNodeType } from '../../diagram/types';
+import { defaultShapeRegistry } from '../../diagram/layout/shapes/builtins';
+import type { ShapeRegistry } from '../../diagram/layout/shapes/shapeRegistry';
 import { toneToColor } from '../../diagram/theme';
 import { HiddenHandles } from './HiddenHandles';
 import './styles.css';
 
-export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeType>) {
+type ContainerNodeProps = NodeProps<ContainerNodeType> & {
+  shapeRegistry?: ShapeRegistry;
+};
+
+export function ContainerNode({
+  id,
+  data,
+  selected,
+  shapeRegistry = defaultShapeRegistry,
+}: ContainerNodeProps) {
   const accent = toneToColor(data.tone ?? 'muted');
   const isCollapsed = data.expanded === false;
+  const canOpen = data.showOpenButton !== false;
+  const shapeDefinition = shapeRegistry.resolve(data.notationShape ?? 'boundary', 'boundary');
   const handleOpen = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
@@ -19,12 +32,16 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
 
   return (
     <div
-      className="diagram-container"
+      className={`diagram-container ${shapeDefinition?.renderClassName ?? 'diagram-container'} diagram-container--${
+        shapeDefinition?.geometryKind ?? 'card'
+      }`}
       style={{
         borderColor: accent,
         boxShadow: selected ? `0 0 0 2px ${accent}22, var(--diagram-card-shadow)` : undefined,
         position: 'relative',
       }}
+      data-shape-id={shapeDefinition?.shapeId ?? 'boundary'}
+      data-shape-geometry={shapeDefinition?.geometryKind ?? 'card'}
     >
       {isCollapsed ? (
         <div
@@ -38,17 +55,19 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
             height: '100%',
           }}
         >
-          <button
-            onClick={handleOpen}
-            aria-label="Open container"
-            className="diagram-container__open-button"
-            style={{
-              border: `1px solid ${accent}`,
-              color: accent,
-            }}
-          >
-            <IconZoomScan size={16} stroke={1.85} aria-hidden="true" />
-          </button>
+          {canOpen ? (
+            <button
+              onClick={handleOpen}
+              aria-label="Open container"
+              className="diagram-container__open-button"
+              style={{
+                border: `1px solid ${accent}`,
+                color: accent,
+              }}
+            >
+              <IconZoomScan size={16} stroke={1.85} aria-hidden="true" />
+            </button>
+          ) : null}
           <div
             style={{
               display: 'flex',

@@ -36,12 +36,19 @@ export class ShapeRegistry {
     return Array.from(this.shapes.values());
   }
 
+  resolve(shapeId: string | undefined, fallbackShapeId = 'generic') {
+    if (shapeId && this.shapes.has(shapeId)) {
+      return this.shapes.get(shapeId);
+    }
+    return this.shapes.get(fallbackShapeId);
+  }
+
   resolveForNode(node: SemanticNode, fallbackShapeId = 'generic', explicitShapeId?: string) {
     const requested =
       explicitShapeId ??
       node.data.shape ??
       node.data.notationShape ??
       fallbackShapeId;
-    return this.get(requested) ?? this.get(fallbackShapeId);
+    return this.resolve(requested, fallbackShapeId);
   }
 }
