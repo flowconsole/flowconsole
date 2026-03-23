@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const port = Number(process.env.PORT ?? 4173);
-const host = 'localhost';
+const host = '127.0.0.1';
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? `http://${host}:${port}`;
 
 export default defineConfig({
@@ -24,7 +24,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `pnpm --dir src/app preview -- --host ${host} --port ${port}`,
+    command: `pnpm --dir src/app preview --host ${host} --port ${port}`,
     url: `http://${host}:${port}`,
     reuseExistingServer: !process.env.CI,
     stdout: 'pipe',
