@@ -34,7 +34,7 @@ export type PositionedNode = SizedNode & {
 
 export type PositionedGraph = Omit<SizedGraph, 'nodes'> & {
   nodes: PositionedNode[];
-  engine: 'elk' | 'graphviz';
+  engine: 'elk' | 'graphviz' | 'radial';
   usedFallback: boolean;
   qualityScore: number;
 };
@@ -307,6 +307,161 @@ function fromGraphvizModel(graph: SizedGraph, model: ArchitectureDiagramModel): 
   return result;
 }
 
+export function buildCompactElkInput(graph: SizedGraph): ElkGraphInput {
+  const COMPACT_SPACING = 30;
+
+  const rolePriority: Record<string, number> = {
+    entry: 0,
+    frontend: 1,
+    gateway: 2,
+    processor: 3,
+    worker: 4,
+    queue: 5,
+    store: 6,
+    external: 7,
+  };
+
+  const sorted = [...graph.nodes]
+    .filter((n) => !n.parentId)
+    .sort((a, b) => {
+      const pa = rolePriority[a.layout.role] ?? 3;
+      const pb = rolePriority[b.layout.role] ?? 3;
+      if (pa !== pb) return pa - pb;
+      const da = a.layout.outDegree ?? 0;
+      const db = b.layout.outDegree ?? 0;
+      if (da !== db) return db - da;
+      return a.id.localeCompare(b.id);
+    });
+
+  return {
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'rectpacking',
+      'org.eclipse.elk.spacing.nodeNode': String(COMPACT_SPACING),
+      'org.eclipse.elk.padding': '[top=20,left=20,bottom=20,right=20]',
+    },
+    children: sorted.map((node) => ({
+      id: node.id,
+      width: node.size.width,
+      height: node.size.height,
+    })),
+    edges: graph.edges
+      .filter((e) => !graph.nodes.find((n) => n.id === e.source)?.parentId)
+      .map((edge) => ({
+        id: edge.id,
+        sources: [edge.source],
+        targets: [edge.target],
+      })),
+  };
+}
+
+export function positionRadial(graph: SizedGraph): Map<string, { x: number; y: number }> {
+  const topLevel = graph.nodes.filter((n) => !n.parentId);
+  if (topLevel.length === 0) return new Map();
+
+  const adjacency = new Map<string, string[]>();
+  for (const node of topLevel) {
+    adjacency.set(node.id, []);
+  }
+  const topLevelIds = new Set(topLevel.map((n) => n.id));
+  for (const edge of graph.edges) {
+    if (!topLevelIds.has(edge.source) || !topLevelIds.has(edge.target)) continue;
+    adjacency.get(edge.source)?.push(edge.target);
+    adjacency.get(edge.target)?.push(edge.source);
+  }
+
+  // Find center = max degree node
+  let center = topLevel[0];
+  let maxDeg = 0;
+  for (const node of topLevel) {
+    const deg = (adjacency.get(node.id) ?? []).length;
+    if (deg > maxDeg) {
+      maxDeg = deg;
+      center = node;
+    }
+  }
+
+  // BFS from center
+  const dist = new Map<string, number>();
+  dist.set(center.id, 0);
+  const queue = [center.id];
+  let qi = 0;
+  while (qi < queue.length) {
+    const cur = queue[qi++];
+    const d = dist.get(cur)!;
+    for (const neighbor of adjacency.get(cur) ?? []) {
+      if (!dist.has(neighbor)) {
+        dist.set(neighbor, d + 1);
+        queue.push(neighbor);
+      }
+    }
+  }
+  // Any disconnected nodes go to ring 1
+  for (const node of topLevel) {
+    if (!dist.has(node.id)) {
+      dist.set(node.id, 1);
+    }
+  }
+
+  // Group by ring
+  const rings = new Map<number, SizedNode[]>();
+  for (const node of topLevel) {
+    const ring = dist.get(node.id) ?? 1;
+    const bucket = rings.get(ring) ?? [];
+    bucket.push(node);
+    rings.set(ring, bucket);
+  }
+
+  // Compute max node diagonal
+  let maxDiag = 0;
+  for (const node of topLevel) {
+    const diag = Math.sqrt(node.size.width ** 2 + node.size.height ** 2);
+    maxDiag = Math.max(maxDiag, diag);
+  }
+
+  const GAP = 40;
+  // Minimum radius must clear the center node diagonal plus gap
+  const centerDiag = Math.sqrt(center.size.width ** 2 + center.size.height ** 2);
+  const MIN_RADIUS = Math.ceil((centerDiag + maxDiag) / 2 + GAP);
+  const positions = new Map<string, { x: number; y: number }>();
+
+  // Ring 0 = center (offset so node center is at origin)
+  positions.set(center.id, {
+    x: Math.round(-center.size.width / 2),
+    y: Math.round(-center.size.height / 2),
+  });
+
+  const maxRing = Math.max(...rings.keys());
+  for (let r = 1; r <= maxRing; r++) {
+    const nodesOnRing = rings.get(r) ?? [];
+    if (nodesOnRing.length === 0) continue;
+
+    const arcPerNode = maxDiag + GAP;
+    const circumference = nodesOnRing.length * arcPerNode;
+    const radius = Math.max(MIN_RADIUS * r, circumference / (2 * Math.PI));
+
+    // Sort entry nodes first (angle offset = top)
+    const sorted = [...nodesOnRing].sort((a, b) => {
+      const aEntry = a.layout.role === 'entry' ? 0 : 1;
+      const bEntry = b.layout.role === 'entry' ? 0 : 1;
+      return aEntry - bEntry || a.id.localeCompare(b.id);
+    });
+
+    const angleStep = (2 * Math.PI) / sorted.length;
+    const startAngle = -Math.PI / 2; // top
+
+    for (let i = 0; i < sorted.length; i++) {
+      const angle = startAngle + i * angleStep;
+      positions.set(sorted[i].id, {
+        x: Math.round(radius * Math.cos(angle) - sorted[i].size.width / 2),
+        y: Math.round(radius * Math.sin(angle) - sorted[i].size.height / 2),
+      });
+    }
+  }
+
+  return positions;
+}
+
 async function positionWithElk(
   graph: SizedGraph,
   elkFactory: () => Promise<ElkLayoutEngine | undefined>
@@ -330,6 +485,48 @@ async function positionWithElk(
   return positioned;
 }
 
+async function positionWithCompact(
+  graph: SizedGraph,
+  elkFactory: () => Promise<ElkLayoutEngine | undefined>
+) {
+  const elk = await elkFactory();
+  if (!elk) {
+    return undefined;
+  }
+  const input = buildCompactElkInput(graph);
+  const result = await elk.layout(input);
+  const positions = flattenElkPositions(result);
+
+  const positioned: PositionedGraph = {
+    ...graph,
+    nodes: mapPositions(graph, positions),
+    engine: 'elk',
+    usedFallback: false,
+    qualityScore: 0,
+  };
+  positioned.qualityScore = scorePositionedGraph(positioned);
+  return positioned;
+}
+
+function positionWithRadial(graph: SizedGraph): PositionedGraph {
+  const radialPositions = positionRadial(graph);
+  const fullPositions = new Map<string, { x: number; y: number; width: number; height: number }>();
+  for (const node of graph.nodes) {
+    const pos = radialPositions.get(node.id) ?? { x: 0, y: 0 };
+    fullPositions.set(node.id, { ...pos, width: node.size.width, height: node.size.height });
+  }
+
+  const positioned: PositionedGraph = {
+    ...graph,
+    nodes: mapPositions(graph, fullPositions),
+    engine: 'radial',
+    usedFallback: false,
+    qualityScore: 0,
+  };
+  positioned.qualityScore = scorePositionedGraph(positioned);
+  return positioned;
+}
+
 export async function positionNodes(
   graph: SizedGraph,
   options: PositioningEngineOptions = {}
@@ -341,15 +538,24 @@ export async function positionNodes(
     return fromGraphvizModel(graph, laidOut);
   }
 
-  // ELK is the primary engine
+  // Strategy-based positioning
   try {
     const elkFactory = options.elkFactory ?? defaultElkFactory;
-    const elkResult = await positionWithElk(graph, elkFactory);
-    if (elkResult) {
-      return elkResult;
+    const strategyType = graph.strategy.type;
+
+    if (strategyType === 'radial') {
+      return positionWithRadial(graph);
+    }
+
+    const result = strategyType === 'compact'
+      ? await positionWithCompact(graph, elkFactory)
+      : await positionWithElk(graph, elkFactory);
+
+    if (result) {
+      return result;
     }
   } catch (err) {
-    console.warn('[layout] ELK positioning failed, falling back to graphviz:', err);
+    console.warn('[layout] Positioning failed, falling back to graphviz:', err);
   }
 
   // Graphviz is the only fallback
