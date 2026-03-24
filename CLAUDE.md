@@ -54,10 +54,66 @@ pnpm --filter flowconsole vitest run --config ../../vitest.config.ts tests/unit/
 - `NavigationPanel/` - Flow and scope navigation controls for rendered diagrams
 
 ### Diagram Infrastructure (`src/web/diagram/`, `src/web/reactflow/`)
-- Layout engine uses graphviz-wasm for automatic node positioning (LikeC4-grade implementation)
-- `AutoLayoutConfig` type in `types.ts`: configurable direction (TB/BT/LR/RL), nodeSep, rankSep
-- `graphvizLayoutService.ts` features: compound edge routing (lhead/ltail), hierarchy-distance edge weights, child chunking for balanced ranks, dynamic cluster margins, edge grouping, shape-aware node sizing, multi-segment spline parsing
 - Custom ReactFlow nodes and edges with animation support
+- `graphvizLayoutService.ts` — legacy graphviz-wasm layout (used as fallback)
+
+### Constraint-Based Auto-Layout Pipeline (`src/web/diagram/layout/`)
+
+8-stage pipeline: Graph Analysis → Strategy Selection → Semantic Ranking → Constraint Building → Shape Sizing → ELK Positioning → Edge Routing → Cola Refinement → Quality Scoring.
+
+**Dependencies:** `elkjs` (primary positioning), `webcola` (constraint refinement), `graphviz-wasm` (fallback)
+
+**Pipeline stages:**
+| Stage | File | Purpose |
+|-------|------|---------|
+| 1 | `graphAnalyzer.ts` | Analyze graph topology: roles, clusters, SCC, source/sink detection |
+| 2 | `strategySelector.ts` | Select layout strategy per container (layered/compact/radial) |
+| 3 | `semanticRanker.ts` | Assign semantic lanes (leading/central/trailing) and ranks |
+| 4 | `constraintBuilder.ts` | Build semantic constraints (alignment, separation, ordering) |
+| 5 | `shapeSizing.ts` | Compute node dimensions from shape registry |
+| 6 | `positioningEngine.ts` | ELK positioning with fallback to graphviz |
+| 7 | `edgeRouter.ts` | Orthogonal/polyline edge routing with port selection |
+| 8 | `constraintRefiner.ts` | Cola stress-majorization: overlap removal, alignment, containment |
+| 9 | `qualityScore.ts` | Quality metrics: overlaps, crossings, alignment, symmetry |
+
+**Key design decisions:**
+- Constraints instead of heuristics — webcola refinement replaces manual layout adjustment
+- Per-container strategy — each container can have its own layout direction
+- Double routing — route → cola refine → re-route (first route provides label positions for cola phantom nodes)
+- Quality-based fallback — if quality is unacceptable after ELK+cola, try graphviz and compare scores
+- Mental map cache — LRU cache preserves positions across scope navigation (`mentalMapCache.ts`)
+
+**Extension points:**
+- Add a shape: register in `shapes/builtins.ts` with geometry kind, dimensions, port model
+- Add a notation: implement `NotationAdapter` interface in `notation/types.ts`
+- LLM enrichment: optional node role classification via `llm/roleEnricher.ts`
+
+**Directory structure:**
+```
+layout/
+├── layoutPipeline.ts      — orchestrator, caching, fallback logic
+├── graphAnalyzer.ts       — Stage 1: topology analysis
+├── strategySelector.ts    — Stage 2: strategy selection
+├── semanticRanker.ts      — Stage 3: semantic ranking
+├── constraintBuilder.ts   — Stage 4: constraint generation
+├── shapeSizing.ts         — Stage 5: shape-aware sizing
+├── positioningEngine.ts   — Stage 6: ELK/graphviz positioning
+├── edgeRouter.ts          — Stage 7: edge routing + port selection
+├── constraintRefiner.ts   — Stage 8: cola refinement
+├── colaAdapter.ts         — cola input/output conversion
+├── qualityScore.ts        — Stage 9: quality scoring
+├── mentalMapCache.ts      — LRU position cache
+├── patternDetector.ts     — subgraph pattern detection
+├── portSelector.ts        — port position computation
+├── types.ts               — pipeline type definitions
+├── utils.ts               — shared utilities
+├── fallback.ts            — lazy graphviz fallback loader
+├── debug/relayoutLogger.ts — relayout reason tracking
+├── notation/              — notation adapters (architectureNotation.ts)
+├── shapes/                — shape registry (builtins.ts, shapeRegistry.ts)
+├── scope/                 — view state and scoped model builder
+└── llm/roleEnricher.ts    — optional LLM node role enrichment
+```
 
 ## Testing Conventions
 
