@@ -17,7 +17,7 @@ export const LAYOUT_DIRECTIONS = ['LR', 'TB', 'RL', 'BT'] as const;
 
 export type LayoutDirection = (typeof LAYOUT_DIRECTIONS)[number];
 
-export const LAYOUT_STRATEGY_TYPES = ['layered', 'compact', 'radial'] as const;
+export const LAYOUT_STRATEGY_TYPES = ['layered'] as const;
 
 export type LayoutStrategyType = (typeof LAYOUT_STRATEGY_TYPES)[number];
 

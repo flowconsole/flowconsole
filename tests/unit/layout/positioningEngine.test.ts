@@ -99,38 +99,7 @@ describe('buildElkGraphInput', () => {
 });
 
 describe('positionNodes', () => {
-  it('positions compact graphs in a deterministic grid', async () => {
-    const graph = makeGraph({
-      strategy: { type: 'compact', direction: 'LR', spacing: { node: 40, layer: 80, container: 100 } },
-      nodes: [makeNode('a'), makeNode('b'), makeNode('c'), makeNode('d')],
-    });
-
-    const positioned = await positionNodes(graph);
-
-    expect(positioned.engine).toBe('analytical');
-    expect(new Set(positioned.nodes.map((node) => `${node.position.x}:${node.position.y}`)).size).toBe(4);
-  });
-
-  it('positions radial graphs around the max-degree center', async () => {
-    const graph = makeGraph({
-      strategy: { type: 'radial', direction: 'LR', spacing: { node: 40, layer: 100, container: 100 } },
-      nodes: [makeNode('hub'), makeNode('leaf-1'), makeNode('leaf-2')],
-      edges: [
-        { id: 'e1', source: 'hub', target: 'leaf-1', type: 'relationship', data: {} },
-        { id: 'e2', source: 'hub', target: 'leaf-2', type: 'relationship', data: {} },
-      ],
-    });
-
-    const positioned = await positionNodes(graph);
-    const hub = positioned.nodes.find((node) => node.id === 'hub');
-    const leaf = positioned.nodes.find((node) => node.id === 'leaf-1');
-
-    expect(positioned.engine).toBe('analytical');
-    expect(hub?.absolutePosition.x).not.toBe(leaf?.absolutePosition.x);
-    expect(hub?.absolutePosition.y).not.toBe(leaf?.absolutePosition.y);
-  });
-
-  it('uses ELK layered output when available', async () => {
+  it('uses ELK as primary engine', async () => {
     const elkLayout = vi.fn().mockResolvedValue({
       id: 'root',
       children: [
@@ -142,7 +111,6 @@ describe('positionNodes', () => {
 
     const positioned = await positionNodes(graph, {
       elkFactory: async () => ({ layout: elkLayout }),
-      fallbackLayout: vi.fn(),
     });
 
     expect(elkLayout).toHaveBeenCalledTimes(1);
@@ -151,7 +119,7 @@ describe('positionNodes', () => {
     expect(positioned.nodes.find((node) => node.id === 'b')?.absolutePosition.x).toBe(320);
   });
 
-  it('falls back to graphviz when ELK fails quality checks', async () => {
+  it('falls back to graphviz when ELK is unavailable', async () => {
     const graph = makeGraph();
     const fallbackLayout = vi.fn().mockResolvedValue({
       nodes: [
@@ -162,21 +130,60 @@ describe('positionNodes', () => {
     });
 
     const positioned = await positionNodes(graph, {
-      elkFactory: async () => ({
-        layout: async () => ({
-          id: 'root',
-          children: [
-            { id: 'a', x: 0, y: 0, width: 220, height: 100 },
-            { id: 'b', x: 10, y: 0, width: 220, height: 100 },
-          ],
-        }),
-      }),
+      elkFactory: async () => undefined,
       fallbackLayout,
-      qualityEvaluator: (candidate) => (candidate.engine === 'graphviz' ? 0.9 : 0.1),
-      minQuality: 0.5,
     });
 
     expect(fallbackLayout).toHaveBeenCalledTimes(1);
+    expect(positioned.engine).toBe('graphviz');
+    expect(positioned.usedFallback).toBe(true);
+  });
+
+  it('falls back to graphviz when ELK throws', async () => {
+    const graph = makeGraph();
+    const fallbackLayout = vi.fn().mockResolvedValue({
+      nodes: [
+        { ...makeNode('a'), position: { x: 10, y: 20 } },
+        { ...makeNode('b'), position: { x: 260, y: 20 } },
+      ],
+      edges: graph.edges,
+    });
+
+    const positioned = await positionNodes(graph, {
+      elkFactory: async () => { throw new Error('ELK failed'); },
+      fallbackLayout,
+    });
+
+    expect(fallbackLayout).toHaveBeenCalledTimes(1);
+    expect(positioned.engine).toBe('graphviz');
+  });
+
+  it('throws when both engines fail', async () => {
+    const graph = makeGraph();
+
+    await expect(
+      positionNodes(graph, {
+        elkFactory: async () => { throw new Error('ELK failed'); },
+        fallbackLayout: async () => { throw new Error('graphviz failed'); },
+      })
+    ).rejects.toThrow('Layout failed');
+  });
+
+  it('uses graphviz when forceGraphviz is set', async () => {
+    const graph = makeGraph();
+    const fallbackLayout = vi.fn().mockResolvedValue({
+      nodes: [
+        { ...makeNode('a'), position: { x: 10, y: 20 } },
+        { ...makeNode('b'), position: { x: 260, y: 20 } },
+      ],
+      edges: graph.edges,
+    });
+
+    const positioned = await positionNodes(graph, {
+      forceGraphviz: true,
+      fallbackLayout,
+    });
+
     expect(positioned.engine).toBe('graphviz');
     expect(positioned.usedFallback).toBe(true);
   });

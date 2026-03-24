@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { refineLayout } from '../../../src/web/diagram/layout/layoutRefiner';
-import type { RoutedGraph } from '../../../src/web/diagram/layout/edgeRouter';
-import type { PositionedNode } from '../../../src/web/diagram/layout/positioningEngine';
+import type { PositionedGraph, PositionedNode } from '../../../src/web/diagram/layout/positioningEngine';
 
 function makeNode(id: string, x: number, y: number, overrides: Partial<PositionedNode> = {}): PositionedNode {
   const overrideData = overrides.data ?? {};
@@ -47,7 +46,7 @@ function makeNode(id: string, x: number, y: number, overrides: Partial<Positione
   } as PositionedNode;
 }
 
-function makeGraph(overrides: Partial<RoutedGraph> = {}): RoutedGraph {
+function makeGraph(overrides: Partial<PositionedGraph> = {}): PositionedGraph {
   return {
     nodes: [makeNode('a', 11, 13), makeNode('b', 190, 29)],
     edges: [
@@ -56,16 +55,7 @@ function makeGraph(overrides: Partial<RoutedGraph> = {}): RoutedGraph {
         source: 'a',
         target: 'b',
         type: 'relationship',
-        data: {
-          layoutPoints: [
-            { x: 120, y: 53 },
-            { x: 155, y: 53 },
-            { x: 155, y: 69 },
-            { x: 190, y: 69 },
-          ],
-          labelPos: { x: 205, y: 50 },
-        },
-        routing: { priority: 100, style: 'orthogonal' },
+        data: {},
       },
     ],
     profile: {
@@ -126,15 +116,63 @@ describe('refineLayout', () => {
     expect(a.absolutePosition.y).toBe(b.absolutePosition.y);
   });
 
-  it('moves labels away from overlapping nodes', () => {
-    const refined = refineLayout(makeGraph());
-
-    expect(refined.edges[0]?.data?.labelPos?.y).toBeLessThan(50);
-  });
-
   it('packs disconnected components apart from each other', () => {
     const refined = refineLayout(makeGraph());
 
     expect(refined.nodes[1].absolutePosition.x - refined.nodes[0].absolutePosition.x).toBeGreaterThan(120);
+  });
+
+  it('children remain inside container after refinement', () => {
+    const graph = makeGraph({
+      nodes: [
+        makeNode('container', 50, 50, { type: 'container', size: { width: 300, height: 200, shape: makeNode('x', 0, 0).size.shape } }),
+        makeNode('child-a', 80, 80, { parentId: 'container' }),
+        makeNode('child-b', 200, 100, { parentId: 'container' }),
+      ],
+      edges: [],
+      profile: {
+        ...makeGraph().profile,
+        containerCount: 1,
+        disconnectedComponents: [new Set(['container', 'child-a', 'child-b'])],
+      },
+    });
+
+    const refined = refineLayout(graph);
+    const container = refined.nodes.find((n) => n.id === 'container')!;
+    const children = refined.nodes.filter((n) => n.parentId === 'container');
+
+    for (const child of children) {
+      expect(child.absolutePosition.x).toBeGreaterThanOrEqual(container.absolutePosition.x);
+      expect(child.absolutePosition.y).toBeGreaterThanOrEqual(container.absolutePosition.y);
+      expect(child.absolutePosition.x + child.size.width).toBeLessThanOrEqual(
+        container.absolutePosition.x + container.size.width
+      );
+      expect(child.absolutePosition.y + child.size.height).toBeLessThanOrEqual(
+        container.absolutePosition.y + container.size.height
+      );
+    }
+  });
+
+  it('relative positions match absolute positions after refinement', () => {
+    const graph = makeGraph({
+      nodes: [
+        makeNode('container', 50, 50, { type: 'container', size: { width: 300, height: 200, shape: makeNode('x', 0, 0).size.shape } }),
+        makeNode('child', 100, 100, { parentId: 'container' }),
+        makeNode('external', 400, 50),
+      ],
+      profile: {
+        ...makeGraph().profile,
+        containerCount: 1,
+        disconnectedComponents: [new Set(['container', 'child', 'external'])],
+      },
+    });
+
+    const refined = refineLayout(graph);
+    const byId = new Map(refined.nodes.map((n) => [n.id, n]));
+    const container = byId.get('container')!;
+    const child = byId.get('child')!;
+
+    expect(child.position.x).toBe(child.absolutePosition.x - container.absolutePosition.x);
+    expect(child.position.y).toBe(child.absolutePosition.y - container.absolutePosition.y);
   });
 });

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { architectureNotation } from '../../../src/web/diagram/layout/notation/architectureNotation';
-import type { NotationAdapter } from '../../../src/web/diagram/layout/notation/types';
 import { selectStrategy } from '../../../src/web/diagram/layout/strategySelector';
 import type { AutoLayoutConfig } from '../../../src/web/diagram/types';
 import type { GraphProfile, SemanticEdge, SemanticNode } from '../../../src/web/diagram/layout/types';
@@ -73,14 +72,14 @@ describe('architectureNotation', () => {
 describe('selectStrategy', () => {
   const config: AutoLayoutConfig = { notation: 'architecture', preset: 'c4-like' };
 
-  it('selects radial for small graphs without containers', () => {
+  it('always selects layered strategy', () => {
     const strategy = selectStrategy(
-      makeProfile({ nodeCount: 8, containerCount: 0 }),
+      makeProfile({ nodeCount: 5, containerCount: 0 }),
       config,
       architectureNotation
     );
 
-    expect(strategy.type).toBe('radial');
+    expect(strategy.type).toBe('layered');
     expect(strategy.direction).toBe('LR');
   });
 
@@ -104,27 +103,47 @@ describe('selectStrategy', () => {
     expect(strategy.type).toBe('layered');
   });
 
-  it('selects compact for dense sibling containers', () => {
+  it('selects layered for dense graphs', () => {
     const strategy = selectStrategy(
-      makeProfile({ containerChildCounts: new Map([['container-1', 16]]) }),
+      makeProfile({ edgeDensity: 3.0 }),
       config,
       architectureNotation
     );
 
-    expect(strategy.type).toBe('compact');
+    expect(strategy.type).toBe('layered');
   });
 
-  it('selects compact for dense graphs', () => {
+  it('selects layered for large container graphs', () => {
     const strategy = selectStrategy(
-      makeProfile({ edgeDensity: 3 }),
+      makeProfile({
+        containerChildCounts: new Map([['big-container', 20]]),
+        containerCount: 1,
+      }),
       config,
       architectureNotation
     );
 
-    expect(strategy.type).toBe('compact');
+    expect(strategy.type).toBe('layered');
   });
 
-  it('resolves direction from explicit override before notation default', () => {
+  it('uses TB direction for flow-heavy processor/worker graphs', () => {
+    const strategy = selectStrategy(
+      makeProfile({
+        hasFlows: true,
+        nodeRoles: new Map([
+          ['a', 'processor'],
+          ['b', 'worker'],
+          ['c', 'processor'],
+        ]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    expect(strategy.direction).toBe('TB');
+  });
+
+  it('respects explicit direction from config', () => {
     const strategy = selectStrategy(
       makeProfile(),
       { ...config, direction: 'RL' },
@@ -132,27 +151,5 @@ describe('selectStrategy', () => {
     );
 
     expect(strategy.direction).toBe('RL');
-  });
-
-  it('falls back to strategy heuristic when notation default is absent', () => {
-    const notation = {
-      ...architectureNotation,
-      defaultDirection: undefined,
-    } as unknown as NotationAdapter;
-    const strategy = selectStrategy(
-      makeProfile({
-        hasFlows: true,
-        edgeDensity: 1.2,
-        nodeRoles: new Map([
-          ['worker-1', 'worker'],
-          ['processor-1', 'processor'],
-          ['processor-2', 'processor'],
-        ]),
-      }),
-      config,
-      notation
-    );
-
-    expect(strategy.direction).toBe('TB');
   });
 });

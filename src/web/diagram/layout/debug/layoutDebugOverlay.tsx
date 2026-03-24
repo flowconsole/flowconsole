@@ -6,7 +6,7 @@ type LayoutDebugOverlayProps = {
 
 function summarizeQuality(diagnostics: LayoutRunDiagnostics) {
   const qualityFlags = Object.entries(diagnostics.qualityScore)
-    .filter(([metric, value]) => (metric.endsWith('Score') ? value < 0.999 : value > 0))
+    .filter(([metric, value]) => (metric.endsWith('Score') ? value < 0.7 : value > 0))
     .slice(0, 3)
     .map(([metric, value]) => `${metric}: ${value}`);
 

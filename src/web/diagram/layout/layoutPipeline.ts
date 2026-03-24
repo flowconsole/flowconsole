@@ -10,6 +10,7 @@ import { refineLayout } from './layoutRefiner';
 import { computeQualityScore, qualityScoreValue } from './qualityScore';
 import type { LayoutDirection, LayoutQualityScore, LayoutStrategyType, RelayoutReason } from './types';
 import { logRelayoutRun, toRelayoutReason } from './debug/relayoutLogger';
+import { stableStringify } from './utils';
 
 export type LayoutRunDiagnostics = {
   cacheKey: string;
@@ -19,7 +20,7 @@ export type LayoutRunDiagnostics = {
   direction: LayoutDirection;
   notation: string;
   preset: string;
-  engine: 'elk' | 'graphviz' | 'analytical';
+  engine: 'elk' | 'graphviz';
   fallbackEngineUsed: boolean;
   qualityScore: LayoutQualityScore;
   qualityValue: number;
@@ -47,19 +48,6 @@ let lastDirection = '';
 let lastNotation = '';
 let lastPreset = '';
 let lastDiagnostics: LayoutRunDiagnostics | undefined;
-
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
-  }
-  if (value && typeof value === 'object') {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, nested]) => `${key}:${stableStringify(nested)}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
 
 function hashModel(model: ArchitectureDiagramModel) {
   return stableStringify({
@@ -109,9 +97,10 @@ function makeCacheKey(
   scopeId: string | undefined,
   direction: string,
   notation: string,
-  preset: string
+  preset: string,
+  engine: string
 ) {
-  return stableStringify({ scopeId, modelHash, direction, notation, preset });
+  return stableStringify({ scopeId, modelHash, direction, notation, preset, engine });
 }
 
 function cacheGet(key: string) {
@@ -148,7 +137,7 @@ function invalidateAllCache() {
 
 function toDiagramModel(
   originalModel: ArchitectureDiagramModel,
-  graph: ReturnType<typeof refineLayout>
+  graph: ReturnType<typeof routeEdges>
 ): ArchitectureDiagramModel {
   return {
     nodes: graph.nodes.map((node) => {
@@ -207,7 +196,7 @@ export async function layoutPipeline(
   const profile = analyzeGraph(model);
   const strategy = selectStrategy(profile, config, notation);
   const cacheKey =
-    options.cacheKey ?? makeCacheKey(modelHash, options.scopeId, strategy.direction, notationId, preset);
+    options.cacheKey ?? makeCacheKey(modelHash, options.scopeId, strategy.direction, notationId, preset, config.engine ?? 'auto');
 
   if (!options.forceRelayout) {
     const cached = cacheGet(cacheKey);
@@ -235,11 +224,11 @@ export async function layoutPipeline(
     elkFactory: config.engine === 'graphviz' ? async () => undefined : undefined,
     forceGraphviz: config.engine === 'graphviz',
   });
-  const routed = routeEdges(positioned);
-  const refined = refineLayout(routed);
-  const qualityScore = computeQualityScore(refined);
-  const qualityValue = qualityScoreValue(qualityScore, refined.nodes.length);
-  const result = toDiagramModel(model, refined);
+  const refined = refineLayout(positioned);
+  const routed = routeEdges(refined);
+  const qualityScore = computeQualityScore(routed);
+  const qualityValue = qualityScoreValue(qualityScore, routed.nodes.length);
+  const result = toDiagramModel(model, routed);
   const diagnostics: LayoutRunDiagnostics = {
     cacheKey,
     cacheHit: false,

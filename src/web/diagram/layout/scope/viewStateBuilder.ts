@@ -5,6 +5,7 @@ import type {
   ContainerNodeData,
 } from '../../types';
 import type { LayoutDirection, LayoutViewState } from '../types';
+import { stableStringify } from '../utils';
 
 export type LayoutViewStateBuildOptions = {
   scopeId?: string;
@@ -44,21 +45,6 @@ function buildIndex(model: ArchitectureDiagramModel): DiagramIndex {
   });
 
   return { byId, childrenByParent };
-}
-
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
-  }
-
-  if (value && typeof value === 'object') {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, nested]) => `${key}:${stableStringify(nested)}`)
-      .join(',')}}`;
-  }
-
-  return JSON.stringify(value);
 }
 
 function isDescendant(nodeId: string, ancestorId: string, byId: Map<string, ArchitectureNode>) {

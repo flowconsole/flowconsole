@@ -141,10 +141,11 @@ function edgeCrossings(graph: QualityGraph) {
 }
 
 function edgeLengthVariance(graph: QualityGraph) {
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
   const lengths = graph.edges
     .map((edge) => {
-      const source = graph.nodes.find((node) => node.id === edge.source);
-      const target = graph.nodes.find((node) => node.id === edge.target);
+      const source = nodeById.get(edge.source);
+      const target = nodeById.get(edge.target);
       if (!source || !target) {
         return 0;
       }

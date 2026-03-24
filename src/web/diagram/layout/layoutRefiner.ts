@@ -1,5 +1,4 @@
-import type { RoutedEdge, RoutedGraph } from './edgeRouter';
-import type { PositionedNode } from './positioningEngine';
+import type { PositionedGraph, PositionedNode } from './positioningEngine';
 import { computeQualityScore } from './qualityScore';
 
 const GRID_SIZE = 8;
@@ -10,7 +9,7 @@ function snap(value: number) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE;
 }
 
-function cloneGraph(graph: RoutedGraph): RoutedGraph {
+function cloneGraph(graph: PositionedGraph): PositionedGraph {
   return {
     ...graph,
     nodes: graph.nodes.map((node) => ({
@@ -29,19 +28,30 @@ function cloneGraph(graph: RoutedGraph): RoutedGraph {
         layoutPoints: edge.data?.layoutPoints?.map((point) => ({ ...point })),
         labelPos: edge.data?.labelPos ? { ...edge.data.labelPos } : undefined,
       },
-      routing: { ...edge.routing },
-    })) as RoutedEdge[],
+    })),
   };
 }
 
-function nodeMap(graph: RoutedGraph) {
+function nodeMap(graph: PositionedGraph) {
   return new Map(graph.nodes.map((node) => [node.id, node]));
 }
 
-function fitContainers(graph: RoutedGraph) {
-  const byId = nodeMap(graph);
+function childrenOf(parentId: string, nodes: PositionedNode[]) {
+  return nodes.filter((node) => node.parentId === parentId);
+}
+
+function descendantsOf(parentId: string, nodes: PositionedNode[]): PositionedNode[] {
+  const direct = childrenOf(parentId, nodes);
+  const result: PositionedNode[] = [...direct];
+  for (const child of direct) {
+    result.push(...descendantsOf(child.id, nodes));
+  }
+  return result;
+}
+
+function fitContainers(graph: PositionedGraph) {
   for (const parent of graph.nodes.filter((node) => node.type === 'container')) {
-    const children = graph.nodes.filter((node) => node.parentId === parent.id);
+    const children = childrenOf(parent.id, graph.nodes);
     if (!children.length) {
       continue;
     }
@@ -51,6 +61,9 @@ function fitContainers(graph: RoutedGraph) {
     const maxY = Math.max(...children.map((node) => node.absolutePosition.y + node.size.height));
     parent.absolutePosition.x = Math.min(parent.absolutePosition.x, minX - CONTAINER_PADDING);
     parent.absolutePosition.y = Math.min(parent.absolutePosition.y, minY - CONTAINER_PADDING);
+    if (!parent.parentId) {
+      parent.position = { ...parent.absolutePosition };
+    }
     parent.size.width = Math.max(parent.size.width, maxX - parent.absolutePosition.x + CONTAINER_PADDING);
     parent.size.height = Math.max(parent.size.height, maxY - parent.absolutePosition.y + CONTAINER_PADDING);
     parent.style = {
@@ -58,28 +71,28 @@ function fitContainers(graph: RoutedGraph) {
       width: parent.size.width,
       height: parent.size.height,
     };
-    for (const child of children) {
-      child.position = {
-        x: child.absolutePosition.x - parent.absolutePosition.x,
-        y: child.absolutePosition.y - parent.absolutePosition.y,
-      };
-      byId.set(child.id, child);
-    }
   }
 }
 
-function balanceWhitespace(graph: RoutedGraph) {
+function balanceWhitespace(graph: PositionedGraph) {
   const topLevel = graph.nodes.filter((node) => !node.parentId).sort((a, b) => a.absolutePosition.x - b.absolutePosition.x);
   let cursorX = 0;
   for (const node of topLevel) {
+    const oldX = node.absolutePosition.x;
     node.absolutePosition.x = Math.max(cursorX, node.absolutePosition.x);
     node.position.x = node.absolutePosition.x;
+    const deltaX = node.absolutePosition.x - oldX;
+    if (deltaX !== 0) {
+      for (const desc of descendantsOf(node.id, graph.nodes)) {
+        desc.absolutePosition.x += deltaX;
+      }
+    }
     cursorX = node.absolutePosition.x + node.size.width + COMPONENT_GAP;
   }
 }
 
-function alignSiblingBaselines(graph: RoutedGraph) {
-  const groups = new Map<string, typeof graph.nodes>();
+function alignSiblingBaselines(graph: PositionedGraph) {
+  const groups = new Map<string, PositionedNode[]>();
   for (const node of graph.nodes) {
     const key = `${node.parentId ?? '__root__'}:${node.layout.lane}`;
     const group = groups.get(key) ?? [];
@@ -94,64 +107,56 @@ function alignSiblingBaselines(graph: RoutedGraph) {
     if (graph.direction === 'LR' || graph.direction === 'RL') {
       const baseline = Math.round(group.reduce((sum, node) => sum + node.absolutePosition.y, 0) / group.length);
       group.forEach((node) => {
+        const deltaY = baseline - node.absolutePosition.y;
         node.absolutePosition.y = baseline;
         if (!node.parentId) {
           node.position.y = baseline;
+        }
+        if (deltaY !== 0) {
+          for (const desc of descendantsOf(node.id, graph.nodes)) {
+            desc.absolutePosition.y += deltaY;
+          }
         }
       });
     } else {
       const baseline = Math.round(group.reduce((sum, node) => sum + node.absolutePosition.x, 0) / group.length);
       group.forEach((node) => {
+        const deltaX = baseline - node.absolutePosition.x;
         node.absolutePosition.x = baseline;
         if (!node.parentId) {
           node.position.x = baseline;
+        }
+        if (deltaX !== 0) {
+          for (const desc of descendantsOf(node.id, graph.nodes)) {
+            desc.absolutePosition.x += deltaX;
+          }
         }
       });
     }
   }
 }
 
-function snapToGrid(graph: RoutedGraph) {
+function snapToGrid(graph: PositionedGraph) {
   for (const node of graph.nodes) {
-    node.absolutePosition.x = snap(node.absolutePosition.x);
-    node.absolutePosition.y = snap(node.absolutePosition.y);
+    const oldX = node.absolutePosition.x;
+    const oldY = node.absolutePosition.y;
+    node.absolutePosition.x = snap(oldX);
+    node.absolutePosition.y = snap(oldY);
     if (!node.parentId) {
       node.position = { ...node.absolutePosition };
     }
-  }
-}
-
-function mitigateLabelOverlaps(graph: RoutedGraph) {
-  for (const edge of graph.edges) {
-    const label = edge.data?.labelPos;
-    if (!label) {
-      continue;
-    }
-    const overlappingNode = graph.nodes.find((node) => {
-      const x1 = label.x - 36;
-      const y1 = label.y - 10;
-      const x2 = label.x + 36;
-      const y2 = label.y + 10;
-      return !(
-        x2 <= node.absolutePosition.x ||
-        node.absolutePosition.x + node.size.width <= x1 ||
-        y2 <= node.absolutePosition.y ||
-        node.absolutePosition.y + node.size.height <= y1
-      );
-    });
-    if (overlappingNode) {
-      edge.data = {
-        ...edge.data,
-        labelPos: {
-          x: label.x,
-          y: label.y - 16,
-        },
-      };
+    const deltaX = node.absolutePosition.x - oldX;
+    const deltaY = node.absolutePosition.y - oldY;
+    if (deltaX !== 0 || deltaY !== 0) {
+      for (const desc of descendantsOf(node.id, graph.nodes)) {
+        desc.absolutePosition.x += deltaX;
+        desc.absolutePosition.y += deltaY;
+      }
     }
   }
 }
 
-function packDisconnectedComponents(graph: RoutedGraph) {
+function packDisconnectedComponents(graph: PositionedGraph) {
   const components = graph.profile.disconnectedComponents;
   if (components.length <= 1) {
     return;
@@ -176,7 +181,23 @@ function packDisconnectedComponents(graph: RoutedGraph) {
   }
 }
 
-function normalizeBounds(graph: RoutedGraph) {
+function recalcRelativePositions(graph: PositionedGraph) {
+  const byId = nodeMap(graph);
+  for (const node of graph.nodes) {
+    if (!node.parentId) {
+      node.position = { ...node.absolutePosition };
+      continue;
+    }
+    const parent = byId.get(node.parentId);
+    if (!parent) continue;
+    node.position = {
+      x: node.absolutePosition.x - parent.absolutePosition.x,
+      y: node.absolutePosition.y - parent.absolutePosition.y,
+    };
+  }
+}
+
+function normalizeBounds(graph: PositionedGraph) {
   const minX = Math.min(...graph.nodes.map((node) => node.absolutePosition.x), 0);
   const minY = Math.min(...graph.nodes.map((node) => node.absolutePosition.y), 0);
   for (const node of graph.nodes) {
@@ -186,36 +207,23 @@ function normalizeBounds(graph: RoutedGraph) {
       node.position = { ...node.absolutePosition };
     }
   }
-  for (const edge of graph.edges) {
-    if (edge.data?.layoutPoints) {
-      edge.data.layoutPoints = edge.data.layoutPoints.map((point) => ({
-        x: point.x - minX,
-        y: point.y - minY,
-      }));
-    }
-    if (edge.data?.labelPos) {
-      edge.data.labelPos = {
-        x: edge.data.labelPos.x - minX,
-        y: edge.data.labelPos.y - minY,
-      };
-    }
-  }
 }
 
-export function refineLayout(graph: RoutedGraph): RoutedGraph {
+export function refineLayout(graph: PositionedGraph): PositionedGraph {
   const next = cloneGraph(graph);
   fitContainers(next);
   balanceWhitespace(next);
   alignSiblingBaselines(next);
   snapToGrid(next);
-  mitigateLabelOverlaps(next);
   packDisconnectedComponents(next);
+  recalcRelativePositions(next);
   normalizeBounds(next);
+  recalcRelativePositions(next);
   next.qualityScore = graph.qualityScore;
   return next;
 }
 
-export function refineAndScoreLayout(graph: RoutedGraph) {
+export function refineAndScoreLayout(graph: PositionedGraph) {
   const refined = refineLayout(graph);
   return {
     refined,

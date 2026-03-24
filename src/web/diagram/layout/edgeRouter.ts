@@ -128,7 +128,9 @@ export function selectPortSides(
   }
 
   if (targetPortModel === 'database' || targetPortModel === 'queue') {
-    targetSide = horizontal ? (deltaX < 0 ? Position.Right : Position.Left) : targetSide;
+    targetSide = horizontal
+      ? (deltaX < 0 ? Position.Right : Position.Left)
+      : (deltaY < 0 ? Position.Bottom : Position.Top);
   }
 
   if (isDependency) {
@@ -155,36 +157,6 @@ function orthogonalRoute(source: { x: number; y: number }, target: { x: number; 
   return [source, { x: source.x, y: midY }, { x: target.x, y: midY }, target];
 }
 
-function compactRoute(source: { x: number; y: number }, target: { x: number; y: number }) {
-  return [source, { x: (source.x + target.x) / 2, y: source.y }, target];
-}
-
-function radialRoute(source: { x: number; y: number }, target: { x: number; y: number }) {
-  const dx = target.x - source.x;
-  const dy = target.y - source.y;
-  return [
-    source,
-    { x: source.x + dx / 3, y: source.y + dy / 6 },
-    { x: source.x + (dx * 2) / 3, y: target.y - dy / 6 },
-    target,
-  ];
-}
-
-function routePoints(
-  style: RoutingStyle,
-  source: { x: number; y: number },
-  target: { x: number; y: number },
-  direction: PositionedGraph['direction']
-) {
-  switch (style) {
-    case 'bezier':
-      return radialRoute(source, target);
-    case 'polyline':
-      return compactRoute(source, target);
-    default:
-      return orthogonalRoute(source, target, direction);
-  }
-}
 
 function midpoint(points: { x: number; y: number }[]) {
   if (points.length === 0) {
@@ -236,13 +208,8 @@ export function routeEdges(graph: PositionedGraph): RoutedGraph {
         graph.direction,
         edge
       );
-      const style: RoutingStyle =
-        graph.strategy.type === 'radial'
-          ? 'bezier'
-          : graph.strategy.type === 'compact'
-            ? 'polyline'
-            : 'orthogonal';
-      const layoutPoints = routePoints(style, sourceAnchorPoint, targetAnchorPoint, graph.direction);
+      const style: RoutingStyle = 'orthogonal';
+      const layoutPoints = orthogonalRoute(sourceAnchorPoint, targetAnchorPoint, graph.direction);
       const sourceAnchor = anchorFromPoint(sourceAnchorPoint, nodeBounds(source));
       const targetAnchor = anchorFromPoint(targetAnchorPoint, nodeBounds(target));
       const labelPos = midpoint(layoutPoints);

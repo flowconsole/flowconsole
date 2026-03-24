@@ -1,7 +1,6 @@
 import type { ArchitectureDiagramModel, ArchitectureNode } from '../types';
 import { layoutWithGraphviz } from '../graphvizLayoutService';
 import type { SizedGraph, SizedNode } from './shapeSizing';
-import type { RankedNode } from './types';
 import { computeQualityScore, qualityScoreValue } from './qualityScore';
 
 type ElkNodeLike = {
@@ -34,34 +33,21 @@ export type PositionedNode = SizedNode & {
 
 export type PositionedGraph = Omit<SizedGraph, 'nodes'> & {
   nodes: PositionedNode[];
-  engine: 'elk' | 'graphviz' | 'analytical';
+  engine: 'elk' | 'graphviz';
   usedFallback: boolean;
   qualityScore: number;
 };
 
+type ElkLayoutResult = ElkNodeLike & { children?: ElkNodeLike[] };
+
 type ElkLayoutEngine = {
-  layout(graph: ElkGraphInput): Promise<ElkNodeLike & { children?: ElkNodeLike[] }>;
+  layout(graph: ElkGraphInput): Promise<ElkLayoutResult>;
 };
 
 type PositioningEngineOptions = {
   elkFactory?: () => Promise<ElkLayoutEngine | undefined>;
   fallbackLayout?: (model: ArchitectureDiagramModel) => Promise<ArchitectureDiagramModel>;
-  qualityEvaluator?: (graph: PositionedGraph) => number;
-  minQuality?: number;
   forceGraphviz?: boolean;
-};
-
-const DEFAULT_MIN_QUALITY = 0.55;
-
-const ROLE_ORDER: Record<RankedNode['layout']['role'], number> = {
-  entry: 0,
-  frontend: 1,
-  gateway: 2,
-  processor: 3,
-  worker: 4,
-  queue: 5,
-  store: 6,
-  external: 7,
 };
 
 function directionToElk(direction: SizedGraph['direction']) {
@@ -77,11 +63,9 @@ function directionToElk(direction: SizedGraph['direction']) {
   }
 }
 
-function defaultElkFactory() {
-  return new Function(
-    'specifier',
-    'return import(specifier).then((mod) => mod.default ? new mod.default() : new mod.ELK())'
-  )('elkjs/lib/elk.bundled.js') as Promise<ElkLayoutEngine>;
+async function defaultElkFactory(): Promise<ElkLayoutEngine> {
+  const { default: ELK } = await import('elkjs/lib/elk.bundled.js');
+  return new ELK();
 }
 
 function cloneNode<T extends ArchitectureNode>(node: T) {
@@ -251,140 +235,6 @@ function mapPositions(graph: SizedGraph, positions: Map<string, { x: number; y: 
   return normalizeBounds(nodes);
 }
 
-function sortCompactNodes(nodes: SizedNode[]) {
-  return [...nodes].sort(
-    (a, b) =>
-      ROLE_ORDER[a.layout.role] - ROLE_ORDER[b.layout.role] ||
-      b.layout.outDegree - a.layout.outDegree ||
-      a.data.title.localeCompare(b.data.title)
-  );
-}
-
-function positionCompact(graph: SizedGraph): PositionedGraph {
-  const sorted = sortCompactNodes(graph.nodes);
-  const maxWidth = Math.max(...sorted.map((node) => node.size.width), 0);
-  const maxHeight = Math.max(...sorted.map((node) => node.size.height), 0);
-  const cols = Math.max(1, Math.ceil(Math.sqrt(sorted.length * 1.5)));
-  const cellWidth = maxWidth + graph.strategy.spacing.node;
-  const cellHeight = maxHeight + graph.strategy.spacing.node;
-
-  const positioned = sorted.map((node, index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    return {
-      ...cloneNode(node),
-      size: node.size,
-      position: { x: col * cellWidth, y: row * cellHeight },
-      absolutePosition: { x: col * cellWidth, y: row * cellHeight },
-    } satisfies PositionedNode;
-  });
-
-  const byId = new Map(positioned.map((node) => [node.id, node]));
-  const nodes = graph.nodes.map((node) => byId.get(node.id) ?? byId.get(sorted[0]?.id ?? '')) as PositionedNode[];
-  const result = {
-    ...graph,
-    nodes: normalizeBounds(nodes),
-    engine: 'analytical',
-    usedFallback: false,
-    qualityScore: 0,
-  } satisfies PositionedGraph;
-  result.qualityScore = scorePositionedGraph(result);
-  return result;
-}
-
-function buildUndirectedAdjacency(graph: SizedGraph) {
-  const adjacency = new Map<string, Set<string>>();
-  for (const node of graph.nodes) {
-    adjacency.set(node.id, new Set());
-  }
-  for (const edge of graph.edges) {
-    adjacency.get(edge.source)?.add(edge.target);
-    adjacency.get(edge.target)?.add(edge.source);
-  }
-  return adjacency;
-}
-
-function positionRadial(graph: SizedGraph): PositionedGraph {
-  const adjacency = buildUndirectedAdjacency(graph);
-  const topLevelContainer = graph.nodes.find((node) => node.type === 'container' && !node.parentId);
-  const center =
-    topLevelContainer ??
-    [...graph.nodes].sort(
-      (a, b) =>
-        (adjacency.get(b.id)?.size ?? 0) - (adjacency.get(a.id)?.size ?? 0) ||
-        a.data.title.localeCompare(b.data.title)
-    )[0];
-
-  const levels = new Map<string, number>();
-  const queue = center ? [{ id: center.id, level: 0 }] : [];
-  while (queue.length) {
-    const current = queue.shift();
-    if (!current || levels.has(current.id)) {
-      continue;
-    }
-    levels.set(current.id, current.level);
-    for (const neighbor of adjacency.get(current.id) ?? []) {
-      if (!levels.has(neighbor)) {
-        queue.push({ id: neighbor, level: current.level + 1 });
-      }
-    }
-  }
-
-  const rings = new Map<number, SizedNode[]>();
-  for (const node of graph.nodes) {
-    const level = levels.get(node.id) ?? 0;
-    const ring = rings.get(level) ?? [];
-    ring.push(node);
-    rings.set(level, ring);
-  }
-
-  const positioned: PositionedNode[] = [];
-  const baseRadius = Math.max(...graph.nodes.map((node) => node.size.width), 180);
-  for (const [level, nodes] of [...rings.entries()].sort((a, b) => a[0] - b[0])) {
-    if (level === 0) {
-      const node = nodes[0];
-      positioned.push({
-        ...cloneNode(node),
-        size: node.size,
-        position: { x: baseRadius, y: baseRadius },
-        absolutePosition: { x: baseRadius, y: baseRadius },
-      });
-      continue;
-    }
-
-    const radius = baseRadius + level * (graph.strategy.spacing.layer + baseRadius / 2);
-    const ordered = [...nodes].sort(
-      (a, b) =>
-        Number(b.layout.role === 'entry') - Number(a.layout.role === 'entry') ||
-        a.data.title.localeCompare(b.data.title)
-    );
-    const angleStep = (Math.PI * 2) / Math.max(ordered.length, 1);
-    ordered.forEach((node, index) => {
-      const angle = -Math.PI / 2 + index * angleStep;
-      const x = baseRadius + Math.cos(angle) * radius;
-      const y = baseRadius + Math.sin(angle) * radius;
-      positioned.push({
-        ...cloneNode(node),
-        size: node.size,
-        position: { x, y },
-        absolutePosition: { x, y },
-      });
-    });
-  }
-
-  const byId = new Map(positioned.map((node) => [node.id, node]));
-  const nodes = graph.nodes.map((node) => byId.get(node.id) ?? positioned[0]) as PositionedNode[];
-  const result = {
-    ...graph,
-    nodes: normalizeBounds(nodes),
-    engine: 'analytical',
-    usedFallback: false,
-    qualityScore: 0,
-  } satisfies PositionedGraph;
-  result.qualityScore = scorePositionedGraph(result);
-  return result;
-}
-
 function toGraphvizModel(graph: SizedGraph): ArchitectureDiagramModel {
   return {
     nodes: graph.nodes.map((node) => ({
@@ -427,7 +277,7 @@ function fromGraphvizModel(graph: SizedGraph, model: ArchitectureDiagramModel): 
   return result;
 }
 
-async function positionLayeredWithElk(
+async function positionWithElk(
   graph: SizedGraph,
   elkFactory: () => Promise<ElkLayoutEngine | undefined>
 ) {
@@ -438,64 +288,45 @@ async function positionLayeredWithElk(
   const input = buildElkGraphInput(graph);
   const result = await elk.layout(input);
   const positions = flattenElkPositions(result);
-  return {
-    input,
-    graph: {
-      ...graph,
-      nodes: mapPositions(graph, positions),
-      engine: 'elk',
-      usedFallback: false,
-      qualityScore: 0,
-    } as PositionedGraph,
+
+  const positioned: PositionedGraph = {
+    ...graph,
+    nodes: mapPositions(graph, positions),
+    engine: 'elk',
+    usedFallback: false,
+    qualityScore: 0,
   };
+  positioned.qualityScore = scorePositionedGraph(positioned);
+  return positioned;
 }
 
 export async function positionNodes(
   graph: SizedGraph,
   options: PositioningEngineOptions = {}
 ): Promise<PositionedGraph> {
-  const qualityEvaluator = options.qualityEvaluator ?? scorePositionedGraph;
-  const minQuality = options.minQuality ?? DEFAULT_MIN_QUALITY;
-  const fallbackLayout = options.fallbackLayout ?? layoutWithGraphviz;
-  const fallbackCandidate = async () => {
-    const laidOut = await fallbackLayout(toGraphvizModel(graph));
-    const candidate = fromGraphvizModel(graph, laidOut);
-    candidate.qualityScore = qualityEvaluator(candidate);
-    return candidate;
-  };
+  const fallbackLayout = options.fallbackLayout ?? ((model: ArchitectureDiagramModel) => layoutWithGraphviz(model, graph.direction));
 
   if (options.forceGraphviz) {
-    return fallbackCandidate();
+    const laidOut = await fallbackLayout(toGraphvizModel(graph));
+    return fromGraphvizModel(graph, laidOut);
   }
 
-  if (graph.strategy.type === 'compact') {
-    return positionCompact(graph);
-  }
-
-  if (graph.strategy.type === 'radial') {
-    return positionRadial(graph);
-  }
-
-  let elkCandidate: PositionedGraph | undefined;
+  // ELK is the primary engine
   try {
     const elkFactory = options.elkFactory ?? defaultElkFactory;
-    const positioned = await positionLayeredWithElk(graph, elkFactory);
-    elkCandidate = positioned?.graph;
-    if (elkCandidate) {
-      elkCandidate.qualityScore = qualityEvaluator(elkCandidate);
+    const elkResult = await positionWithElk(graph, elkFactory);
+    if (elkResult) {
+      return elkResult;
     }
-  } catch {
-    elkCandidate = undefined;
+  } catch (err) {
+    console.warn('[layout] ELK positioning failed, falling back to graphviz:', err);
   }
 
-  if (!elkCandidate) {
-    return fallbackCandidate();
+  // Graphviz is the only fallback
+  try {
+    const laidOut = await fallbackLayout(toGraphvizModel(graph));
+    return fromGraphvizModel(graph, laidOut);
+  } catch (err) {
+    throw new Error(`Layout failed: both ELK and graphviz engines failed. Last error: ${err}`);
   }
-
-  if (elkCandidate.qualityScore >= minQuality) {
-    return elkCandidate;
-  }
-
-  const graphvizCandidate = await fallbackCandidate();
-  return graphvizCandidate.qualityScore > elkCandidate.qualityScore ? graphvizCandidate : elkCandidate;
 }

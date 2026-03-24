@@ -137,25 +137,10 @@ describe('routeEdges', () => {
     expect(edge.data?.labelSide).toBe('above');
   });
 
-  it('produces bezier routes for radial strategy', () => {
-    const routed = routeEdges(
-      makeGraph({
-        strategy: { type: 'radial', direction: 'LR', spacing: { node: 1, layer: 1, container: 1 } },
-      })
-    );
+  it('always produces orthogonal routes', () => {
+    const routed = routeEdges(makeGraph());
 
-    expect(routed.edges[0]?.routing.style).toBe('bezier');
+    expect(routed.edges[0]?.routing.style).toBe('orthogonal');
     expect(routed.edges[0]?.data?.layoutPoints).toHaveLength(4);
-  });
-
-  it('produces short polylines for compact strategy', () => {
-    const routed = routeEdges(
-      makeGraph({
-        strategy: { type: 'compact', direction: 'LR', spacing: { node: 1, layer: 1, container: 1 } },
-      })
-    );
-
-    expect(routed.edges[0]?.routing.style).toBe('polyline');
-    expect(routed.edges[0]?.data?.layoutPoints).toHaveLength(3);
   });
 });

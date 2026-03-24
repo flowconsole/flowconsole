@@ -1,6 +1,7 @@
 /**
  * Acceptance criteria tests for the semantically-aware auto-layout engine.
  * Maps directly to Task 13 checkboxes in the plan.
+ * Tests use ELK as the primary engine (per spec), with a separate group for graphviz fallback.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,7 +28,7 @@ import {
   buildScopedModelFromViewState,
   hashDiagramModel,
 } from '../../../src/web/diagram/layout/scope/viewStateBuilder';
-import { computeQualityScore, isQualityAcceptable, qualityScoreValue } from '../../../src/web/diagram/layout/qualityScore';
+import { computeQualityScore, qualityScoreValue } from '../../../src/web/diagram/layout/qualityScore';
 import { analyzeGraph } from '../../../src/web/diagram/layout/graphAnalyzer';
 import { selectStrategy } from '../../../src/web/diagram/layout/strategySelector';
 import { architectureNotation } from '../../../src/web/diagram/layout/notation/architectureNotation';
@@ -95,10 +96,22 @@ function mockGraphviz() {
       position: { x: 24 + index * 296, y: 40 + (node.parentId ? 60 : 0) },
       style: { ...node.style, width: 220, height: 100 },
     })),
-    edges: model.edges,
+    edges: model.edges.map((edge) => ({
+      ...edge,
+      data: {
+        ...edge.data,
+        layoutPoints: [
+          { x: 24 + 220, y: 90 },
+          { x: 24 + 296, y: 90 },
+        ],
+      },
+    })),
     flows: model.flows,
   }));
 }
+
+// ELK is the primary engine — tests use default config (no engine override)
+// Graphviz mock is available as fallback if ELK fails
 
 describe('Acceptance Criteria - Task 13', () => {
   beforeEach(() => {
@@ -109,13 +122,13 @@ describe('Acceptance Criteria - Task 13', () => {
   });
 
   describe('AC1: No node overlap on fixture corpus', () => {
-    it('produces zero node overlaps on simple model', async () => {
-      const result = await layoutPipeline(simpleModel, { engine: 'graphviz' }, { reason: 'graph_changed' });
+    it('produces zero node overlaps on simple model (ELK)', async () => {
+      const result = await layoutPipeline(simpleModel, {}, { reason: 'graph_changed' });
       const profile = analyzeGraph(result);
-      const strategy = selectStrategy(profile, { engine: 'graphviz' }, architectureNotation);
+      const strategy = selectStrategy(profile, {}, architectureNotation);
       const ranked = rankSemantically(result, profile, strategy, architectureNotation, { notation: 'architecture', preset: 'c4-like' });
       const sized = sizeRankedGraph(ranked, architectureNotation);
-      const positioned = await positionNodes(sized, { forceGraphviz: true });
+      const positioned = await positionNodes(sized);
       const routed = routeEdges(positioned);
       const quality = computeQualityScore(routed);
       expect(quality.nodeOverlaps).toBe(0);
@@ -123,13 +136,13 @@ describe('Acceptance Criteria - Task 13', () => {
   });
 
   describe('AC2: No child outside container bounds', () => {
-    it('container violations are zero on container model', async () => {
-      const result = await layoutPipeline(containerModel, { engine: 'graphviz' }, { reason: 'graph_changed' });
+    it('container violations are zero on container model (ELK)', async () => {
+      const result = await layoutPipeline(containerModel, {}, { reason: 'graph_changed' });
       const profile = analyzeGraph(result);
-      const strategy = selectStrategy(profile, { engine: 'graphviz' }, architectureNotation);
+      const strategy = selectStrategy(profile, {}, architectureNotation);
       const ranked = rankSemantically(result, profile, strategy, architectureNotation, { notation: 'architecture', preset: 'c4-like' });
       const sized = sizeRankedGraph(ranked, architectureNotation);
-      const positioned = await positionNodes(sized, { forceGraphviz: true });
+      const positioned = await positionNodes(sized);
       const routed = routeEdges(positioned);
       const quality = computeQualityScore(routed);
       expect(quality.containerViolations).toBe(0);
@@ -138,9 +151,9 @@ describe('Acceptance Criteria - Task 13', () => {
 
   describe('AC3: Stable positions for unchanged state', () => {
     it('same input produces same output (deterministic)', async () => {
-      const result1 = await layoutPipeline(simpleModel, { engine: 'graphviz' }, { reason: 'graph_changed', forceRelayout: true });
+      const result1 = await layoutPipeline(simpleModel, {}, { reason: 'graph_changed', forceRelayout: true });
       clearLayoutPipelineCache();
-      const result2 = await layoutPipeline(simpleModel, { engine: 'graphviz' }, { reason: 'graph_changed', forceRelayout: true });
+      const result2 = await layoutPipeline(simpleModel, {}, { reason: 'graph_changed', forceRelayout: true });
 
       for (let i = 0; i < result1.nodes.length; i++) {
         expect(result1.nodes[i].position.x).toBe(result2.nodes[i].position.x);
@@ -164,29 +177,25 @@ describe('Acceptance Criteria - Task 13', () => {
         direction: 'LR',
       });
 
-      // Layout root
       const rootResult = await layoutPipeline(
         buildScopedModelFromViewState(containerModel, rootView),
-        { engine: 'graphviz' },
+        {},
         { scopeId: rootView.scopeId, cacheKey: rootView.cacheKey, modelIdentity, reason: 'cache_miss' }
       );
 
-      // Drilldown to child
       await layoutPipeline(
         buildScopedModelFromViewState(containerModel, childView),
-        { engine: 'graphviz' },
+        {},
         { scopeId: childView.scopeId, cacheKey: childView.cacheKey, modelIdentity, reason: 'scope_changed' }
       );
 
-      // Back to root - should use cache
       const backResult = await layoutPipeline(
         buildScopedModelFromViewState(containerModel, rootView),
-        { engine: 'graphviz' },
+        {},
         { scopeId: rootView.scopeId, cacheKey: rootView.cacheKey, modelIdentity, reason: 'scope_changed' }
       );
 
       expect(getLastLayoutDiagnostics()?.cacheHit).toBe(true);
-      // Positions should be identical
       for (let i = 0; i < rootResult.nodes.length; i++) {
         const original = rootResult.nodes.find((n) => n.id === backResult.nodes[i].id);
         if (original) {
@@ -199,28 +208,28 @@ describe('Acceptance Criteria - Task 13', () => {
 
   describe('AC5: Relayout reasons emitted correctly', () => {
     it('emits graph_changed reason on initial layout', async () => {
-      await layoutPipeline(simpleModel, { engine: 'graphviz', debug: true }, { reason: 'graph_changed' });
+      await layoutPipeline(simpleModel, { debug: true }, { reason: 'graph_changed' });
       const log = getRelayoutLog();
       expect(log.length).toBeGreaterThan(0);
       expect(log.at(-1)?.reason).toBe('graph_changed');
     });
 
     it('emits scope_changed when drilldown occurs', async () => {
-      await layoutPipeline(simpleModel, { engine: 'graphviz', debug: true }, { reason: 'scope_changed' });
+      await layoutPipeline(simpleModel, { debug: true }, { reason: 'scope_changed' });
       const log = getRelayoutLog();
       expect(log.at(-1)?.reason).toBe('scope_changed');
     });
 
-    it('emits config_changed when direction changes', async () => {
-      await layoutPipeline(simpleModel, { engine: 'graphviz', debug: true }, { reason: 'config_changed' });
+    it('emits direction_changed when direction changes', async () => {
+      await layoutPipeline(simpleModel, { debug: true }, { reason: 'direction_changed' });
       const log = getRelayoutLog();
-      expect(log.at(-1)?.reason).toBe('config_changed');
+      expect(log.at(-1)?.reason).toBe('direction_changed');
     });
   });
 
   describe('AC6: Active flow readable and focusable', () => {
     it('preserves flow data through the pipeline', async () => {
-      const result = await layoutPipeline(flowModel, { engine: 'graphviz' }, { reason: 'graph_changed' });
+      const result = await layoutPipeline(flowModel, {}, { reason: 'graph_changed' });
       expect(result.flows).toBeDefined();
       expect(result.flows?.length).toBe(1);
       expect(result.flows?.[0].title).toBe('Login Flow');
@@ -250,12 +259,11 @@ describe('Acceptance Criteria - Task 13', () => {
 
   describe('AC8: Direction switch preserves readability', () => {
     it.each(['LR', 'TB', 'RL', 'BT'] as const)('produces valid layout for direction %s', async (direction) => {
-      const config: AutoLayoutConfig = { engine: 'graphviz', direction };
+      const config: AutoLayoutConfig = { direction };
       clearLayoutPipelineCache();
-      const result = await layoutPipeline(simpleModel, config, { reason: 'config_changed', forceRelayout: true });
+      const result = await layoutPipeline(simpleModel, config, { reason: 'direction_changed', forceRelayout: true });
       expect(result.nodes.length).toBe(simpleModel.nodes.length);
       expect(result.edges.length).toBe(simpleModel.edges.length);
-      // All nodes should have valid positions
       for (const node of result.nodes) {
         expect(Number.isFinite(node.position.x)).toBe(true);
         expect(Number.isFinite(node.position.y)).toBe(true);
@@ -264,21 +272,77 @@ describe('Acceptance Criteria - Task 13', () => {
   });
 
   describe('AC9: Quality score above thresholds', () => {
-    it('simple model passes quality thresholds', async () => {
+    it('simple model passes quality thresholds (ELK)', async () => {
       const profile = analyzeGraph(simpleModel);
-      const strategy = selectStrategy(profile, { engine: 'graphviz' }, architectureNotation);
+      const strategy = selectStrategy(profile, {}, architectureNotation);
       const ranked = rankSemantically(simpleModel, profile, strategy, architectureNotation, { notation: 'architecture', preset: 'c4-like' });
       const sized = sizeRankedGraph(ranked, architectureNotation);
-      const positioned = await positionNodes(sized, { forceGraphviz: true });
+      const positioned = await positionNodes(sized);
       const routed = routeEdges(positioned);
       const refined = refineLayout(routed);
       const quality = computeQualityScore(refined);
       const value = qualityScoreValue(quality, refined.nodes.length);
 
       expect(value).toBeGreaterThan(0.7);
-      // nodeOverlaps and containerViolations must be zero (hard constraints)
       expect(quality.nodeOverlaps).toBe(0);
       expect(quality.containerViolations).toBe(0);
+    });
+  });
+
+  describe('AC10: Edge connectivity — edges connect to node boundaries', () => {
+    it('all edges have valid anchors after full pipeline (ELK)', async () => {
+      const result = await layoutPipeline(simpleModel, {}, { reason: 'graph_changed' });
+      const nodeById = new Map(result.nodes.map((n) => [n.id, n]));
+
+      for (const edge of result.edges) {
+        const source = nodeById.get(edge.source);
+        const target = nodeById.get(edge.target);
+        expect(source).toBeDefined();
+        expect(target).toBeDefined();
+
+        // Edges must have anchor data after pipeline
+        if (edge.data?.sourceAnchor) {
+          expect(edge.data.sourceAnchor.position).toBeDefined();
+          expect(Number.isFinite(edge.data.sourceAnchor.offset)).toBe(true);
+        }
+        if (edge.data?.targetAnchor) {
+          expect(edge.data.targetAnchor.position).toBeDefined();
+          expect(Number.isFinite(edge.data.targetAnchor.offset)).toBe(true);
+        }
+      }
+    });
+
+    it('edges have layout points after full pipeline', async () => {
+      const result = await layoutPipeline(simpleModel, {}, { reason: 'graph_changed' });
+      for (const edge of result.edges) {
+        expect(edge.data?.layoutPoints).toBeDefined();
+        expect(edge.data?.layoutPoints?.length).toBeGreaterThanOrEqual(2);
+        for (const point of edge.data?.layoutPoints ?? []) {
+          expect(Number.isFinite(point.x)).toBe(true);
+          expect(Number.isFinite(point.y)).toBe(true);
+        }
+      }
+    });
+  });
+
+  describe('Graphviz fallback', () => {
+    it('produces valid layout when using graphviz explicitly', async () => {
+      const result = await layoutPipeline(simpleModel, { engine: 'graphviz' }, { reason: 'graph_changed' });
+      expect(result.nodes.length).toBe(simpleModel.nodes.length);
+      expect(result.edges.length).toBe(simpleModel.edges.length);
+      for (const node of result.nodes) {
+        expect(Number.isFinite(node.position.x)).toBe(true);
+        expect(Number.isFinite(node.position.y)).toBe(true);
+      }
+    });
+
+    it('preserves graphviz edge routing data', async () => {
+      const result = await layoutPipeline(simpleModel, { engine: 'graphviz' }, { reason: 'graph_changed' });
+      // Edges should have layout points from graphviz (not recomputed)
+      for (const edge of result.edges) {
+        expect(edge.data?.layoutPoints).toBeDefined();
+        expect(edge.data?.layoutPoints?.length).toBeGreaterThanOrEqual(2);
+      }
     });
   });
 });

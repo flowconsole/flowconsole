@@ -102,7 +102,7 @@ function rankNodes(
         (a, b) =>
           b.layout.outDegree - a.layout.outDegree ||
           a.layout.inDegree - b.layout.inDegree ||
-          a.data.title.localeCompare(b.data.title)
+          (a.data.title ?? '').localeCompare(b.data.title ?? '')
       )
       .forEach((node, index) => {
         node.layout.order = index;

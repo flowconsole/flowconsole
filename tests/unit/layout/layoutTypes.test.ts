@@ -23,7 +23,7 @@ describe('layout type contracts', () => {
 
   it('exports the supported layout directions and strategies', () => {
     expect(LAYOUT_DIRECTIONS).toEqual(['LR', 'TB', 'RL', 'BT']);
-    expect(LAYOUT_STRATEGY_TYPES).toEqual(['layered', 'compact', 'radial']);
+    expect(LAYOUT_STRATEGY_TYPES).toEqual(['layered']);
   });
 
   it('exports the supported relayout reasons', () => {
