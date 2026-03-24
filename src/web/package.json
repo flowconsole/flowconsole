@@ -60,7 +60,8 @@
     "graphviz-wasm": "^3.0.2",
     "monaco-editor": "^0.55.1",
     "remeda": "^2.32.0",
-    "type-fest": "^5.1.0"
+    "type-fest": "^5.1.0",
+    "webcola": "^3.4.0"
   },
   "peerDependencies": {
     "@monaco-editor/react": ">=4.0.0",
