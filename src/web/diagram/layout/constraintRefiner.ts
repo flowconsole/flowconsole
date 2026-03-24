@@ -46,7 +46,9 @@ function buildColaNodes(graph: PositionedGraph): InputNode[] {
     y: node.absolutePosition.y + node.size.height / 2,
     width: node.size.width,
     height: node.size.height,
-    fixed: 0,
+    // Pin children inside containers — ELK already positioned them well via SEPARATE_CHILDREN.
+    // Only allow cola to adjust top-level nodes and containers.
+    fixed: node.parentId ? 1 : 0,
   }));
 }
 
@@ -201,7 +203,18 @@ function runCola(
 }
 
 function fitContainers(graph: PositionedGraph) {
-  for (const parent of graph.nodes.filter((node) => node.type === 'container')) {
+  // Sort containers bottom-up: deepest-nested first so that inner containers
+  // are sized before their parents compute bounding boxes.
+  const depthOf = (nodeId: string): number => {
+    const node = graph.nodes.find((n) => n.id === nodeId);
+    if (!node?.parentId) return 0;
+    return 1 + depthOf(node.parentId);
+  };
+  const containers = graph.nodes
+    .filter((node) => node.type === 'container')
+    .sort((a, b) => depthOf(b.id) - depthOf(a.id));
+
+  for (const parent of containers) {
     const children = graph.nodes.filter((node) => node.parentId === parent.id);
     if (!children.length) continue;
 

@@ -94,7 +94,7 @@ describe('buildElkGraphInput', () => {
     const child = parent?.children?.[0];
 
     expect(input.layoutOptions['elk.algorithm']).toBe('layered');
-    expect(input.layoutOptions['org.eclipse.elk.hierarchyHandling']).toBe('INCLUDE_CHILDREN');
+    expect(input.layoutOptions['org.eclipse.elk.hierarchyHandling']).toBe('SEPARATE_CHILDREN');
     // Partitions are only assigned to top-level nodes, not children inside compound nodes
     expect(parent?.layoutOptions?.['org.eclipse.elk.partitioning.partition']).toBe('2');
     expect(child?.layoutOptions?.['org.eclipse.elk.partitioning.partition']).toBeUndefined();

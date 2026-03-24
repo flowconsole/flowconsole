@@ -1,0 +1,2233 @@
+[
+  {
+    "id": "retail-banking",
+    "title": "Retail Banking Platform",
+    "model": {
+      "nodes": [
+        {
+          "id": "cloud-banking",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "container",
+          "data": {
+            "title": "Cloud Banking",
+            "expanded": true
+          }
+        },
+        {
+          "id": "data-store",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "cloud-banking",
+          "type": "container",
+          "data": {
+            "title": "Data Store",
+            "expanded": true
+          }
+        },
+        {
+          "id": "core-services",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "cloud-banking",
+          "type": "container",
+          "data": {
+            "title": "Core Services",
+            "expanded": true
+          }
+        },
+        {
+          "id": "customer",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Customer",
+            "description": "Retail banking customer",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "customer-dashboard",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "cloud-banking",
+          "type": "element",
+          "data": {
+            "title": "Customer Dashboard",
+            "description": "Browser Single-page Application",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "authentication",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "core-services",
+          "type": "element",
+          "data": {
+            "title": "Authentication",
+            "description": "Self-Hosted Authentication Service",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "accounts-api",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "core-services",
+          "type": "element",
+          "data": {
+            "title": "Accounts API",
+            "description": "Java Spring service for balances and payments",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "session-cache",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "data-store",
+          "type": "element",
+          "data": {
+            "title": "Session Cache",
+            "description": "Stores customer session payloads",
+            "tone": "muted",
+            "shape": "database"
+          }
+        },
+        {
+          "id": "ledger-db",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "data-store",
+          "type": "element",
+          "data": {
+            "title": "Ledger DB",
+            "description": "Persistent customer and transaction data",
+            "tone": "muted",
+            "shape": "database"
+          }
+        },
+        {
+          "id": "audit-events",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "core-services",
+          "type": "element",
+          "data": {
+            "title": "Audit Events",
+            "description": "Every request produces an audit record",
+            "tone": "warning",
+            "shape": "queue"
+          }
+        },
+        {
+          "id": "fraud-guard",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "core-services",
+          "type": "element",
+          "data": {
+            "title": "Fraud Guard",
+            "description": "3rd-party fraud scoring",
+            "tone": "muted",
+            "shape": "service"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-1",
+          "type": "relationship",
+          "source": "customer",
+          "target": "customer-dashboard",
+          "data": {
+            "label": "launch app",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-2",
+          "type": "relationship",
+          "source": "customer-dashboard",
+          "target": "authentication",
+          "data": {
+            "label": "login",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-3",
+          "type": "relationship",
+          "source": "customer-dashboard",
+          "target": "accounts-api",
+          "data": {
+            "label": "load dashboard",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-4",
+          "type": "relationship",
+          "source": "accounts-api",
+          "target": "session-cache",
+          "data": {
+            "label": "session context",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-5",
+          "type": "relationship",
+          "source": "accounts-api",
+          "target": "ledger-db",
+          "data": {
+            "label": "account snapshot",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-6",
+          "type": "relationship",
+          "source": "accounts-api",
+          "target": "authentication",
+          "data": {
+            "label": "validate token",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-7",
+          "type": "relationship",
+          "source": "accounts-api",
+          "target": "audit-events",
+          "data": {
+            "label": "emit audit",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-8",
+          "type": "relationship",
+          "source": "accounts-api",
+          "target": "fraud-guard",
+          "data": {
+            "label": "score transaction",
+            "kind": "async"
+          }
+        }
+      ],
+      "flows": [
+        {
+          "id": "flow-1",
+          "name": "launch app",
+          "steps": [
+            {
+              "id": "flow-1-step-1",
+              "edgeId": "rel-1",
+              "sourceId": "customer",
+              "targetId": "customer-dashboard",
+              "label": "launch app"
+            },
+            {
+              "id": "flow-1-step-2",
+              "edgeId": "rel-2",
+              "sourceId": "customer-dashboard",
+              "targetId": "authentication",
+              "label": "login"
+            },
+            {
+              "id": "flow-1-step-3",
+              "edgeId": "rel-3",
+              "sourceId": "customer-dashboard",
+              "targetId": "accounts-api",
+              "label": "load dashboard"
+            },
+            {
+              "id": "flow-1-step-4",
+              "edgeId": "rel-4",
+              "sourceId": "accounts-api",
+              "targetId": "session-cache",
+              "label": "session context"
+            },
+            {
+              "id": "flow-1-step-5",
+              "edgeId": "rel-5",
+              "sourceId": "accounts-api",
+              "targetId": "ledger-db",
+              "label": "account snapshot"
+            },
+            {
+              "id": "flow-1-step-6",
+              "edgeId": "rel-6",
+              "sourceId": "accounts-api",
+              "targetId": "authentication",
+              "label": "validate token"
+            },
+            {
+              "id": "flow-1-step-7",
+              "edgeId": "rel-7",
+              "sourceId": "accounts-api",
+              "targetId": "audit-events",
+              "label": "emit audit"
+            },
+            {
+              "id": "flow-1-step-8",
+              "edgeId": "rel-8",
+              "sourceId": "accounts-api",
+              "targetId": "fraud-guard",
+              "label": "score transaction"
+            }
+          ]
+        }
+      ]
+    },
+    "containers": [
+      {
+        "id": "cloud-banking",
+        "title": "Cloud Banking",
+        "childCount": 3
+      },
+      {
+        "id": "data-store",
+        "title": "Data Store",
+        "parentId": "cloud-banking",
+        "childCount": 2
+      },
+      {
+        "id": "core-services",
+        "title": "Core Services",
+        "parentId": "cloud-banking",
+        "childCount": 4
+      }
+    ]
+  },
+  {
+    "id": "enterprise-erp",
+    "title": "Global ERP & Supply Chain",
+    "model": {
+      "nodes": [
+        {
+          "id": "atlas-erp",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "container",
+          "data": {
+            "title": "Atlas ERP",
+            "expanded": true
+          }
+        },
+        {
+          "id": "integration-hub",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "atlas-erp",
+          "type": "container",
+          "data": {
+            "title": "Integration Hub",
+            "description": "Async orchestrations + adapters",
+            "expanded": true
+          }
+        },
+        {
+          "id": "regional-planner",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Regional Planner",
+            "description": "Creates purchase orders",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "supplier-api",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Supplier API",
+            "description": "Partner integration",
+            "tone": "muted",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "planner-portal",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "atlas-erp",
+          "type": "element",
+          "data": {
+            "title": "Planner Portal",
+            "description": "Next.js dashboard for procurement team",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "planning-service",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "integration-hub",
+          "type": "element",
+          "data": {
+            "title": "Planning Service",
+            "description": "Handles demand & supply planning",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "inventory-service",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "integration-hub",
+          "type": "element",
+          "data": {
+            "title": "Inventory Service",
+            "description": "Tracks warehouse stock",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "workflow-queue",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "integration-hub",
+          "type": "element",
+          "data": {
+            "title": "Workflow Queue",
+            "description": "Commands for async processing",
+            "tone": "primary",
+            "shape": "queue"
+          }
+        },
+        {
+          "id": "nightly-reconciliation",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "integration-hub",
+          "type": "element",
+          "data": {
+            "title": "Nightly Reconciliation",
+            "description": "Produces compliance extracts",
+            "tone": "primary",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "erp-database",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "integration-hub",
+          "type": "element",
+          "data": {
+            "title": "ERP Database",
+            "description": "Orders, forecasts, contracts",
+            "tone": "muted",
+            "shape": "database"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-1",
+          "type": "relationship",
+          "source": "regional-planner",
+          "target": "planner-portal",
+          "data": {
+            "label": "create purchase order",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-2",
+          "type": "relationship",
+          "source": "planner-portal",
+          "target": "planning-service",
+          "data": {
+            "label": "submit plan",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-3",
+          "type": "relationship",
+          "source": "planning-service",
+          "target": "inventory-service",
+          "data": {
+            "label": "reserve stock",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-4",
+          "type": "relationship",
+          "source": "planning-service",
+          "target": "erp-database",
+          "data": {
+            "label": "fetch demand",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-5",
+          "type": "relationship",
+          "source": "inventory-service",
+          "target": "erp-database",
+          "data": {
+            "label": "current stock",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-6",
+          "type": "relationship",
+          "source": "inventory-service",
+          "target": "workflow-queue",
+          "data": {
+            "label": "publish workflow",
+            "kind": "async"
+          }
+        },
+        {
+          "id": "rel-7",
+          "type": "relationship",
+          "source": "planning-service",
+          "target": "supplier-api",
+          "data": {
+            "label": "send order",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-8",
+          "type": "relationship",
+          "source": "nightly-reconciliation",
+          "target": "erp-database",
+          "data": {
+            "label": "load data",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-9",
+          "type": "relationship",
+          "source": "erp-database",
+          "target": "erp-database",
+          "data": {
+            "label": "generate nightly reports",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-10",
+          "type": "relationship",
+          "source": "erp-database",
+          "target": "workflow-queue",
+          "data": {
+            "label": "notify portal",
+            "kind": "event"
+          }
+        }
+      ],
+      "flows": [
+        {
+          "id": "flow-1",
+          "name": "create purchase order",
+          "steps": [
+            {
+              "id": "flow-1-step-1",
+              "edgeId": "rel-1",
+              "sourceId": "regional-planner",
+              "targetId": "planner-portal",
+              "label": "create purchase order"
+            },
+            {
+              "id": "flow-1-step-2",
+              "edgeId": "rel-2",
+              "sourceId": "planner-portal",
+              "targetId": "planning-service",
+              "label": "submit plan"
+            },
+            {
+              "id": "flow-1-step-3",
+              "edgeId": "rel-3",
+              "sourceId": "planning-service",
+              "targetId": "inventory-service",
+              "label": "reserve stock"
+            },
+            {
+              "id": "flow-1-step-4",
+              "edgeId": "rel-4",
+              "sourceId": "planning-service",
+              "targetId": "erp-database",
+              "label": "fetch demand"
+            },
+            {
+              "id": "flow-1-step-5",
+              "edgeId": "rel-5",
+              "sourceId": "inventory-service",
+              "targetId": "erp-database",
+              "label": "current stock"
+            },
+            {
+              "id": "flow-1-step-6",
+              "edgeId": "rel-6",
+              "sourceId": "inventory-service",
+              "targetId": "workflow-queue",
+              "label": "publish workflow"
+            },
+            {
+              "id": "flow-1-step-7",
+              "edgeId": "rel-7",
+              "sourceId": "planning-service",
+              "targetId": "supplier-api",
+              "label": "send order"
+            }
+          ]
+        },
+        {
+          "id": "flow-2",
+          "name": "load data",
+          "steps": [
+            {
+              "id": "flow-2-step-1",
+              "edgeId": "rel-8",
+              "sourceId": "nightly-reconciliation",
+              "targetId": "erp-database",
+              "label": "load data"
+            },
+            {
+              "id": "flow-2-step-2",
+              "edgeId": "rel-9",
+              "sourceId": "erp-database",
+              "targetId": "erp-database",
+              "label": "generate nightly reports"
+            },
+            {
+              "id": "flow-2-step-3",
+              "edgeId": "rel-10",
+              "sourceId": "erp-database",
+              "targetId": "workflow-queue",
+              "label": "notify portal"
+            }
+          ]
+        }
+      ]
+    },
+    "containers": [
+      {
+        "id": "atlas-erp",
+        "title": "Atlas ERP",
+        "childCount": 2
+      },
+      {
+        "id": "integration-hub",
+        "title": "Integration Hub",
+        "parentId": "atlas-erp",
+        "childCount": 5
+      }
+    ]
+  },
+  {
+    "id": "oss-collab",
+    "title": "OSS Collaboration Platform",
+    "model": {
+      "nodes": [
+        {
+          "id": "helios-oss",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "container",
+          "data": {
+            "title": "Helios OSS",
+            "expanded": true
+          }
+        },
+        {
+          "id": "git-gateway",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "helios-oss",
+          "type": "container",
+          "data": {
+            "title": "Git Gateway",
+            "expanded": true
+          }
+        },
+        {
+          "id": "ci-cluster",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "helios-oss",
+          "type": "container",
+          "data": {
+            "title": "CI Cluster",
+            "expanded": true
+          }
+        },
+        {
+          "id": "observability",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "helios-oss",
+          "type": "container",
+          "data": {
+            "title": "Observability",
+            "expanded": true
+          }
+        },
+        {
+          "id": "contributor",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Contributor",
+            "description": "Sends pull requests",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "maintainer",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Maintainer",
+            "description": "Reviews and deploys",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "helios-web",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "helios-oss",
+          "type": "element",
+          "data": {
+            "title": "Helios Web",
+            "description": "Next.js UI for issues, merge requests, pipelines",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "git-http",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "git-gateway",
+          "type": "element",
+          "data": {
+            "title": "Git HTTP",
+            "description": "Clone & push over HTTPS",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "graphql-api",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "git-gateway",
+          "type": "element",
+          "data": {
+            "title": "GraphQL API",
+            "description": "Issues, projects, releases",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "ci-runner",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "ci-cluster",
+          "type": "element",
+          "data": {
+            "title": "CI Runner",
+            "description": "Executes pipelines from queue",
+            "tone": "primary",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "pipeline-queue",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "ci-cluster",
+          "type": "element",
+          "data": {
+            "title": "Pipeline Queue",
+            "description": "Jobs waiting for runners",
+            "tone": "primary",
+            "shape": "queue"
+          }
+        },
+        {
+          "id": "activity-stream",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "observability",
+          "type": "element",
+          "data": {
+            "title": "Activity Stream",
+            "description": "Push events, comments, deployments",
+            "tone": "warning",
+            "shape": "queue"
+          }
+        },
+        {
+          "id": "metrics-store",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "observability",
+          "type": "element",
+          "data": {
+            "title": "Metrics Store",
+            "description": "Usage, billing, analytics",
+            "tone": "muted",
+            "shape": "database"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-1",
+          "type": "relationship",
+          "source": "contributor",
+          "target": "helios-web",
+          "data": {
+            "label": "open MR",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-2",
+          "type": "relationship",
+          "source": "helios-web",
+          "target": "graphql-api",
+          "data": {
+            "label": "create merge request",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-3",
+          "type": "relationship",
+          "source": "graphql-api",
+          "target": "git-http",
+          "data": {
+            "label": "push commits",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-4",
+          "type": "relationship",
+          "source": "graphql-api",
+          "target": "pipeline-queue",
+          "data": {
+            "label": "enqueue pipeline",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-5",
+          "type": "relationship",
+          "source": "pipeline-queue",
+          "target": "activity-stream",
+          "data": {
+            "label": "publish activity",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-6",
+          "type": "relationship",
+          "source": "ci-runner",
+          "target": "pipeline-queue",
+          "data": {
+            "label": "claim job",
+            "kind": "async"
+          }
+        },
+        {
+          "id": "rel-7",
+          "type": "relationship",
+          "source": "pipeline-queue",
+          "target": "pipeline-queue",
+          "data": {
+            "label": "run tests",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-8",
+          "type": "relationship",
+          "source": "pipeline-queue",
+          "target": "graphql-api",
+          "data": {
+            "label": "update status",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-9",
+          "type": "relationship",
+          "source": "graphql-api",
+          "target": "activity-stream",
+          "data": {
+            "label": "emit pipeline events",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-10",
+          "type": "relationship",
+          "source": "maintainer",
+          "target": "helios-web",
+          "data": {
+            "label": "review & deploy",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-11",
+          "type": "relationship",
+          "source": "helios-web",
+          "target": "graphql-api",
+          "data": {
+            "label": "approve merge",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-12",
+          "type": "relationship",
+          "source": "graphql-api",
+          "target": "metrics-store",
+          "data": {
+            "label": "record deployment",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-13",
+          "type": "relationship",
+          "source": "graphql-api",
+          "target": "activity-stream",
+          "data": {
+            "label": "log deployment",
+            "kind": "event"
+          }
+        }
+      ],
+      "flows": [
+        {
+          "id": "flow-1",
+          "name": "open MR",
+          "steps": [
+            {
+              "id": "flow-1-step-1",
+              "edgeId": "rel-1",
+              "sourceId": "contributor",
+              "targetId": "helios-web",
+              "label": "open MR"
+            },
+            {
+              "id": "flow-1-step-2",
+              "edgeId": "rel-2",
+              "sourceId": "helios-web",
+              "targetId": "graphql-api",
+              "label": "create merge request"
+            },
+            {
+              "id": "flow-1-step-3",
+              "edgeId": "rel-3",
+              "sourceId": "graphql-api",
+              "targetId": "git-http",
+              "label": "push commits"
+            },
+            {
+              "id": "flow-1-step-4",
+              "edgeId": "rel-4",
+              "sourceId": "graphql-api",
+              "targetId": "pipeline-queue",
+              "label": "enqueue pipeline"
+            },
+            {
+              "id": "flow-1-step-5",
+              "edgeId": "rel-5",
+              "sourceId": "pipeline-queue",
+              "targetId": "activity-stream",
+              "label": "publish activity"
+            }
+          ]
+        },
+        {
+          "id": "flow-2",
+          "name": "claim job",
+          "steps": [
+            {
+              "id": "flow-2-step-1",
+              "edgeId": "rel-6",
+              "sourceId": "ci-runner",
+              "targetId": "pipeline-queue",
+              "label": "claim job"
+            },
+            {
+              "id": "flow-2-step-2",
+              "edgeId": "rel-7",
+              "sourceId": "pipeline-queue",
+              "targetId": "pipeline-queue",
+              "label": "run tests"
+            },
+            {
+              "id": "flow-2-step-3",
+              "edgeId": "rel-8",
+              "sourceId": "pipeline-queue",
+              "targetId": "graphql-api",
+              "label": "update status"
+            },
+            {
+              "id": "flow-2-step-4",
+              "edgeId": "rel-9",
+              "sourceId": "graphql-api",
+              "targetId": "activity-stream",
+              "label": "emit pipeline events"
+            }
+          ]
+        },
+        {
+          "id": "flow-3",
+          "name": "review & deploy",
+          "steps": [
+            {
+              "id": "flow-3-step-1",
+              "edgeId": "rel-10",
+              "sourceId": "maintainer",
+              "targetId": "helios-web",
+              "label": "review & deploy"
+            },
+            {
+              "id": "flow-3-step-2",
+              "edgeId": "rel-11",
+              "sourceId": "helios-web",
+              "targetId": "graphql-api",
+              "label": "approve merge"
+            },
+            {
+              "id": "flow-3-step-3",
+              "edgeId": "rel-12",
+              "sourceId": "graphql-api",
+              "targetId": "metrics-store",
+              "label": "record deployment"
+            },
+            {
+              "id": "flow-3-step-4",
+              "edgeId": "rel-13",
+              "sourceId": "graphql-api",
+              "targetId": "activity-stream",
+              "label": "log deployment"
+            }
+          ]
+        }
+      ]
+    },
+    "containers": [
+      {
+        "id": "helios-oss",
+        "title": "Helios OSS",
+        "childCount": 4
+      },
+      {
+        "id": "git-gateway",
+        "title": "Git Gateway",
+        "parentId": "helios-oss",
+        "childCount": 2
+      },
+      {
+        "id": "ci-cluster",
+        "title": "CI Cluster",
+        "parentId": "helios-oss",
+        "childCount": 2
+      },
+      {
+        "id": "observability",
+        "title": "Observability",
+        "parentId": "helios-oss",
+        "childCount": 2
+      }
+    ]
+  },
+  {
+    "id": "media-streaming",
+    "title": "Global Media Streaming Platform",
+    "model": {
+      "nodes": [
+        {
+          "id": "streamly",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "container",
+          "data": {
+            "title": "Streamly",
+            "expanded": true
+          }
+        },
+        {
+          "id": "device-apps",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "streamly",
+          "type": "container",
+          "data": {
+            "title": "Device Apps",
+            "expanded": true
+          }
+        },
+        {
+          "id": "control-plane",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "streamly",
+          "type": "container",
+          "data": {
+            "title": "Control Plane",
+            "expanded": true
+          }
+        },
+        {
+          "id": "data-plane",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "streamly",
+          "type": "container",
+          "data": {
+            "title": "Data Plane",
+            "expanded": true
+          }
+        },
+        {
+          "id": "observability",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "streamly",
+          "type": "container",
+          "data": {
+            "title": "Observability",
+            "expanded": true
+          }
+        },
+        {
+          "id": "subscriber",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Subscriber",
+            "description": "Streams movies",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "ops-engineer",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Ops Engineer",
+            "description": "Monitors health",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "tv-app",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "device-apps",
+          "type": "element",
+          "data": {
+            "title": "TV App",
+            "description": "Smart TV + set-top box UI",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "mobile-app",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "device-apps",
+          "type": "element",
+          "data": {
+            "title": "Mobile App",
+            "description": "iOS/Android client",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "identity",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Identity",
+            "description": "Login, entitlements",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "catalog",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Catalog",
+            "description": "Metadata, search, personalization",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "playback-service",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Playback Service",
+            "description": "Session tokens, DRM",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "content-ingest",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "data-plane",
+          "type": "element",
+          "data": {
+            "title": "Content Ingest",
+            "description": "Transcodes uploads",
+            "tone": "primary",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "global-cdn",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "data-plane",
+          "type": "element",
+          "data": {
+            "title": "Global CDN",
+            "description": "Edge delivery network",
+            "tone": "muted",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "profiles-db",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Profiles DB",
+            "description": "Viewer profiles, settings",
+            "tone": "muted",
+            "shape": "database"
+          }
+        },
+        {
+          "id": "recommendations",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Recommendations",
+            "description": "ML ranking service",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "watch-events",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "observability",
+          "type": "element",
+          "data": {
+            "title": "Watch Events",
+            "description": "View, pause, seek telemetry",
+            "tone": "warning",
+            "shape": "queue"
+          }
+        },
+        {
+          "id": "metrics-api",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "observability",
+          "type": "element",
+          "data": {
+            "title": "Metrics API",
+            "description": "Real-time health",
+            "shape": "service"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-1",
+          "type": "relationship",
+          "source": "subscriber",
+          "target": "tv-app",
+          "data": {
+            "label": "open app",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-2",
+          "type": "relationship",
+          "source": "tv-app",
+          "target": "identity",
+          "data": {
+            "label": "login",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-3",
+          "type": "relationship",
+          "source": "tv-app",
+          "target": "catalog",
+          "data": {
+            "label": "browse catalog",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-4",
+          "type": "relationship",
+          "source": "catalog",
+          "target": "recommendations",
+          "data": {
+            "label": "personal picks",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-5",
+          "type": "relationship",
+          "source": "recommendations",
+          "target": "playback-service",
+          "data": {
+            "label": "start playback",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-6",
+          "type": "relationship",
+          "source": "playback-service",
+          "target": "profiles-db",
+          "data": {
+            "label": "profile rights",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-7",
+          "type": "relationship",
+          "source": "playback-service",
+          "target": "global-cdn",
+          "data": {
+            "label": "issue token",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-8",
+          "type": "relationship",
+          "source": "playback-service",
+          "target": "watch-events",
+          "data": {
+            "label": "emit play",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-9",
+          "type": "relationship",
+          "source": "mobile-app",
+          "target": "playback-service",
+          "data": {
+            "label": "resume session",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-10",
+          "type": "relationship",
+          "source": "playback-service",
+          "target": "profiles-db",
+          "data": {
+            "label": "device list",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-11",
+          "type": "relationship",
+          "source": "playback-service",
+          "target": "global-cdn",
+          "data": {
+            "label": "refresh CDN token",
+            "kind": "async"
+          }
+        },
+        {
+          "id": "rel-12",
+          "type": "relationship",
+          "source": "content-ingest",
+          "target": "global-cdn",
+          "data": {
+            "label": "push renditions",
+            "kind": "async"
+          }
+        },
+        {
+          "id": "rel-13",
+          "type": "relationship",
+          "source": "global-cdn",
+          "target": "watch-events",
+          "data": {
+            "label": "publish ingest status",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-14",
+          "type": "relationship",
+          "source": "ops-engineer",
+          "target": "metrics-api",
+          "data": {
+            "label": "check SLOs",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-15",
+          "type": "relationship",
+          "source": "metrics-api",
+          "target": "watch-events",
+          "data": {
+            "label": "trace anomalies",
+            "kind": "dependency"
+          }
+        }
+      ],
+      "flows": [
+        {
+          "id": "flow-1",
+          "name": "open app",
+          "steps": [
+            {
+              "id": "flow-1-step-1",
+              "edgeId": "rel-1",
+              "sourceId": "subscriber",
+              "targetId": "tv-app",
+              "label": "open app"
+            },
+            {
+              "id": "flow-1-step-2",
+              "edgeId": "rel-2",
+              "sourceId": "tv-app",
+              "targetId": "identity",
+              "label": "login"
+            },
+            {
+              "id": "flow-1-step-3",
+              "edgeId": "rel-3",
+              "sourceId": "tv-app",
+              "targetId": "catalog",
+              "label": "browse catalog"
+            },
+            {
+              "id": "flow-1-step-4",
+              "edgeId": "rel-4",
+              "sourceId": "catalog",
+              "targetId": "recommendations",
+              "label": "personal picks"
+            },
+            {
+              "id": "flow-1-step-5",
+              "edgeId": "rel-5",
+              "sourceId": "recommendations",
+              "targetId": "playback-service",
+              "label": "start playback"
+            },
+            {
+              "id": "flow-1-step-6",
+              "edgeId": "rel-6",
+              "sourceId": "playback-service",
+              "targetId": "profiles-db",
+              "label": "profile rights"
+            },
+            {
+              "id": "flow-1-step-7",
+              "edgeId": "rel-7",
+              "sourceId": "playback-service",
+              "targetId": "global-cdn",
+              "label": "issue token"
+            },
+            {
+              "id": "flow-1-step-8",
+              "edgeId": "rel-8",
+              "sourceId": "playback-service",
+              "targetId": "watch-events",
+              "label": "emit play"
+            }
+          ]
+        },
+        {
+          "id": "flow-2",
+          "name": "resume session",
+          "steps": [
+            {
+              "id": "flow-2-step-1",
+              "edgeId": "rel-9",
+              "sourceId": "mobile-app",
+              "targetId": "playback-service",
+              "label": "resume session"
+            },
+            {
+              "id": "flow-2-step-2",
+              "edgeId": "rel-10",
+              "sourceId": "playback-service",
+              "targetId": "profiles-db",
+              "label": "device list"
+            },
+            {
+              "id": "flow-2-step-3",
+              "edgeId": "rel-11",
+              "sourceId": "playback-service",
+              "targetId": "global-cdn",
+              "label": "refresh CDN token"
+            }
+          ]
+        },
+        {
+          "id": "flow-3",
+          "name": "push renditions",
+          "steps": [
+            {
+              "id": "flow-3-step-1",
+              "edgeId": "rel-12",
+              "sourceId": "content-ingest",
+              "targetId": "global-cdn",
+              "label": "push renditions"
+            },
+            {
+              "id": "flow-3-step-2",
+              "edgeId": "rel-13",
+              "sourceId": "global-cdn",
+              "targetId": "watch-events",
+              "label": "publish ingest status"
+            }
+          ]
+        },
+        {
+          "id": "flow-4",
+          "name": "check SLOs",
+          "steps": [
+            {
+              "id": "flow-4-step-1",
+              "edgeId": "rel-14",
+              "sourceId": "ops-engineer",
+              "targetId": "metrics-api",
+              "label": "check SLOs"
+            },
+            {
+              "id": "flow-4-step-2",
+              "edgeId": "rel-15",
+              "sourceId": "metrics-api",
+              "targetId": "watch-events",
+              "label": "trace anomalies"
+            }
+          ]
+        }
+      ]
+    },
+    "containers": [
+      {
+        "id": "streamly",
+        "title": "Streamly",
+        "childCount": 4
+      },
+      {
+        "id": "device-apps",
+        "title": "Device Apps",
+        "parentId": "streamly",
+        "childCount": 2
+      },
+      {
+        "id": "control-plane",
+        "title": "Control Plane",
+        "parentId": "streamly",
+        "childCount": 5
+      },
+      {
+        "id": "data-plane",
+        "title": "Data Plane",
+        "parentId": "streamly",
+        "childCount": 2
+      },
+      {
+        "id": "observability",
+        "title": "Observability",
+        "parentId": "streamly",
+        "childCount": 2
+      }
+    ]
+  },
+  {
+    "id": "opensource-observability",
+    "title": "Open-Source Observability Stack",
+    "model": {
+      "nodes": [
+        {
+          "id": "skyline-observability",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "container",
+          "data": {
+            "title": "Skyline Observability",
+            "expanded": true
+          }
+        },
+        {
+          "id": "control-plane",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "skyline-observability",
+          "type": "container",
+          "data": {
+            "title": "Control Plane",
+            "expanded": true
+          }
+        },
+        {
+          "id": "data-lake",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "skyline-observability",
+          "type": "container",
+          "data": {
+            "title": "Data Lake",
+            "expanded": true
+          }
+        },
+        {
+          "id": "dashboards",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "skyline-observability",
+          "type": "container",
+          "data": {
+            "title": "Dashboards",
+            "expanded": true
+          }
+        },
+        {
+          "id": "cluster-agents",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "skyline-observability",
+          "type": "container",
+          "data": {
+            "title": "Cluster Agents",
+            "expanded": true
+          }
+        },
+        {
+          "id": "platform-engineer",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Platform Engineer",
+            "description": "Owns monitoring",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "community-dev",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "type": "element",
+          "data": {
+            "title": "Community Dev",
+            "description": "Extends plugins",
+            "tone": "primary",
+            "shape": "person"
+          }
+        },
+        {
+          "id": "kube-agent",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "cluster-agents",
+          "type": "element",
+          "data": {
+            "title": "Kube Agent",
+            "description": "Collects metrics + logs",
+            "tone": "primary",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "service-map-api",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Service Map API",
+            "description": "Topology + traces",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "alert-manager",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Alert Manager",
+            "description": "Rules, paging, webhooks",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "ingest-gateway",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Ingest Gateway",
+            "description": "OpenTelemetry collector",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "tsdb",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "data-lake",
+          "type": "element",
+          "data": {
+            "title": "TSDB",
+            "description": "PromQL-compatible store",
+            "tone": "muted",
+            "shape": "database"
+          }
+        },
+        {
+          "id": "log-store",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "data-lake",
+          "type": "element",
+          "data": {
+            "title": "Log Store",
+            "description": "Columnar logs",
+            "tone": "muted",
+            "shape": "database"
+          }
+        },
+        {
+          "id": "events-bus",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "control-plane",
+          "type": "element",
+          "data": {
+            "title": "Events Bus",
+            "description": "Alerts, deploy hooks",
+            "tone": "warning",
+            "shape": "queue"
+          }
+        },
+        {
+          "id": "plugin-registry",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "dashboards",
+          "type": "element",
+          "data": {
+            "title": "Plugin Registry",
+            "description": "Hosts visualization plugins",
+            "shape": "service"
+          }
+        },
+        {
+          "id": "explorer-ui",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "parentId": "dashboards",
+          "type": "element",
+          "data": {
+            "title": "Explorer UI",
+            "description": "Dashboards + alerts",
+            "shape": "service"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "rel-1",
+          "type": "relationship",
+          "source": "platform-engineer",
+          "target": "explorer-ui",
+          "data": {
+            "label": "inspect cluster",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-2",
+          "type": "relationship",
+          "source": "explorer-ui",
+          "target": "service-map-api",
+          "data": {
+            "label": "fetch topology",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-3",
+          "type": "relationship",
+          "source": "service-map-api",
+          "target": "alert-manager",
+          "data": {
+            "label": "list alerts",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-4",
+          "type": "relationship",
+          "source": "alert-manager",
+          "target": "plugin-registry",
+          "data": {
+            "label": "load plugin",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-5",
+          "type": "relationship",
+          "source": "plugin-registry",
+          "target": "events-bus",
+          "data": {
+            "label": "audit view",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-6",
+          "type": "relationship",
+          "source": "kube-agent",
+          "target": "ingest-gateway",
+          "data": {
+            "label": "ship metrics",
+            "kind": "async"
+          }
+        },
+        {
+          "id": "rel-7",
+          "type": "relationship",
+          "source": "ingest-gateway",
+          "target": "tsdb",
+          "data": {
+            "label": "store metrics",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-8",
+          "type": "relationship",
+          "source": "tsdb",
+          "target": "log-store",
+          "data": {
+            "label": "store logs",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-9",
+          "type": "relationship",
+          "source": "log-store",
+          "target": "events-bus",
+          "data": {
+            "label": "emit anomalies",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-10",
+          "type": "relationship",
+          "source": "service-map-api",
+          "target": "tsdb",
+          "data": {
+            "label": "metrics",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-11",
+          "type": "relationship",
+          "source": "service-map-api",
+          "target": "log-store",
+          "data": {
+            "label": "logs",
+            "kind": "dependency"
+          }
+        },
+        {
+          "id": "rel-12",
+          "type": "relationship",
+          "source": "service-map-api",
+          "target": "alert-manager",
+          "data": {
+            "label": "fire alerts",
+            "kind": "event"
+          }
+        },
+        {
+          "id": "rel-13",
+          "type": "relationship",
+          "source": "community-dev",
+          "target": "plugin-registry",
+          "data": {
+            "label": "publish plugin",
+            "kind": "sync"
+          }
+        },
+        {
+          "id": "rel-14",
+          "type": "relationship",
+          "source": "plugin-registry",
+          "target": "events-bus",
+          "data": {
+            "label": "announce release",
+            "kind": "event"
+          }
+        }
+      ],
+      "flows": [
+        {
+          "id": "flow-1",
+          "name": "inspect cluster",
+          "steps": [
+            {
+              "id": "flow-1-step-1",
+              "edgeId": "rel-1",
+              "sourceId": "platform-engineer",
+              "targetId": "explorer-ui",
+              "label": "inspect cluster"
+            },
+            {
+              "id": "flow-1-step-2",
+              "edgeId": "rel-2",
+              "sourceId": "explorer-ui",
+              "targetId": "service-map-api",
+              "label": "fetch topology"
+            },
+            {
+              "id": "flow-1-step-3",
+              "edgeId": "rel-3",
+              "sourceId": "service-map-api",
+              "targetId": "alert-manager",
+              "label": "list alerts"
+            },
+            {
+              "id": "flow-1-step-4",
+              "edgeId": "rel-4",
+              "sourceId": "alert-manager",
+              "targetId": "plugin-registry",
+              "label": "load plugin"
+            },
+            {
+              "id": "flow-1-step-5",
+              "edgeId": "rel-5",
+              "sourceId": "plugin-registry",
+              "targetId": "events-bus",
+              "label": "audit view"
+            }
+          ]
+        },
+        {
+          "id": "flow-2",
+          "name": "ship metrics",
+          "steps": [
+            {
+              "id": "flow-2-step-1",
+              "edgeId": "rel-6",
+              "sourceId": "kube-agent",
+              "targetId": "ingest-gateway",
+              "label": "ship metrics"
+            },
+            {
+              "id": "flow-2-step-2",
+              "edgeId": "rel-7",
+              "sourceId": "ingest-gateway",
+              "targetId": "tsdb",
+              "label": "store metrics"
+            },
+            {
+              "id": "flow-2-step-3",
+              "edgeId": "rel-8",
+              "sourceId": "tsdb",
+              "targetId": "log-store",
+              "label": "store logs"
+            },
+            {
+              "id": "flow-2-step-4",
+              "edgeId": "rel-9",
+              "sourceId": "log-store",
+              "targetId": "events-bus",
+              "label": "emit anomalies"
+            }
+          ]
+        },
+        {
+          "id": "flow-3",
+          "name": "metrics",
+          "steps": [
+            {
+              "id": "flow-3-step-1",
+              "edgeId": "rel-10",
+              "sourceId": "service-map-api",
+              "targetId": "tsdb",
+              "label": "metrics"
+            },
+            {
+              "id": "flow-3-step-2",
+              "edgeId": "rel-11",
+              "sourceId": "service-map-api",
+              "targetId": "log-store",
+              "label": "logs"
+            },
+            {
+              "id": "flow-3-step-3",
+              "edgeId": "rel-12",
+              "sourceId": "service-map-api",
+              "targetId": "alert-manager",
+              "label": "fire alerts"
+            }
+          ]
+        },
+        {
+          "id": "flow-4",
+          "name": "publish plugin",
+          "steps": [
+            {
+              "id": "flow-4-step-1",
+              "edgeId": "rel-13",
+              "sourceId": "community-dev",
+              "targetId": "plugin-registry",
+              "label": "publish plugin"
+            },
+            {
+              "id": "flow-4-step-2",
+              "edgeId": "rel-14",
+              "sourceId": "plugin-registry",
+              "targetId": "events-bus",
+              "label": "announce release"
+            }
+          ]
+        }
+      ]
+    },
+    "containers": [
+      {
+        "id": "skyline-observability",
+        "title": "Skyline Observability",
+        "childCount": 4
+      },
+      {
+        "id": "control-plane",
+        "title": "Control Plane",
+        "parentId": "skyline-observability",
+        "childCount": 4
+      },
+      {
+        "id": "data-lake",
+        "title": "Data Lake",
+        "parentId": "skyline-observability",
+        "childCount": 2
+      },
+      {
+        "id": "dashboards",
+        "title": "Dashboards",
+        "parentId": "skyline-observability",
+        "childCount": 2
+      },
+      {
+        "id": "cluster-agents",
+        "title": "Cluster Agents",
+        "parentId": "skyline-observability",
+        "childCount": 1
+      }
+    ]
+  }
+]

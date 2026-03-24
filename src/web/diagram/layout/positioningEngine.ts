@@ -178,6 +178,28 @@ export function buildElkGraphInput(
     return opts;
   };
 
+  // Build a lookup from node id → parentId for edge placement
+  const nodeParent = new Map(graph.nodes.map((n) => [n.id, n.parentId]));
+
+  // Classify edges: internal edges go inside their container, cross-boundary on root
+  const edgesByParent = new Map<string | undefined, typeof graph.edges>();
+  for (const edge of graph.edges) {
+    const sp = nodeParent.get(edge.source);
+    const tp = nodeParent.get(edge.target);
+    // Internal edge: both endpoints share the same parent
+    const bucket = sp === tp ? sp : undefined;
+    const list = edgesByParent.get(bucket) ?? [];
+    list.push(edge);
+    edgesByParent.set(bucket, list);
+  }
+
+  const toElkEdges = (parentId: string | undefined) =>
+    (edgesByParent.get(parentId) ?? []).map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    }));
+
   const buildChildren = (parentId: string | undefined, isTopLevel: boolean): ElkNodeLike[] =>
     (childrenByParent.get(parentId) ?? []).map((node) => ({
       id: node.id,
@@ -185,6 +207,7 @@ export function buildElkGraphInput(
       height: node.size.height,
       layoutOptions: nodeLayoutOptions(node, isTopLevel),
       children: buildChildren(node.id, false),
+      edges: toElkEdges(node.id),
     }));
 
   return {
@@ -193,7 +216,7 @@ export function buildElkGraphInput(
       'elk.algorithm': 'layered',
       'elk.direction': directionToElk(graph.direction),
       'org.eclipse.elk.partitioning.activate': 'true',
-      'org.eclipse.elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+      'org.eclipse.elk.hierarchyHandling': 'SEPARATE_CHILDREN',
       'org.eclipse.elk.spacing.nodeNode': String(graph.strategy.spacing.node),
       'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': String(graph.strategy.spacing.layer),
       'org.eclipse.elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
@@ -207,11 +230,7 @@ export function buildElkGraphInput(
       'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
     },
     children: buildChildren(undefined, true),
-    edges: graph.edges.map((edge) => ({
-      id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
-    })),
+    edges: toElkEdges(undefined),
   };
 }
 
@@ -237,11 +256,17 @@ function flattenElkPositions(root: ElkNodeLike & { children?: ElkNodeLike[] }) {
 }
 
 function mapPositions(graph: SizedGraph, positions: Map<string, { x: number; y: number; width: number; height: number }>) {
+  const containerIds = new Set(graph.nodes.filter((n) => n.type === 'container').map((n) => n.id));
+
   const nodes = graph.nodes.map((node) => {
     const positioned = positions.get(node.id);
+    // For containers, use ELK-computed size (expanded to fit children)
+    const size = positioned && containerIds.has(node.id)
+      ? { ...node.size, width: positioned.width, height: positioned.height }
+      : node.size;
     return {
       ...cloneNode(node),
-      size: node.size,
+      size,
       position: positioned ? { x: positioned.x, y: positioned.y } : { ...node.position },
       absolutePosition: positioned ? { x: positioned.x, y: positioned.y } : { ...node.position },
     } satisfies PositionedNode;

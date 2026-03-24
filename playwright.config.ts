@@ -23,7 +23,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /layout-visual\.spec/,
+      testIgnore: /layout-visual\.spec|legacy-samples\.spec/,
     },
     {
       name: 'visual-regression',
@@ -31,7 +31,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         viewport: { width: 1600, height: 1000 },
       },
-      testMatch: /layout-visual\.spec/,
+      testMatch: /layout-visual\.spec|legacy-samples\.spec/,
       timeout: 30000,
       expect: {
         timeout: 10000,

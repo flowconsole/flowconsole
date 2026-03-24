@@ -21,6 +21,7 @@ declare global {
   interface Window {
     __FLOWCONSOLE_E2E__?: {
       loadLayoutFixture: (payload: LayoutFixtureHarnessPayload) => void;
+      loadCode: (source: string) => void;
     };
   }
 }
@@ -179,6 +180,12 @@ export function CodeDiagramWorkbench({ themeControls, apiBaseUrl }: Props) {
         setFixtureDirection(payload.direction);
         setFixtureDebug(payload.debug ?? false);
         setOverlayVisible(false);
+        setError(null);
+      },
+      loadCode: (source: string) => {
+        setCodeByLanguage((prev) => ({ ...prev, [activeLanguageRef.current]: source }));
+        setFixtureDirection(undefined);
+        setFixtureDebug(false);
         setError(null);
       },
     };

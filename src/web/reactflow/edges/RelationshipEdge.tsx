@@ -5,6 +5,7 @@ import {
   Position,
   useInternalNode,
   useReactFlow,
+  useStore,
   type EdgeProps,
   type XYPosition,
 } from '@xyflow/react';
@@ -12,62 +13,13 @@ import { curveCatmullRomOpen, line } from 'd3-shape';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { relationshipStroke } from '../../diagram/theme';
 import type { RelationshipEdgeType } from '../../diagram/types';
+import { getFloatingEdgePath } from '../utils/floating';
 
 type Point = XYPosition;
-type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
 const catmullRomLine = line<Point>()
   .curve(curveCatmullRomOpen.alpha(0.7))
   .x((d) => Math.round(d.x))
   .y((d) => Math.round(d.y));
-
-function clamp01(value: number) {
-  return Math.max(0, Math.min(1, value));
-}
-
-function resolveAnchorPoint(
-  node: InternalNodeInstance | undefined,
-  anchor: NonNullable<RelationshipEdgeType['data']>['sourceAnchor'] | undefined
-): Point | undefined {
-  if (!node || !anchor) return undefined;
-  const width =
-    (typeof node.measured?.width === 'number' && node.measured.width) ||
-    (typeof node.width === 'number' ? node.width : undefined) ||
-    (typeof (node as unknown as { style?: { width?: number } }).style?.width === 'number' ? (node as unknown as { style: { width: number } }).style.width : undefined) ||
-    (typeof node.initialWidth === 'number' ? node.initialWidth : undefined);
-  const height =
-    (typeof node.measured?.height === 'number' && node.measured.height) ||
-    (typeof node.height === 'number' ? node.height : undefined) ||
-    (typeof (node as unknown as { style?: { height?: number } }).style?.height === 'number' ? (node as unknown as { style: { height: number } }).style.height : undefined) ||
-    (typeof node.initialHeight === 'number' ? node.initialHeight : undefined);
-  if (!width || !height) return undefined;
-  const { x, y } = node.internals.positionAbsolute;
-  const offset = clamp01(anchor.offset ?? 0.5);
-  switch (anchor.position) {
-    case Position.Left:
-      return { x, y: y + offset * height };
-    case Position.Right:
-      return { x: x + width, y: y + offset * height };
-    case Position.Top:
-      return { x: x + offset * width, y };
-    case Position.Bottom:
-      return { x: x + offset * width, y: y + height };
-    default:
-      return undefined;
-  }
-}
-
-function cubicPath(points: Point[] | undefined) {
-  if (!points?.length) return undefined;
-  let path = `M ${points[0].x},${points[0].y}`;
-  for (let i = 1; i + 2 < points.length; i += 3) {
-    const cp1 = points[i];
-    const cp2 = points[i + 1];
-    const end = points[i + 2];
-    if (!cp1 || !cp2 || !end) break;
-    path += ` C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${end.x},${end.y}`;
-  }
-  return path;
-}
 
 function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
@@ -79,29 +31,6 @@ function polylinePath(points: Point[]) {
   return points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x},${point.y}`)
     .join(' ');
-}
-
-function isAxisAlignedPolyline(points: Point[]) {
-  if (points.length < 2) return false;
-  for (let index = 0; index < points.length - 1; index += 1) {
-    const current = points[index];
-    const next = points[index + 1];
-    if (Math.round(current.x) !== Math.round(next.x) && Math.round(current.y) !== Math.round(next.y)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function pathFromLayoutPoints(points: Point[] | undefined) {
-  if (!points || points.length < 2) return undefined;
-  if (isAxisAlignedPolyline(points)) {
-    return polylinePath(points);
-  }
-  if ((points.length - 1) % 3 === 0) {
-    return cubicPath(points);
-  }
-  return smoothPath(points) ?? polylinePath(points);
 }
 
 function distance(a: Point, b: Point) {
@@ -212,21 +141,45 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     };
   }, []);
 
-  const sourceAnchorPoint = useMemo(
-    () => resolveAnchorPoint(sourceNode, data?.sourceAnchor),
-    [sourceNode, data?.sourceAnchor]
-  );
-  const targetAnchorPoint = useMemo(
-    () => resolveAnchorPoint(targetNode, data?.targetAnchor),
-    [targetNode, data?.targetAnchor]
+  // Collect sibling nodes as potential obstacles for floating edge routing
+  const obstacleNodes = useStore(
+    useMemo(
+      () => (state) => {
+        const nodes: Array<ReturnType<typeof useInternalNode>> = [];
+        state.nodeLookup.forEach((n) => {
+          if (n.id !== source && n.id !== target) {
+            nodes.push(n as ReturnType<typeof useInternalNode>);
+          }
+        });
+        return nodes;
+      },
+      [source, target]
+    )
   );
 
-  const sx = sourceAnchorPoint?.x ?? sourceX;
-  const sy = sourceAnchorPoint?.y ?? sourceY;
-  const tx = targetAnchorPoint?.x ?? targetX;
-  const ty = targetAnchorPoint?.y ?? targetY;
-  const sourcePos = data?.sourceAnchor?.position ?? sourcePosition ?? Position.Right;
-  const targetPos = data?.targetAnchor?.position ?? targetPosition ?? Position.Left;
+  // Floating edge: compute connection points on node boundaries + avoid obstacles
+  const floatingEdge = useMemo(
+    () => getFloatingEdgePath(sourceNode, targetNode, obstacleNodes),
+    [sourceNode, targetNode, obstacleNodes]
+  );
+
+  const sx = floatingEdge?.points[0]?.x ?? sourceX;
+  const sy = floatingEdge?.points[0]?.y ?? sourceY;
+  const tx = floatingEdge?.points[floatingEdge.points.length - 1]?.x ?? targetX;
+  const ty = floatingEdge?.points[floatingEdge.points.length - 1]?.y ?? targetY;
+  const sourcePos = floatingEdge?.sourcePosition ?? sourcePosition ?? Position.Right;
+  const targetPos = floatingEdge?.targetPosition ?? targetPosition ?? Position.Left;
+
+  // Floating path: straight line for 2 points, smooth curve for obstacle waypoints
+  const floatingPath = useMemo(() => {
+    if (!floatingEdge || floatingEdge.points.length < 2) return undefined;
+    if (floatingEdge.points.length === 2) {
+      // Direct connection — straight line (avoids bezier bulge through nodes)
+      const [p0, p1] = floatingEdge.points;
+      return `M ${p0.x},${p0.y} L ${p1.x},${p1.y}`;
+    }
+    return smoothPath(floatingEdge.points) ?? polylinePath(floatingEdge.points);
+  }, [floatingEdge]);
 
   const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(
     () =>
@@ -251,26 +204,22 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     const labelPoint = midpoint(manualPoints);
     return path
       ? {
-          path,
-          labelPoint,
-        }
+            path,
+            labelPoint,
+          }
       : undefined;
   }, [controlPoints, sx, sy, tx, ty]);
 
-  const routedPath = useMemo(() => pathFromLayoutPoints(data?.layoutPoints), [data?.layoutPoints]);
-  const layoutLabelPoint = useMemo(() => {
-    if (data?.labelPos) {
-      return data.labelPos;
-    }
-    if (data?.layoutPoints?.length) {
-      return midpoint(data.layoutPoints);
+  const floatingLabelPoint = useMemo(() => {
+    if (floatingEdge?.points?.length) {
+      return midpoint(floatingEdge.points);
     }
     return undefined;
-  }, [data?.labelPos, data?.layoutPoints]);
+  }, [floatingEdge]);
 
-  const resolvedPath = manualPath?.path ?? routedPath ?? fallbackPath;
+  const resolvedPath = manualPath?.path ?? floatingPath ?? fallbackPath;
   const resolvedLabelPoint =
-    manualPath?.labelPoint ?? layoutLabelPoint ?? { x: fallbackLabelX, y: fallbackLabelY };
+    manualPath?.labelPoint ?? floatingLabelPoint ?? { x: fallbackLabelX, y: fallbackLabelY };
 
   const stroke = relationshipStroke(data?.kind);
   const direction = data?.direction ?? 'forward';
@@ -485,7 +434,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
         onContextMenu={handleEdgeContextMenu}
       />
 
-      {(data?.label || data?.detail || hasIcon) && (
+      {false && (data?.label || data?.detail || hasIcon) && (
         <EdgeLabelRenderer>
           <div
             className="relationship-label"
@@ -497,9 +446,9 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
             }}
           >
             {hasIcon ? <span className="relationship-label__icon">{data?.icon}</span> : null}
-            {data?.label ? <span className="relationship-label__main">{data.label}</span> : null}
+            {data?.label ? <span className="relationship-label__main">{data?.label}</span> : null}
             {data?.detail ? (
-              <span className="relationship-label__detail">{data.detail}</span>
+              <span className="relationship-label__detail">{data?.detail}</span>
             ) : null}
           </div>
         </EdgeLabelRenderer>

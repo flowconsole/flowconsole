@@ -7,7 +7,6 @@ import { buildConstraints } from './constraintBuilder';
 import { sizeRankedGraph } from './shapeSizing';
 import { positionNodes } from './positioningEngine';
 import { routeEdges } from './edgeRouter';
-import { refineWithConstraints } from './constraintRefiner';
 import { computeQualityScore, qualityScoreValue } from './qualityScore';
 import { createMentalMapCache } from './mentalMapCache';
 import type { CacheEntry } from './mentalMapCache';
@@ -213,12 +212,8 @@ export async function layoutPipeline(
     forceGraphviz: config.engine === 'graphviz',
     constraints,
   });
-  // Stage 6 initial: route edges for label positions (needed by cola phantom nodes)
-  const initialRouted = routeEdges(positioned);
-  // Stage 7: cola constraint refinement using ELK positions + semantic constraints
-  const refined = refineWithConstraints(initialRouted, constraints);
-  // Stage 6 again: final routing on refined positions
-  const routed = routeEdges(refined);
+  // Stage 6: route edges on ELK positions (cola refinement disabled)
+  const routed = routeEdges(positioned);
   const qualityScore = computeQualityScore(routed);
   const qualityValue = qualityScoreValue(qualityScore, routed.nodes.length);
   const engine = positioned.engine;

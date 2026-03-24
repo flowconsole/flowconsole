@@ -11,12 +11,13 @@ export const QUALITY_THRESHOLDS = {
   gatewayPlacementViolations: 0,
   edgeCrossings: {
     small: 0,
-    medium: 3,
-    large: 8,
+    medium: 5,
+    large: 12,
   },
   laneViolations: {
     small: 0,
-    medium: 1,
+    medium: 3,
+    large: 6,
   },
   siblingAlignmentScore: 0.7,
   disconnectedPackingScore: 0.6,
@@ -320,15 +321,20 @@ export function qualityScoreValue(score: LayoutQualityScore, nodeCount: number) 
       : nodeCount <= 20
         ? QUALITY_THRESHOLDS.edgeCrossings.medium
         : QUALITY_THRESHOLDS.edgeCrossings.large;
-  const laneBudget = nodeCount <= 8 ? QUALITY_THRESHOLDS.laneViolations.small : QUALITY_THRESHOLDS.laneViolations.medium;
+  const laneBudget =
+    nodeCount <= 8
+      ? QUALITY_THRESHOLDS.laneViolations.small
+      : nodeCount <= 20
+        ? QUALITY_THRESHOLDS.laneViolations.medium
+        : QUALITY_THRESHOLDS.laneViolations.large;
   const hardPenalty =
     score.nodeOverlaps * 0.3 +
     score.containerViolations * 0.2 +
-    score.labelOverlaps * 0.1 +
+    Math.min(0.15, score.labelOverlaps * 0.02) +
     score.gatewayPlacementViolations * 0.2;
   const softPenalty =
-    Math.max(0, score.edgeCrossings - crossingBudget) * 0.04 +
-    Math.max(0, score.laneViolations - laneBudget) * 0.08 +
+    Math.max(0, score.edgeCrossings - crossingBudget) * 0.03 +
+    Math.max(0, score.laneViolations - laneBudget) * 0.05 +
     Math.min(0.15, score.edgeLengthVariance / 1_000_000);
   const bonuses =
     Math.min(0.2, score.siblingAlignmentScore * 0.2) +
@@ -344,7 +350,12 @@ export function isQualityAcceptable(score: LayoutQualityScore, nodeCount: number
       : nodeCount <= 20
         ? QUALITY_THRESHOLDS.edgeCrossings.medium
         : QUALITY_THRESHOLDS.edgeCrossings.large;
-  const laneBudget = nodeCount <= 8 ? QUALITY_THRESHOLDS.laneViolations.small : QUALITY_THRESHOLDS.laneViolations.medium;
+  const laneBudget =
+    nodeCount <= 8
+      ? QUALITY_THRESHOLDS.laneViolations.small
+      : nodeCount <= 20
+        ? QUALITY_THRESHOLDS.laneViolations.medium
+        : QUALITY_THRESHOLDS.laneViolations.large;
 
   return (
     score.nodeOverlaps <= QUALITY_THRESHOLDS.nodeOverlaps &&

@@ -1,9 +1,9 @@
 import type { LLMEnricherConfig, NodeRole } from '../types';
 
-const NODE_ROLES: ReadonlySet<string> = new Set<NodeRole>([
+const NODE_ROLES: ReadonlySet<string> = new Set([
   'entry', 'frontend', 'gateway', 'processor', 'store',
   'cache', 'queue', 'external', 'orchestrator', 'infrastructure',
-]);
+] as const);
 
 const roleCache = new Map<string, Map<string, NodeRole>>();
 

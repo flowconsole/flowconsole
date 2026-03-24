@@ -100,34 +100,50 @@ describe('Legacy samples through layout pipeline', () => {
           forceRelayout: true,
         });
 
+        // Compute absolute positions (children have relative positions)
+        const nodeById = new Map(result.nodes.map((n) => [n.id, n]));
+        const absPos = (n: typeof result.nodes[0]): { x: number; y: number } => {
+          if (!n.parentId) return { x: n.position.x, y: n.position.y };
+          const parent = nodeById.get(n.parentId);
+          if (!parent) return { x: n.position.x, y: n.position.y };
+          const parentAbs = absPos(parent);
+          return { x: parentAbs.x + n.position.x, y: parentAbs.y + n.position.y };
+        };
+
         // Check pairwise overlaps (exclude containment)
-        const rects = result.nodes.map((node) => ({
-          id: node.id,
-          parentId: node.parentId,
-          x1: node.position.x,
-          y1: node.position.y,
-          x2: node.position.x + (node.style?.width as number ?? 220),
-          y2: node.position.y + (node.style?.height as number ?? 100),
-        }));
+        const rects = result.nodes.map((node) => {
+          const abs = absPos(node);
+          return {
+            id: node.id,
+            parentId: node.parentId,
+            x1: abs.x,
+            y1: abs.y,
+            x2: abs.x + (node.style?.width as number ?? 220),
+            y2: abs.y + (node.style?.height as number ?? 100),
+          };
+        });
+
+        // Group rects by parent — only check overlaps between siblings
+        const byParent = new Map<string | undefined, typeof rects>();
+        for (const r of rects) {
+          const group = byParent.get(r.parentId) ?? [];
+          group.push(r);
+          byParent.set(r.parentId, group);
+        }
 
         let overlaps = 0;
-        for (let i = 0; i < rects.length; i++) {
-          for (let j = i + 1; j < rects.length; j++) {
-            const a = rects[i];
-            const b = rects[j];
-            // Skip parent-child pairs
-            if (a.id === b.parentId || b.id === a.parentId) continue;
-            // Skip if one contains the other (container nesting)
-            const aContainsB = a.x1 <= b.x1 && a.y1 <= b.y1 && a.x2 >= b.x2 && a.y2 >= b.y2;
-            const bContainsA = b.x1 <= a.x1 && b.y1 <= a.y1 && b.x2 >= a.x2 && b.y2 >= a.y2;
-            if (aContainsB || bContainsA) continue;
-
-            const left = Math.max(a.x1, b.x1);
-            const top = Math.max(a.y1, b.y1);
-            const right = Math.min(a.x2, b.x2);
-            const bottom = Math.min(a.y2, b.y2);
-            if (right > left && bottom > top) {
-              overlaps++;
+        for (const siblings of byParent.values()) {
+          for (let i = 0; i < siblings.length; i++) {
+            for (let j = i + 1; j < siblings.length; j++) {
+              const a = siblings[i];
+              const b = siblings[j];
+              const left = Math.max(a.x1, b.x1);
+              const top = Math.max(a.y1, b.y1);
+              const right = Math.min(a.x2, b.x2);
+              const bottom = Math.min(a.y2, b.y2);
+              if (right > left && bottom > top) {
+                overlaps++;
+              }
             }
           }
         }
