@@ -95,7 +95,9 @@ describe('buildElkGraphInput', () => {
 
     expect(input.layoutOptions['elk.algorithm']).toBe('layered');
     expect(input.layoutOptions['org.eclipse.elk.hierarchyHandling']).toBe('INCLUDE_CHILDREN');
-    expect(child?.layoutOptions?.['org.eclipse.elk.partitioning.partition']).toBe('0');
+    // Partitions are only assigned to top-level nodes, not children inside compound nodes
+    expect(parent?.layoutOptions?.['org.eclipse.elk.partitioning.partition']).toBe('2');
+    expect(child?.layoutOptions?.['org.eclipse.elk.partitioning.partition']).toBeUndefined();
     expect(child?.layoutOptions?.['org.eclipse.elk.portConstraints']).toBe('FIXED_ORDER');
   });
 });
