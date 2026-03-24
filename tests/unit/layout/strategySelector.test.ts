@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { architectureNotation } from '../../../src/web/diagram/layout/notation/architectureNotation';
-import { selectStrategy } from '../../../src/web/diagram/layout/strategySelector';
+import { selectLayoutPlan, selectStrategy } from '../../../src/web/diagram/layout/strategySelector';
 import type { AutoLayoutConfig } from '../../../src/web/diagram/types';
 import type { GraphProfile, SemanticEdge, SemanticNode } from '../../../src/web/diagram/layout/types';
 
@@ -74,7 +74,7 @@ describe('architectureNotation', () => {
 describe('selectStrategy', () => {
   const config: AutoLayoutConfig = { notation: 'architecture', preset: 'c4-like' };
 
-  it('always selects layered strategy', () => {
+  it('selects layered for typical graphs', () => {
     const strategy = selectStrategy(
       makeProfile({ nodeCount: 5, containerCount: 0 }),
       config,
@@ -105,14 +105,14 @@ describe('selectStrategy', () => {
     expect(strategy.type).toBe('layered');
   });
 
-  it('selects layered for dense graphs', () => {
+  it('selects compact for dense graphs (edgesPerNode > 2.5)', () => {
     const strategy = selectStrategy(
       makeProfile({ edgesPerNode: 3.0 }),
       config,
       architectureNotation
     );
 
-    expect(strategy.type).toBe('layered');
+    expect(strategy.type).toBe('compact');
   });
 
   it('selects layered for large container graphs', () => {
@@ -120,6 +120,34 @@ describe('selectStrategy', () => {
       makeProfile({
         containerChildCounts: new Map([['big-container', 20]]),
         containerCount: 1,
+      }),
+      config,
+      architectureNotation
+    );
+
+    expect(strategy.type).toBe('layered');
+  });
+
+  it('selects radial for star topology without containers', () => {
+    const strategy = selectStrategy(
+      makeProfile({
+        nodeCount: 5,
+        containerCount: 0,
+        subgraphPatterns: new Map([['root', 'star']]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    expect(strategy.type).toBe('radial');
+  });
+
+  it('selects layered (not radial) for star topology with containers', () => {
+    const strategy = selectStrategy(
+      makeProfile({
+        nodeCount: 5,
+        containerCount: 1,
+        subgraphPatterns: new Map(),
       }),
       config,
       architectureNotation
@@ -153,5 +181,97 @@ describe('selectStrategy', () => {
     );
 
     expect(strategy.direction).toBe('RL');
+  });
+});
+
+describe('selectLayoutPlan', () => {
+  const config: AutoLayoutConfig = { notation: 'architecture', preset: 'c4-like' };
+
+  it('returns LayoutPlan with global strategy and spacing', () => {
+    const plan = selectLayoutPlan(makeProfile(), config, architectureNotation);
+
+    expect(plan.globalStrategy).toBe('layered');
+    expect(plan.globalDirection).toBe('LR');
+    expect(plan.spacing.node).toBe(88);
+    expect(plan.spacing.layer).toBe(128);
+    expect(plan.spacing.container).toBe(144);
+  });
+
+  it('generates cross-direction override for chain containers', () => {
+    const plan = selectLayoutPlan(
+      makeProfile({
+        subgraphPatterns: new Map([['pipeline-container', 'chain']]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    const override = plan.containerOverrides.get('pipeline-container');
+    expect(override).toBeDefined();
+    expect(override?.strategy).toBe('layered');
+    expect(override?.direction).toBe('TB');
+  });
+
+  it('generates radial override for star containers', () => {
+    const plan = selectLayoutPlan(
+      makeProfile({
+        subgraphPatterns: new Map([['hub-container', 'star']]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    const override = plan.containerOverrides.get('hub-container');
+    expect(override).toBeDefined();
+    expect(override?.strategy).toBe('radial');
+  });
+
+  it('generates compact override for dense containers', () => {
+    const plan = selectLayoutPlan(
+      makeProfile({
+        subgraphPatterns: new Map([['mesh-container', 'dense']]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    const override = plan.containerOverrides.get('mesh-container');
+    expect(override).toBeDefined();
+    expect(override?.strategy).toBe('compact');
+  });
+
+  it('does not override tree/bipartite/sparse containers', () => {
+    const plan = selectLayoutPlan(
+      makeProfile({
+        subgraphPatterns: new Map([
+          ['tree-c', 'tree'],
+          ['bipartite-c', 'bipartite'],
+          ['sparse-c', 'sparse'],
+        ]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    expect(plan.containerOverrides.size).toBe(0);
+  });
+
+  it('cross-direction for chain flips TB parent to LR child', () => {
+    const plan = selectLayoutPlan(
+      makeProfile({
+        hasFlows: true,
+        nodeRoles: new Map([
+          ['a', 'processor'],
+          ['b', 'worker'],
+          ['c', 'processor'],
+        ]),
+        subgraphPatterns: new Map([['chain-container', 'chain']]),
+      }),
+      config,
+      architectureNotation
+    );
+
+    expect(plan.globalDirection).toBe('TB');
+    expect(plan.containerOverrides.get('chain-container')?.direction).toBe('LR');
   });
 });
