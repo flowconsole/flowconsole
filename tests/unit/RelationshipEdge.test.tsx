@@ -168,38 +168,6 @@ describe('RelationshipEdge', () => {
     expect(call.targetY).toBe(110); // 100 + 0.25 * 40
   });
 
-  it('uses precomputed layout points and label position when provided', () => {
-    renderEdge({
-      label: 'Graphviz',
-      layoutPoints: [
-        { x: 0, y: 0 },
-        { x: 10, y: 0 },
-        { x: 10, y: 10 },
-        { x: 20, y: 20 },
-      ],
-      labelPos: { x: 5, y: 5 },
-    });
-    const baseEdge = screen.getByTestId('base-edge');
-    expect(baseEdge.getAttribute('d')).toBe('M 0,0 C 10,0 10,10 20,20');
-    const label = screen.getByText('Graphviz').parentElement as HTMLElement;
-    expect(label.style.transform).toContain('translate(5px, 23px)');
-  });
-
-  it('renders orthogonal routed points as a polyline path', () => {
-    renderEdge({
-      layoutPoints: [
-        { x: 0, y: 0 },
-        { x: 25, y: 0 },
-        { x: 25, y: 20 },
-        { x: 50, y: 20 },
-      ],
-      labelPos: { x: 25, y: 10 },
-      label: 'Orthogonal',
-    });
-    const baseEdge = screen.getByTestId('base-edge');
-    expect(baseEdge.getAttribute('d')).toBe('M 0,0 L 25,0 L 25,20 L 50,20');
-  });
-
   it('prefers manual control points over graphviz path', () => {
     renderEdge({
       controlPoints: [{ x: 10, y: 10 }],

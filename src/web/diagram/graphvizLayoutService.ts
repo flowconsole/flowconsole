@@ -57,11 +57,11 @@ function estimateSize(
   return { width, height };
 }
 
-function buildDot(model: ArchitectureDiagramModel, direction: string = 'LR') {
+function buildDot(model: ArchitectureDiagramModel) {
   const lines: string[] = [];
   lines.push('digraph G {');
   lines.push(
-    `  graph [layout=dot, rankdir=${direction}, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, sep=0.5, esep=0.3, nodesep=${pxToInch(
+    `  graph [layout=dot, rankdir=LR, compound=true, splines=spline, outputorder=nodesfirst, overlap=false, sep=0.5, esep=0.3, nodesep=${pxToInch(
       DEFAULT_NODESEP
     ).toFixed(3)}, ranksep=${pxToInch(DEFAULT_RANKSEP).toFixed(3)}, pad=${pxToInch(
       DEFAULT_PAD
@@ -147,7 +147,7 @@ function buildDot(model: ArchitectureDiagramModel, direction: string = 'LR') {
   return lines.join('\n');
 }
 
-export type LayoutEntry = {
+type LayoutEntry = {
   x: number;
   y: number;
   width: number;
@@ -173,7 +173,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-export function anchorFromPoint(
+function anchorFromPoint(
   point: { x: number; y: number } | undefined,
   node: LayoutEntry | undefined
 ): AnchorData | undefined {
@@ -308,7 +308,7 @@ function applyLayout(model: ArchitectureDiagramModel, layout: LayoutResult): Arc
     return {
       ...node,
       position,
-      style: { ...node.style, width: l.width, height: node.type === "container" ? l.height + 20 : l.height },
+      style: { ...node.style, width: l.width, height: node.type == "container" ? l.height+ 20 : '' },
     };
   });
 
@@ -344,12 +344,9 @@ async function ensureWasm() {
   loaded = true;
 }
 
-export async function layoutWithGraphviz(
-  model: ArchitectureDiagramModel,
-  direction?: 'LR' | 'TB' | 'RL' | 'BT'
-): Promise<ArchitectureDiagramModel> {
+export async function layoutWithGraphviz(model: ArchitectureDiagramModel): Promise<ArchitectureDiagramModel> {
   await ensureWasm();
-  const dot = buildDot(model, direction ?? 'LR');
+  const dot = buildDot(model);
   const json = graphviz.layout(dot, 'json', 'dot');
   const parsed = parseJsonLayout(json);
   return applyLayout(model, parsed);

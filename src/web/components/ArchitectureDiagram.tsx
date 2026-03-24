@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import { useEffect, useCallback, useMemo, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -18,21 +18,11 @@ import type {
   ArchitectureNodeTypes,
   ArchitectureEdge,
   FlowDefinition,
-  AutoLayoutConfig,
-  LayoutDirection,
 } from '../diagram/types';
 import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
-import {
-  buildLayoutViewState,
-  buildScopedModelFromViewState,
-  hashDiagramModel,
-  resolveScopeAwareTarget,
-  resolveVisibleNodeId,
-  scopeTrail,
-} from '../diagram/utils/scopedModel';
-import { layoutPipeline, type LayoutRunDiagnostics } from '../diagram/layout';
-import { LayoutDebugOverlay } from '../diagram/layout/debug/layoutDebugOverlay';
+import { buildScopedModel, scopeTrail } from '../diagram/utils/scopedModel';
+import { layoutWithGraphviz } from '../diagram/graphvizLayoutService';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
 
@@ -47,11 +37,6 @@ type ArchitectureDiagramProps = {
   viewDescription?: string;
   resolvedScheme?: 'light' | 'dark';
   themeControls?: ThemeControls;
-  notation?: string;
-  layoutPreset?: string;
-  layoutEngine?: 'elk' | 'graphviz';
-  layoutDirection?: LayoutDirection;
-  layoutDebug?: boolean;
 };
 
 const PADDING = 32;
@@ -132,46 +117,15 @@ export function ArchitectureDiagram({
   viewTitle,
   viewDescription,
   themeControls,
-  notation = 'architecture',
-  layoutPreset = 'c4-like',
-  layoutEngine = 'elk',
-  layoutDirection,
-  layoutDebug = false,
 }: ArchitectureDiagramProps) {
   const effectiveScheme = themeControls?.resolvedScheme;
   const [scopeId, setScopeId] = useState<string | undefined>();
-  const effectiveLayoutDirection = layoutDirection ?? 'LR';
-  const layoutViewState = useMemo(
-    () =>
-      buildLayoutViewState(model, {
-        scopeId,
-        notation,
-        preset: layoutPreset,
-        direction: effectiveLayoutDirection,
-      }),
-    [effectiveLayoutDirection, layoutPreset, model, notation, scopeId]
-  );
-  const modelToRender = useMemo(
-    () => buildScopedModelFromViewState(model, layoutViewState),
-    [layoutViewState, model]
-  );
-  const modelIdentity = useMemo(() => hashDiagramModel(model), [model]);
+  const modelToRender = useMemo(() => buildScopedModel(model, scopeId), [model, scopeId]);
   const [nodes, setNodes] = useNodesState<ArchitectureNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ArchitectureEdge>([]);
-  const [layoutDiagnostics, setLayoutDiagnostics] = useState<LayoutRunDiagnostics>();
-  const [isLayoutReady, setLayoutReady] = useState(false);
-  const layoutContextRef = useRef<{
-    model: ArchitectureDiagramModel;
-    scopeId?: string;
-    notation: string;
-    preset: string;
-    engine: 'elk' | 'graphviz';
-    direction?: LayoutDirection;
-  } | undefined>(undefined);
   const trail = useMemo(() => scopeTrail(model, scopeId), [model, scopeId]);
   const ROOT_FOCUS_ID = '__root__';
   const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>(ROOT_FOCUS_ID);
-  const scopeFocusRef = useRef<string | string[] | undefined>(undefined);
   const flows = model.flows ?? [];
   const [isFlowPanelVisible, setFlowPanelVisible] = useState(false);
   const defaultFlow = useMemo(
@@ -187,9 +141,18 @@ export function ArchitectureDiagram({
     model.nodes.forEach((n) => map.set(n.id, n.data.title));
     return map;
   }, [model.nodes]);
+  const nodeIndex = useMemo(() => {
+    const map = new Map<string, ArchitectureNode>();
+    model.nodes.forEach((n) => map.set(n.id, n));
+    return map;
+  }, [model.nodes]);
+  const visibleNodeMap = useMemo(() => {
+    const map = new Map<string, ArchitectureNode>();
+    nodes.forEach((n) => map.set(n.id, n));
+    return map;
+  }, [nodes]);
 
   useEffect(() => {
-    scopeFocusRef.current = ROOT_FOCUS_ID;
     setScopeId(undefined);
   }, [model]);
 
@@ -197,7 +160,6 @@ export function ArchitectureDiagram({
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ id?: string }>).detail;
       if (!detail?.id) return;
-      scopeFocusRef.current = detail.id;
       setScopeId(detail.id);
     };
     window.addEventListener('container:open', handler as EventListener);
@@ -208,84 +170,20 @@ export function ArchitectureDiagram({
 
   useEffect(() => {
     let cancelled = false;
-    setLayoutReady(false);
-
-    const previous = layoutContextRef.current;
-    const relayoutReason: LayoutRunDiagnostics['reason'] = !previous
-      ? 'cache_miss'
-      : previous.model !== model
-        ? 'graph_changed'
-        : previous.scopeId !== scopeId
-          ? 'scope_changed'
-          : previous.notation !== notation
-            ? 'notation_changed'
-            : previous.preset !== layoutPreset
-              ? 'preset_changed'
-              : previous.engine !== layoutEngine
-                ? 'engine_fallback'
-                : previous.direction !== layoutDirection
-                  ? 'direction_changed'
-                  : 'cache_miss';
-
-    layoutContextRef.current = {
-      model,
-      scopeId,
-      notation,
-      preset: layoutPreset,
-      engine: layoutEngine,
-      direction: layoutDirection,
-    };
 
     const update = async () => {
-      const layoutConfig: AutoLayoutConfig = {
-        direction: layoutDirection,
-        notation,
-        preset: layoutPreset,
-        engine: layoutEngine,
-        debug: layoutDebug,
-      };
-      const baseModel = autoLayout
-        ? await layoutPipeline(modelToRender, layoutConfig, {
-            scopeId,
-            cacheKey: layoutViewState.cacheKey,
-            modelIdentity,
-            reason: relayoutReason,
-            onDiagnostics: setLayoutDiagnostics,
-          })
-        : modelToRender;
+      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender) : modelToRender;
       if (cancelled) return;
-      const preparedNodes = autoLayout
-        ? withParentAutoResize(baseModel.nodes)
-        : autoResizeParents(withParentAutoResize(baseModel.nodes));
-      setNodes(preparedNodes);
+      setNodes(autoResizeParents(withParentAutoResize(baseModel.nodes)));
       setEdges(baseModel.edges);
-      requestAnimationFrame(() => {
-        if (!cancelled) {
-          setLayoutReady(true);
-        }
-      });
     };
 
     void update();
-
+    
     return () => {
       cancelled = true;
     };
-  }, [
-    autoLayout,
-    layoutDebug,
-    layoutDirection,
-    layoutEngine,
-    layoutPreset,
-    layoutViewState.cacheKey,
-    model,
-    modelIdentity,
-    modelToRender,
-    notation,
-    scopeId,
-    setEdges,
-    setNodes,
-  ]);
+  }, [modelToRender, autoLayout, setNodes, setEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {
@@ -303,9 +201,7 @@ export function ArchitectureDiagram({
   }, [modelToRender.edges, setEdges]);
 
   useEffect(() => {
-    const nextFocus = scopeFocusRef.current ?? scopeId ?? ROOT_FOCUS_ID;
-    scopeFocusRef.current = undefined;
-    setPendingFocus(nextFocus);
+    setPendingFocus(scopeId ?? ROOT_FOCUS_ID);
     setFlowAnimationTick((tick) => tick + 1);
   }, [scopeId]);
 
@@ -375,21 +271,11 @@ export function ArchitectureDiagram({
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
     const currentStep = flow?.steps[activeFlowStep];
-    const involvedVisibleIds = new Set<string>();
-    flow?.steps.forEach((step) => {
-      const sourceId = resolveVisibleNodeId(layoutViewState, step.sourceId);
-      const targetId = resolveVisibleNodeId(layoutViewState, step.targetId);
-      if (sourceId) {
-        involvedVisibleIds.add(sourceId);
-      }
-      if (targetId) {
-        involvedVisibleIds.add(targetId);
-      }
-    });
-    const currentSourceId = resolveVisibleNodeId(layoutViewState, currentStep?.sourceId);
-    const currentTargetId = resolveVisibleNodeId(layoutViewState, currentStep?.targetId);
     const involved = new Set<string>();
-    involvedVisibleIds.forEach((nodeId) => involved.add(nodeId));
+    flow?.steps.forEach((s) => {
+      involved.add(s.sourceId);
+      involved.add(s.targetId);
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setNodes((nds: any) => {
       let changed = false;
@@ -397,9 +283,9 @@ export function ArchitectureDiagram({
       const next = nds.map((node: any) => {
         const highlighted = involved.has(node.id);
         const currentRole =
-          currentSourceId === node.id
+          currentStep?.sourceId === node.id
             ? 'source'
-            : currentTargetId === node.id
+            : currentStep?.targetId === node.id
               ? 'target'
               : undefined;
         const nextData = {
@@ -418,19 +304,24 @@ export function ArchitectureDiagram({
       });
       return changed ? next : nds;
     });
-  }, [activeFlowId, activeFlowStep, flows, layoutViewState, setNodes, scopeId]);
+  }, [activeFlowId, activeFlowStep, flows, setNodes, scopeId]);
 
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
     const currentStep = flow?.steps[activeFlowStep];
     if (currentStep) {
-      const targets = Array.from(
-        new Set(
-          [resolveVisibleNodeId(layoutViewState, currentStep.sourceId), resolveVisibleNodeId(layoutViewState, currentStep.targetId)].filter(
-            Boolean
-          ) as string[]
-        )
-      );
+      const resolveVisible = (id: string | undefined) => {
+        if (!id) return undefined;
+        let currentId: string | undefined = id;
+        while (currentId) {
+          if (visibleNodeMap.has(currentId)) return currentId;
+          currentId = nodeIndex.get(currentId)?.parentId;
+        }
+        return undefined;
+      };
+      const targets = [resolveVisible(currentStep.sourceId), resolveVisible(currentStep.targetId)].filter(
+        Boolean
+      ) as string[];
       setPendingFocus((prev) => {
         if (Array.isArray(prev) && prev.length === targets.length && prev.every((id, idx) => id === targets[idx])) {
           return prev;
@@ -440,20 +331,35 @@ export function ArchitectureDiagram({
         return targets;
       });
     }
-  }, [activeFlowId, activeFlowStep, flows, layoutViewState]);
+  }, [activeFlowId, activeFlowStep, flows, nodeIndex, visibleNodeMap]);
+
+
+  const findClosestContainer = useCallback(
+    (nodeId: string) => {
+      let current = nodeIndex.get(nodeId);
+      while (current?.parentId) {
+        const parent = nodeIndex.get(current.parentId);
+        if (!parent) break;
+        if (parent.type === 'container') return parent.id;
+        current = parent;
+      }
+      return undefined;
+    },
+    [nodeIndex]
+  );
 
   const handleNavigate = useCallback(
     (nodeId: string) => {
-      const target = resolveScopeAwareTarget(model, layoutViewState, nodeId);
+      const target = nodeIndex.get(nodeId);
       if (!target) return;
-      if (target.scopeId !== scopeId) {
-        scopeFocusRef.current = target.focusId;
-        setScopeId(target.scopeId);
-        return;
+      const targetScope =
+        target.type === 'container' ? target.id : findClosestContainer(nodeId);
+      if (targetScope !== scopeId) {
+        setScopeId(targetScope);
       }
-      setPendingFocus(target.focusId);
+      setPendingFocus(nodeId);
     },
-    [layoutViewState, model, scopeId]
+    [findClosestContainer, nodeIndex, scopeId]
   );
 
   const parentScopeId = trail.length > 1 ? trail[trail.length - 2].id : undefined;
@@ -476,20 +382,12 @@ export function ArchitectureDiagram({
   );
 
   return (
-    <div
-      style={{ width: '100%', height: '100%' }}
-      {...(isLayoutReady ? { 'data-testid': 'diagram-ready' } : {})}
-      data-layout-engine={layoutDiagnostics?.engine}
-      data-layout-reason={layoutDiagnostics?.reason}
-      data-layout-strategy={layoutDiagnostics?.strategy}
-      data-layout-direction={layoutDiagnostics?.direction}
-    >
-      <ReactFlow
-        className={`architecture-diagram theme-${effectiveScheme}`}
-        fitView
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
+    <ReactFlow
+      className={`architecture-diagram theme-${effectiveScheme}`}
+      fitView
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
@@ -505,8 +403,8 @@ export function ArchitectureDiagram({
       maxZoom={2}
       connectionLineComponent={FloatingConnectionLine}
       panActivationKeyCode={'Shift'}
-      >
-        <MiniMap
+    >
+      <MiniMap
         pannable
         zoomable
         style={{ background: minimapTheme.background, border: '1px solid var(--diagram-border)' }}
@@ -514,13 +412,11 @@ export function ArchitectureDiagram({
         nodeStrokeColor={() => minimapTheme.stroke}
         maskColor={minimapTheme.mask}
       />
-        <NavigationPanel
+      <NavigationPanel
         model={model}
         viewId={viewId}
         viewTitle={viewTitle}
         viewDescription={viewDescription}
-        currentScopeId={scopeId}
-        scopeTrail={trail}
         flows={flows}
         activeFlowId={activeFlowId}
         activeFlowStep={activeFlowStep}
@@ -534,8 +430,8 @@ export function ArchitectureDiagram({
         onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
         themeControls={themeControls}
       />
-        {flows.length && isFlowPanelVisible ? (
-          <Panel position="top-left" style={{ marginTop: 42 }}>
+      {flows.length && isFlowPanelVisible ? (
+        <Panel position="top-left" style={{ marginTop: 42 }}>
           <div className="flow-panel">
             <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
               <strong style={{ fontSize: 12 }}>Flow</strong>
@@ -606,11 +502,11 @@ export function ArchitectureDiagram({
               );
             })()}
           </div>
-          </Panel>
-        ) : null}
-        <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
-        {scopeId ? (
-          <Panel position="top-right">
+        </Panel>
+      ) : null}
+      <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
+      {scopeId ? (
+        <Panel position="top-right">
           <div
             style={{
               display: 'flex',
@@ -655,21 +551,15 @@ export function ArchitectureDiagram({
               Root view
             </button>
           </div>
-          </Panel>
-        ) : null}
-        {layoutDebug && layoutDiagnostics ? (
-          <Panel position="top-right" style={{ marginTop: scopeId ? 64 : 0 }}>
-          <LayoutDebugOverlay diagnostics={layoutDiagnostics} />
-          </Panel>
-        ) : null}
-        <ViewportController
+        </Panel>
+      ) : null}
+      <ViewportController
         focusTarget={pendingFocus}
         onFocused={() => setPendingFocus(undefined)}
         nodes={nodes}
         rootMarker={ROOT_FOCUS_ID}
       />
-      </ReactFlow>
-    </div>
+    </ReactFlow>
   );
 }
 

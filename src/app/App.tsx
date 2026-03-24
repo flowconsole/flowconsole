@@ -7,10 +7,6 @@ export default function App() {
 
   return (
     <div className={styles.root}>
-      <div className={styles.banner} role="status">
-        Showing generated diagrams is temporarily unavailable while we migrate to a new
-        version.
-      </div>
       <div className={styles.workbench}>
         <CodeDiagramWorkbench
           apiBaseUrl={import.meta.env.VITE_FLOWCONSOLE_API_URL}

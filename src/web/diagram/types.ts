@@ -1,15 +1,6 @@
 import type { Edge, EdgeTypes, Node, NodeTypes, Position } from '@xyflow/react';
-import type { LayoutDirection } from './layout/types';
 
-export type ElementShape =
-  | 'person'
-  | 'service'
-  | 'database'
-  | 'queue'
-  | 'storage'
-  | 'boundary'
-  | 'gateway'
-  | 'generic';
+export type ElementShape = 'person' | 'service' | 'database' | 'queue' | 'storage' | 'boundary';
 
 export type ElementTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
@@ -25,12 +16,6 @@ type BaseNodeData = {
   status?: ElementStatus;
   flowHighlighted?: boolean;
   flowCurrent?: 'source' | 'target';
-  metadata?: Record<string, unknown>;
-  properties?: Record<string, unknown>;
-  technology?: string;
-  roleHint?: string;
-  notationShape?: string;
-  weakOwnership?: boolean;
 };
 
 export type ElementNodeData = BaseNodeData & {
@@ -109,21 +94,3 @@ export type ArchitectureDiagramModel = {
   edges: ArchitectureEdge[];
   flows?: FlowDefinition[];
 };
-
-export type AutoLayoutConfig = {
-  direction?: LayoutDirection;
-  notation?: string;
-  preset?: string;
-  engine?: 'elk' | 'graphviz';
-  debug?: boolean;
-  llm?: {
-    enabled: boolean;
-    endpoint?: string;
-    model?: string;
-    timeoutMs?: number;
-    processorThreshold?: number;
-    cache?: boolean;
-  };
-};
-
-export type { LayoutDirection } from './layout/types';
