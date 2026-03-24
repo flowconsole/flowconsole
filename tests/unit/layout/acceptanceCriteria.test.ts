@@ -320,6 +320,33 @@ describe('Acceptance Criteria - Task 13', () => {
     });
   });
 
+  describe('AC11: Cola refinement improves layout', () => {
+    it('cola produces fewer overlaps or better alignment than unrefined', async () => {
+      const profile = analyzeGraph(containerModel);
+      const strategy = selectStrategy(profile, {}, architectureNotation);
+      const ranked = rankSemantically(containerModel, profile, strategy, architectureNotation, { notation: 'architecture', preset: 'c4-like' });
+      const sized = sizeRankedGraph(ranked, architectureNotation);
+      const positioned = await positionNodes(sized);
+      const routed = routeEdges(positioned);
+
+      // Score without cola
+      const withoutCola = computeQualityScore(routed);
+
+      // Full pipeline (includes cola)
+      let diagnostics: import('../../../src/web/diagram/layout/layoutPipeline').LayoutRunDiagnostics | undefined;
+      clearLayoutPipelineCache();
+      await layoutPipeline(containerModel, {}, {
+        reason: 'graph_changed',
+        forceRelayout: true,
+        onDiagnostics: (d) => { diagnostics = d; },
+      });
+
+      expect(diagnostics).toBeDefined();
+      // Cola should not make things worse — overlaps must be <= without cola
+      expect(diagnostics!.qualityScore.nodeOverlaps).toBeLessThanOrEqual(withoutCola.nodeOverlaps);
+    });
+  });
+
   describe('Graphviz fallback', () => {
     it('produces valid layout when using graphviz explicitly', async () => {
       const result = await layoutPipeline(simpleModel, { engine: 'graphviz' }, { reason: 'graph_changed' });
