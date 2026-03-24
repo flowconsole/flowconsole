@@ -165,12 +165,17 @@ describe('positionNodes', () => {
   it('throws when both engines fail', async () => {
     const graph = makeGraph();
 
-    await expect(
-      positionNodes(graph, {
+    let thrownError: Error | undefined;
+    try {
+      await positionNodes(graph, {
         elkFactory: async () => { throw new Error('ELK failed'); },
         fallbackLayout: async () => { throw new Error('graphviz failed'); },
-      })
-    ).rejects.toThrow('Layout failed');
+      });
+    } catch (err) {
+      thrownError = err as Error;
+    }
+    expect(thrownError).toBeDefined();
+    expect(thrownError!.message).toContain('Layout failed');
   });
 
   it('uses graphviz when forceGraphviz is set', async () => {

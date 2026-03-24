@@ -223,6 +223,10 @@ async function assertSemanticLayout(page: Page, fixture: LayoutFixture) {
   expect(metrics.nodeCount).toBeGreaterThan(0);
   expect(metrics.edgeCount).toBeGreaterThan(0);
   expect(metrics.maxOverlapRatio).toBeLessThanOrEqual(metrics.maxAllowedOverlap);
+
+  // Verify rendered edge count matches model edges (root view only — scoped views filter)
+  const expectedEdgeCount = fixture.model.edges.length;
+  expect(metrics.edgeCount).toBeGreaterThanOrEqual(expectedEdgeCount);
   if (fixture.expectations.containersMustEnclose) {
     expect(metrics.parentViolations).toEqual([]);
   }
@@ -322,7 +326,12 @@ test.describe('Semantically-aware layout visual regression', () => {
           await openWorkbench(page, 'light');
           await loadFixture(page, fixture, fixture.directions[0]);
           await openFlowStep(page, fixture, flowMeta.flowId, stepIndex);
+          // Verify flow edges are highlighted
           expect(await page.locator('.relationship-path--flow').count()).toBeGreaterThan(0);
+          // Verify active flow step has highlighted node or edge
+          const highlightedNodes = await page.locator('.react-flow__node--flow-active').count();
+          const highlightedEdges = await page.locator('.react-flow__edge--flow-active, .relationship-path--flow').count();
+          expect(highlightedNodes + highlightedEdges).toBeGreaterThan(0);
           await expectDiagramScreenshot(page, `${fixture.id}-flow-${flowMeta.flowId}-step-${stepIndex + 1}.png`);
         });
       }
