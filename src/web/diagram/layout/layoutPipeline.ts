@@ -8,8 +8,9 @@ import { sizeRankedGraph } from './shapeSizing';
 import { positionNodes } from './positioningEngine';
 import { routeEdges } from './edgeRouter';
 import { refineWithConstraints } from './constraintRefiner';
-import { computeQualityScore, qualityScoreValue } from './qualityScore';
-import { isQualityAcceptable } from './qualityScore';
+import { computeQualityScore, isQualityAcceptable, qualityScoreValue } from './qualityScore';
+import { createMentalMapCache } from './mentalMapCache';
+import type { CacheEntry } from './mentalMapCache';
 import type { LayoutDirection, LayoutQualityScore, LayoutStrategyType, RelayoutReason } from './types';
 import { logRelayoutRun, toRelayoutReason } from './debug/relayoutLogger';
 import { stableStringify } from './utils';
@@ -40,13 +41,7 @@ type LayoutPipelineOptions = {
   onCacheStatus?: (cacheHit: boolean) => void;
 };
 
-type CacheEntry = {
-  model: ArchitectureDiagramModel;
-  diagnostics: LayoutRunDiagnostics;
-};
-
-const MAX_CACHE_ENTRIES = 10;
-const layoutCache = new Map<string, CacheEntry>();
+const layoutCache = createMentalMapCache();
 let lastModelHash = '';
 let lastDirection = '';
 let lastNotation = '';
@@ -109,11 +104,7 @@ function makeCacheKey(
 
 function cacheGet(key: string) {
   const hit = layoutCache.get(key);
-  if (!hit) {
-    return undefined;
-  }
-  layoutCache.delete(key);
-  layoutCache.set(key, hit);
+  if (!hit) return undefined;
   return {
     model: cloneModel(hit.model),
     diagnostics: { ...hit.diagnostics, qualityScore: { ...hit.diagnostics.qualityScore } },
@@ -121,22 +112,14 @@ function cacheGet(key: string) {
 }
 
 function cacheSet(key: string, value: CacheEntry) {
-  layoutCache.delete(key);
   layoutCache.set(key, {
     model: cloneModel(value.model),
     diagnostics: { ...value.diagnostics, qualityScore: { ...value.diagnostics.qualityScore } },
   });
-  while (layoutCache.size > MAX_CACHE_ENTRIES) {
-    const oldestKey = layoutCache.keys().next().value as string | undefined;
-    if (!oldestKey) {
-      break;
-    }
-    layoutCache.delete(oldestKey);
-  }
 }
 
 function invalidateAllCache() {
-  layoutCache.clear();
+  layoutCache.invalidateAll();
 }
 
 function toDiagramModel(
