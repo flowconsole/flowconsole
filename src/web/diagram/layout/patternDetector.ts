@@ -9,7 +9,7 @@ function buildSubgraph(
   childIds: ReadonlySet<string>,
   edges: ArchitectureDiagramModel['edges']
 ): Graph {
-  const sub = new Graph({ type: 'directed', allowSelfLoops: true });
+  const sub = new Graph({ type: 'directed', multi: true, allowSelfLoops: true });
 
   for (const id of childIds) {
     sub.addNode(id);

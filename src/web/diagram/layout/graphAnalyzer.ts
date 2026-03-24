@@ -239,7 +239,7 @@ function computeMaxNestingDepth(nodesById: Map<string, SemanticNode>) {
 }
 
 function buildGraphologyGraph(model: ArchitectureDiagramModel): Graph {
-  const graph = new Graph({ type: 'directed', allowSelfLoops: true });
+  const graph = new Graph({ type: 'directed', multi: true, allowSelfLoops: true });
 
   for (const node of model.nodes) {
     graph.addNode(node.id);

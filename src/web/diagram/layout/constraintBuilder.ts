@@ -19,11 +19,28 @@ function buildElkLayerConstraints(
 ): ReadonlyArray<{ node: string; constraint: 'FIRST' | 'LAST' }> {
   const constraints: { node: string; constraint: 'FIRST' | 'LAST' }[] = [];
 
+  // Build set of nodes that participate in cross-boundary edges.
+  // ELK with INCLUDE_CHILDREN creates virtual edges for compound routing,
+  // which can conflict with FIRST/LAST layer constraints.
+  const nodeParent = new Map(graph.nodes.map((n) => [n.id, n.parentId]));
+  const crossBoundaryNodes = new Set<string>();
+  for (const edge of graph.edges) {
+    const sp = nodeParent.get(edge.source);
+    const tp = nodeParent.get(edge.target);
+    if (sp !== tp) {
+      crossBoundaryNodes.add(edge.source);
+      crossBoundaryNodes.add(edge.target);
+    }
+  }
+
   for (const source of profile.sourceSinks.sources) {
-    constraints.push({ node: source, constraint: 'FIRST' });
+    if (!crossBoundaryNodes.has(source)) {
+      constraints.push({ node: source, constraint: 'FIRST' });
+    }
   }
 
   for (const sink of profile.sourceSinks.sinks) {
+    if (crossBoundaryNodes.has(sink)) continue;
     const role = graph.nodes.find((n) => n.id === sink)?.layout.role;
     if (role === 'external' || role === 'store') {
       constraints.push({ node: sink, constraint: 'LAST' });
