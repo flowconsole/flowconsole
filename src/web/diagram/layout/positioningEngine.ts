@@ -49,6 +49,7 @@ type PositioningEngineOptions = {
   elkFactory?: () => Promise<ElkLayoutEngine | undefined>;
   fallbackLayout?: (model: ArchitectureDiagramModel) => Promise<ArchitectureDiagramModel>;
   forceGraphviz?: boolean;
+  constraints?: SemanticConstraints;
 };
 
 function directionToElk(direction: SizedGraph['direction']) {
@@ -464,13 +465,14 @@ export function positionRadial(graph: SizedGraph): Map<string, { x: number; y: n
 
 async function positionWithElk(
   graph: SizedGraph,
-  elkFactory: () => Promise<ElkLayoutEngine | undefined>
+  elkFactory: () => Promise<ElkLayoutEngine | undefined>,
+  constraints?: SemanticConstraints
 ) {
   const elk = await elkFactory();
   if (!elk) {
     return undefined;
   }
-  const input = buildElkGraphInput(graph);
+  const input = buildElkGraphInput(graph, constraints);
   const result = await elk.layout(input);
   const positions = flattenElkPositions(result);
 
@@ -549,7 +551,7 @@ export async function positionNodes(
 
     const result = strategyType === 'compact'
       ? await positionWithCompact(graph, elkFactory)
-      : await positionWithElk(graph, elkFactory);
+      : await positionWithElk(graph, elkFactory, options.constraints);
 
     if (result) {
       return result;

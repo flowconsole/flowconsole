@@ -3,6 +3,7 @@ import { analyzeGraph } from './graphAnalyzer';
 import { architectureNotation } from './notation/architectureNotation';
 import { rankSemantically } from './semanticRanker';
 import { selectLayoutPlan, selectStrategy } from './strategySelector';
+import { buildConstraints } from './constraintBuilder';
 import { sizeRankedGraph } from './shapeSizing';
 import { positionNodes } from './positioningEngine';
 import { routeEdges } from './edgeRouter';
@@ -20,7 +21,7 @@ export type LayoutRunDiagnostics = {
   direction: LayoutDirection;
   notation: string;
   preset: string;
-  engine: 'elk' | 'graphviz';
+  engine: 'elk' | 'graphviz' | 'radial';
   fallbackEngineUsed: boolean;
   qualityScore: LayoutQualityScore;
   qualityValue: number;
@@ -221,10 +222,12 @@ export async function layoutPipeline(
     notation: notationId,
     preset,
   });
+  const constraints = buildConstraints(ranked, profile);
   const sized = sizeRankedGraph(ranked, notation);
   const positioned = await positionNodes(sized, {
     elkFactory: config.engine === 'graphviz' ? async () => undefined : undefined,
     forceGraphviz: config.engine === 'graphviz',
+    constraints,
   });
   const refined = refineLayout(positioned);
   const routed = routeEdges(refined);
