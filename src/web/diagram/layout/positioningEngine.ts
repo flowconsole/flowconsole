@@ -1,5 +1,5 @@
 import type { ArchitectureDiagramModel, ArchitectureNode } from '../types';
-import { layoutWithGraphviz } from '../graphvizLayoutService';
+import { fallbackLayoutWithGraphviz } from './fallback';
 import type { SizedGraph, SizedNode } from './shapeSizing';
 import { computeQualityScore, qualityScoreValue } from './qualityScore';
 import type { SemanticConstraints } from './types';
@@ -531,7 +531,7 @@ export async function positionNodes(
   graph: SizedGraph,
   options: PositioningEngineOptions = {}
 ): Promise<PositionedGraph> {
-  const fallbackLayout = options.fallbackLayout ?? ((model: ArchitectureDiagramModel) => layoutWithGraphviz(model, graph.direction));
+  const fallbackLayout = options.fallbackLayout ?? ((model: ArchitectureDiagramModel) => fallbackLayoutWithGraphviz(model, graph.direction));
 
   if (options.forceGraphviz) {
     const laidOut = await fallbackLayout(toGraphvizModel(graph));
