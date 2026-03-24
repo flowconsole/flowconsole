@@ -14,6 +14,9 @@ import topToBottomProcess from './top-to-bottom-process';
 import rightToLeftNotationSmoke from './right-to-left-notation-smoke';
 import shapeRegistryShowcase from './shape-registry-showcase';
 import mixedCustomShapes from './mixed-custom-shapes';
+import starTopologyRadial from './star-topology-radial';
+import chainInsideContainer from './chain-inside-container';
+import bipartiteServices from './bipartite-services';
 
 export const layoutFixtures: readonly LayoutFixture[] = [
   c4DrilldownBasic,
@@ -30,6 +33,9 @@ export const layoutFixtures: readonly LayoutFixture[] = [
   rightToLeftNotationSmoke,
   shapeRegistryShowcase,
   mixedCustomShapes,
+  starTopologyRadial,
+  chainInsideContainer,
+  bipartiteServices,
 ];
 
 export const layoutFixturesById = new Map(layoutFixtures.map((entry) => [entry.id, entry]));
