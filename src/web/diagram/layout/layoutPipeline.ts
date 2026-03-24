@@ -2,7 +2,7 @@ import type { ArchitectureDiagramModel, ArchitectureEdge, ArchitectureNode, Auto
 import { analyzeGraph } from './graphAnalyzer';
 import { architectureNotation } from './notation/architectureNotation';
 import { rankSemantically } from './semanticRanker';
-import { selectStrategy } from './strategySelector';
+import { selectLayoutPlan, selectStrategy } from './strategySelector';
 import { sizeRankedGraph } from './shapeSizing';
 import { positionNodes } from './positioningEngine';
 import { routeEdges } from './edgeRouter';
@@ -24,6 +24,8 @@ export type LayoutRunDiagnostics = {
   fallbackEngineUsed: boolean;
   qualityScore: LayoutQualityScore;
   qualityValue: number;
+  nodeRoles?: ReadonlyMap<string, string>;
+  containerOverrides?: ReadonlyMap<string, { strategy: LayoutStrategyType; direction: LayoutDirection }>;
 };
 
 type LayoutPipelineOptions = {
@@ -229,6 +231,7 @@ export async function layoutPipeline(
   const qualityScore = computeQualityScore(routed);
   const qualityValue = qualityScoreValue(qualityScore, routed.nodes.length);
   const result = toDiagramModel(model, routed);
+  const plan = selectLayoutPlan(profile, config, notation);
   const diagnostics: LayoutRunDiagnostics = {
     cacheKey,
     cacheHit: false,
@@ -241,6 +244,8 @@ export async function layoutPipeline(
     fallbackEngineUsed: positioned.usedFallback,
     qualityScore,
     qualityValue,
+    nodeRoles: profile.nodeRoles,
+    containerOverrides: plan.containerOverrides,
   };
 
   cacheSet(cacheKey, { model: result, diagnostics });
