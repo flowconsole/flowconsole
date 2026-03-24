@@ -308,6 +308,60 @@ function computeClusters(index: GraphIndex) {
   return clusters;
 }
 
+function computeSCC(index: GraphIndex): ReadonlyArray<ReadonlySet<string>> {
+  const ids = Array.from(index.nodesById.keys());
+  const nodeIdx = new Map<string, number>();
+  const lowLink = new Map<string, number>();
+  const onStack = new Set<string>();
+  const stack: string[] = [];
+  const result: ReadonlySet<string>[] = [];
+  let currentIdx = 0;
+
+  const strongConnect = (nodeId: string) => {
+    nodeIdx.set(nodeId, currentIdx);
+    lowLink.set(nodeId, currentIdx);
+    currentIdx += 1;
+    stack.push(nodeId);
+    onStack.add(nodeId);
+
+    for (const neighbor of index.adjacency.get(nodeId) ?? []) {
+      if (!nodeIdx.has(neighbor)) {
+        strongConnect(neighbor);
+        lowLink.set(nodeId, Math.min(lowLink.get(nodeId) ?? 0, lowLink.get(neighbor) ?? 0));
+      } else if (onStack.has(neighbor)) {
+        lowLink.set(nodeId, Math.min(lowLink.get(nodeId) ?? 0, nodeIdx.get(neighbor) ?? 0));
+      }
+    }
+
+    if (lowLink.get(nodeId) !== nodeIdx.get(nodeId)) {
+      return;
+    }
+
+    const component = new Set<string>();
+    let member: string | undefined;
+    do {
+      member = stack.pop();
+      if (!member) {
+        break;
+      }
+      onStack.delete(member);
+      component.add(member);
+    } while (member !== nodeId);
+
+    if (component.size > 1) {
+      result.push(component);
+    }
+  };
+
+  for (const id of ids) {
+    if (!nodeIdx.has(id)) {
+      strongConnect(id);
+    }
+  }
+
+  return result;
+}
+
 export function analyzeGraph(model: ArchitectureDiagramModel): GraphProfile {
   const index = buildIndex(model);
   const { inDegree, outDegree } = buildDegrees(model);
@@ -344,13 +398,15 @@ export function analyzeGraph(model: ArchitectureDiagramModel): GraphProfile {
     edgeCount: model.edges.length,
     containerCount: model.nodes.filter((node) => node.type === 'container').length,
     maxNestingDepth: computeMaxNestingDepth(index.nodesById),
-    edgeDensity: model.nodes.length === 0 ? 0 : model.edges.length / model.nodes.length,
+    edgesPerNode: model.nodes.length === 0 ? 0 : model.edges.length / model.nodes.length,
     hasFlows: (model.flows?.length ?? 0) > 0,
     disconnectedComponents: computeDisconnectedComponents(model),
+    scc: computeSCC(index),
     nodeRoles,
     clusters: computeClusters(index),
     sourceSinks: { sources, sinks },
     containerChildCounts,
+    subgraphPatterns: new Map<string, never>(),
     inDegree,
     outDegree,
   };

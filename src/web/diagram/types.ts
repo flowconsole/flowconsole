@@ -116,6 +116,14 @@ export type AutoLayoutConfig = {
   preset?: string;
   engine?: 'elk' | 'graphviz';
   debug?: boolean;
+  llm?: {
+    enabled: boolean;
+    endpoint?: string;
+    model?: string;
+    timeoutMs?: number;
+    processorThreshold?: number;
+    cache?: boolean;
+  };
 };
 
 export type { LayoutDirection } from './layout/types';

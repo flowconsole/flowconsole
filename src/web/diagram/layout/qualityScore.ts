@@ -263,6 +263,40 @@ function disconnectedPackingScore(graph: QualityGraph) {
   return totalPairs ? packedPairs / totalPairs : 1;
 }
 
+function edgeBendCount(graph: QualityGraph): number {
+  let total = 0;
+  for (const edge of graph.edges) {
+    const points = edge.data?.layoutPoints;
+    if (points && points.length > 2) {
+      total += points.length - 2;
+    }
+  }
+  return total;
+}
+
+function flowDirectionConsistency(graph: QualityGraph): number {
+  if (graph.edges.length === 0) {
+    return 1;
+  }
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+  const isHorizontal = graph.direction === 'LR' || graph.direction === 'RL';
+  const isReversed = graph.direction === 'RL' || graph.direction === 'BT';
+  let consistent = 0;
+  for (const edge of graph.edges) {
+    const src = nodeMap.get(edge.source);
+    const tgt = nodeMap.get(edge.target);
+    if (!src || !tgt) {
+      continue;
+    }
+    const srcPos = isHorizontal ? src.absolutePosition.x : src.absolutePosition.y;
+    const tgtPos = isHorizontal ? tgt.absolutePosition.x : tgt.absolutePosition.y;
+    if (isReversed ? srcPos >= tgtPos : srcPos <= tgtPos) {
+      consistent += 1;
+    }
+  }
+  return consistent / graph.edges.length;
+}
+
 export function computeQualityScore(graph: QualityGraph): LayoutQualityScore {
   return {
     edgeCrossings: edgeCrossings(graph),
@@ -270,10 +304,12 @@ export function computeQualityScore(graph: QualityGraph): LayoutQualityScore {
     containerViolations: containerViolations(graph),
     labelOverlaps: labelOverlaps(graph),
     edgeLengthVariance: edgeLengthVariance(graph),
+    edgeBendCount: edgeBendCount(graph),
     siblingAlignmentScore: siblingAlignmentScore(graph),
     laneViolations: laneViolations(graph),
     gatewayPlacementViolations: gatewayPlacementViolations(graph),
     disconnectedPackingScore: disconnectedPackingScore(graph),
+    flowDirectionConsistency: flowDirectionConsistency(graph),
   };
 }
 

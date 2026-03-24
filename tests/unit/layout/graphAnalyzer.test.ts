@@ -91,7 +91,7 @@ describe('analyzeGraph', () => {
 
     const profile = analyzeGraph(model);
 
-    expect(profile.edgeDensity).toBe(0.5);
+    expect(profile.edgesPerNode).toBe(0.5);
     expect(profile.maxNestingDepth).toBe(2);
     expect(profile.hasFlows).toBe(true);
     expect(profile.sourceSinks.sources).toEqual(['child', 'grandchild', 'root']);

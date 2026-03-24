@@ -12,13 +12,15 @@ function makeProfile(
     edgeCount: 10,
     containerCount: 0,
     maxNestingDepth: 0,
-    edgeDensity: 1,
+    edgesPerNode: 1,
     hasFlows: false,
     disconnectedComponents: [],
     nodeRoles: new Map(),
     clusters: new Map(),
+    scc: [],
     sourceSinks: { sources: [], sinks: [] },
     containerChildCounts: new Map(),
+    subgraphPatterns: new Map(),
     inDegree: new Map(),
     outDegree: new Map(),
     ...overrides,
@@ -85,7 +87,7 @@ describe('selectStrategy', () => {
 
   it('selects layered for graphs with flows', () => {
     const strategy = selectStrategy(
-      makeProfile({ hasFlows: true, edgeDensity: 1.2 }),
+      makeProfile({ hasFlows: true, edgesPerNode: 1.2 }),
       config,
       architectureNotation
     );
@@ -105,7 +107,7 @@ describe('selectStrategy', () => {
 
   it('selects layered for dense graphs', () => {
     const strategy = selectStrategy(
-      makeProfile({ edgeDensity: 3.0 }),
+      makeProfile({ edgesPerNode: 3.0 }),
       config,
       architectureNotation
     );
