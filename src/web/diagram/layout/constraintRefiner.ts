@@ -356,6 +356,7 @@ export function refineWithConstraints(
   fitContainers(refined);
   packDisconnectedComponents(refined);
   snapToGrid(refined);
+  fitContainers(refined); // Re-fit after snap — children may have shifted outside
   recalcRelativePositions(refined);
   normalizeBounds(refined);
   recalcRelativePositions(refined);

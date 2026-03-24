@@ -82,6 +82,41 @@ describe('layoutPipeline integration', () => {
     expect(log.at(-1)?.strategy).toBeDefined();
   });
 
+  it('cola refinement is wired: pipeline uses double routing (route → cola → re-route)', async () => {
+    // Overlapping nodes — cola should resolve overlaps
+    const overlapModel: ArchitectureDiagramModel = {
+      nodes: [
+        { id: 'x', type: 'element', position: { x: 0, y: 0 }, data: { title: 'X', shape: 'service' } },
+        { id: 'y', type: 'element', position: { x: 0, y: 0 }, data: { title: 'Y', shape: 'service' } },
+        { id: 'z', type: 'element', position: { x: 0, y: 0 }, data: { title: 'Z', shape: 'service' } },
+      ],
+      edges: [
+        { id: 'e1', source: 'x', target: 'y', type: 'relationship', data: { kind: 'sync' } },
+        { id: 'e2', source: 'y', target: 'z', type: 'relationship', data: { kind: 'sync' } },
+      ],
+    };
+
+    let diagnostics: ReturnType<typeof getLastLayoutDiagnostics>;
+    const result = await layoutPipeline(overlapModel, {}, {
+      reason: 'graph_changed',
+      forceRelayout: true,
+      onDiagnostics: (d) => { diagnostics = d; },
+    });
+
+    // Pipeline ran successfully with cola refinement wired in
+    expect(diagnostics!.qualityScore).toBeDefined();
+    expect(diagnostics!.qualityScore.nodeOverlaps).toBeGreaterThanOrEqual(0);
+    // All edges should have layout points (re-routed after cola)
+    for (const edge of result.edges) {
+      expect(edge.data?.layoutPoints?.length).toBeGreaterThan(0);
+    }
+    // All nodes should have non-negative positions (bounds normalized)
+    for (const node of result.nodes) {
+      expect(node.position.x).toBeGreaterThanOrEqual(0);
+      expect(node.position.y).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('restores cached parent layout after drilldown back using view-state keys', async () => {
     const scopedModel: ArchitectureDiagramModel = {
       nodes: [

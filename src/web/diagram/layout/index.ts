@@ -7,7 +7,7 @@ export {
   layoutPipeline,
 } from './layoutPipeline';
 export { buildElkGraphInput, positionNodes } from './positioningEngine';
-export { refineAndScoreLayout, refineLayout } from './layoutRefiner';
+export { refineWithConstraints } from './constraintRefiner';
 export {
   QUALITY_THRESHOLDS,
   computeQualityScore,
