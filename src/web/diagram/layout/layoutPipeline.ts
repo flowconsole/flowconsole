@@ -9,6 +9,7 @@ import { positionNodes } from './positioningEngine';
 import { routeEdges } from './edgeRouter';
 import { refineWithConstraints } from './constraintRefiner';
 import { computeQualityScore, qualityScoreValue } from './qualityScore';
+import { isQualityAcceptable } from './qualityScore';
 import type { LayoutDirection, LayoutQualityScore, LayoutStrategyType, RelayoutReason } from './types';
 import { logRelayoutRun, toRelayoutReason } from './debug/relayoutLogger';
 import { stableStringify } from './utils';
@@ -235,9 +236,38 @@ export async function layoutPipeline(
   const refined = refineWithConstraints(initialRouted, constraints);
   // Stage 6 again: final routing on refined positions
   const routed = routeEdges(refined);
-  const qualityScore = computeQualityScore(routed);
-  const qualityValue = qualityScoreValue(qualityScore, routed.nodes.length);
-  const result = toDiagramModel(model, routed);
+  let qualityScore = computeQualityScore(routed);
+  let qualityValue = qualityScoreValue(qualityScore, routed.nodes.length);
+  let finalRouted = routed;
+  let engine = positioned.engine;
+  let fallbackUsed = positioned.usedFallback;
+
+  // Quality-based fallback: if ELK+cola has hard failures, try graphviz
+  if (
+    !isQualityAcceptable(qualityScore, routed.nodes.length) &&
+    config.engine !== 'graphviz' &&
+    !positioned.usedFallback
+  ) {
+    try {
+      const graphvizPositioned = await positionNodes(sized, { forceGraphviz: true });
+      const gvInitialRouted = routeEdges(graphvizPositioned);
+      const gvRefined = refineWithConstraints(gvInitialRouted, constraints);
+      const gvRouted = routeEdges(gvRefined);
+      const gvScore = computeQualityScore(gvRouted);
+      const gvValue = qualityScoreValue(gvScore, gvRouted.nodes.length);
+      if (gvValue > qualityValue) {
+        finalRouted = gvRouted;
+        qualityScore = gvScore;
+        qualityValue = gvValue;
+        engine = graphvizPositioned.engine;
+        fallbackUsed = true;
+      }
+    } catch {
+      // graphviz fallback failed — keep ELK result
+    }
+  }
+
+  const result = toDiagramModel(model, finalRouted);
   const plan = selectLayoutPlan(profile, config, notation);
   const diagnostics: LayoutRunDiagnostics = {
     cacheKey,
@@ -247,8 +277,8 @@ export async function layoutPipeline(
     direction: strategy.direction,
     notation: notationId,
     preset,
-    engine: positioned.engine,
-    fallbackEngineUsed: positioned.usedFallback,
+    engine,
+    fallbackEngineUsed: fallbackUsed,
     qualityScore,
     qualityValue,
     nodeRoles: profile.nodeRoles,
