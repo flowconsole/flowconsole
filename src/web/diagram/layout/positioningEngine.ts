@@ -540,31 +540,21 @@ export async function positionNodes(
     return fromGraphvizModel(graph, laidOut);
   }
 
-  // Strategy-based positioning
-  try {
-    const elkFactory = options.elkFactory ?? defaultElkFactory;
-    const strategyType = graph.strategy.type;
+  // Strategy-based positioning (ELK only, no graphviz fallback)
+  const elkFactory = options.elkFactory ?? defaultElkFactory;
+  const strategyType = graph.strategy.type;
 
-    if (strategyType === 'radial') {
-      return positionWithRadial(graph);
-    }
-
-    const result = strategyType === 'compact'
-      ? await positionWithCompact(graph, elkFactory)
-      : await positionWithElk(graph, elkFactory, options.constraints);
-
-    if (result) {
-      return result;
-    }
-  } catch (err) {
-    console.warn('[layout] Positioning failed, falling back to graphviz:', err);
+  if (strategyType === 'radial') {
+    return positionWithRadial(graph);
   }
 
-  // Graphviz is the only fallback
-  try {
-    const laidOut = await fallbackLayout(toGraphvizModel(graph));
-    return fromGraphvizModel(graph, laidOut);
-  } catch (err) {
-    throw new Error(`Layout failed: both ELK and graphviz engines failed. Last error: ${err}`);
+  const result = strategyType === 'compact'
+    ? await positionWithCompact(graph, elkFactory)
+    : await positionWithElk(graph, elkFactory, options.constraints);
+
+  if (result) {
+    return result;
   }
+
+  throw new Error(`Layout failed: ELK returned no result for strategy '${strategyType}'`);
 }

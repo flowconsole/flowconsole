@@ -123,59 +123,24 @@ describe('positionNodes', () => {
     expect(positioned.nodes.find((node) => node.id === 'b')?.absolutePosition.x).toBe(320);
   });
 
-  it('falls back to graphviz when ELK is unavailable', async () => {
+  it('throws when ELK is unavailable (no graphviz fallback)', async () => {
     const graph = makeGraph();
-    const fallbackLayout = vi.fn().mockResolvedValue({
-      nodes: [
-        { ...makeNode('a'), position: { x: 10, y: 20 } },
-        { ...makeNode('b'), position: { x: 260, y: 20 } },
-      ],
-      edges: graph.edges,
-    });
 
-    const positioned = await positionNodes(graph, {
-      elkFactory: async () => undefined,
-      fallbackLayout,
-    });
-
-    expect(fallbackLayout).toHaveBeenCalledTimes(1);
-    expect(positioned.engine).toBe('graphviz');
-    expect(positioned.usedFallback).toBe(true);
+    await expect(
+      positionNodes(graph, {
+        elkFactory: async () => undefined,
+      })
+    ).rejects.toThrow('Layout failed');
   });
 
-  it('falls back to graphviz when ELK throws', async () => {
-    const graph = makeGraph();
-    const fallbackLayout = vi.fn().mockResolvedValue({
-      nodes: [
-        { ...makeNode('a'), position: { x: 10, y: 20 } },
-        { ...makeNode('b'), position: { x: 260, y: 20 } },
-      ],
-      edges: graph.edges,
-    });
-
-    const positioned = await positionNodes(graph, {
-      elkFactory: async () => { throw new Error('ELK failed'); },
-      fallbackLayout,
-    });
-
-    expect(fallbackLayout).toHaveBeenCalledTimes(1);
-    expect(positioned.engine).toBe('graphviz');
-  });
-
-  it('throws when both engines fail', async () => {
+  it('throws when ELK throws (no graphviz fallback)', async () => {
     const graph = makeGraph();
 
-    let thrownError: Error | undefined;
-    try {
-      await positionNodes(graph, {
+    await expect(
+      positionNodes(graph, {
         elkFactory: async () => { throw new Error('ELK failed'); },
-        fallbackLayout: async () => { throw new Error('graphviz failed'); },
-      });
-    } catch (err) {
-      thrownError = err as Error;
-    }
-    expect(thrownError).toBeDefined();
-    expect(thrownError!.message).toContain('Layout failed');
+      })
+    ).rejects.toThrow('ELK failed');
   });
 
   it('uses graphviz when forceGraphviz is set', async () => {

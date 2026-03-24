@@ -17,6 +17,12 @@ function buildElkLayerConstraints(
   graph: RankedGraph,
   profile: GraphProfile
 ): ReadonlyArray<{ node: string; constraint: 'FIRST' | 'LAST' }> {
+  // Skip layer constraints for reversed directions — ELK's layering reverses
+  // but FIRST/LAST are absolute, causing UnsupportedConfigurationException.
+  if (graph.direction === 'RL' || graph.direction === 'BT') {
+    return [];
+  }
+
   const constraints: { node: string; constraint: 'FIRST' | 'LAST' }[] = [];
 
   // Build set of nodes that participate in cross-boundary edges.
