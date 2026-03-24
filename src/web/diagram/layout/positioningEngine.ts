@@ -2,6 +2,7 @@ import type { ArchitectureDiagramModel, ArchitectureNode } from '../types';
 import { layoutWithGraphviz } from '../graphvizLayoutService';
 import type { SizedGraph, SizedNode } from './shapeSizing';
 import { computeQualityScore, qualityScoreValue } from './qualityScore';
+import type { SemanticConstraints } from './types';
 
 type ElkNodeLike = {
   id: string;
@@ -149,18 +150,40 @@ function buildTree(graph: SizedGraph) {
   return childrenByParent;
 }
 
-export function buildElkGraphInput(graph: SizedGraph): ElkGraphInput {
+export function buildElkGraphInput(
+  graph: SizedGraph,
+  constraints?: SemanticConstraints
+): ElkGraphInput {
   const childrenByParent = buildTree(graph);
-  const buildChildren = (parentId?: string): ElkNodeLike[] =>
+
+  const nodeLayoutOptions = (node: SizedNode, isTopLevel: boolean): Record<string, string> => {
+    const opts: Record<string, string> = {
+      'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
+    };
+
+    if (isTopLevel && constraints) {
+      const partition = constraints.elkPartitions.get(node.id);
+      if (partition !== undefined) {
+        opts['org.eclipse.elk.partitioning.partition'] = String(partition);
+      }
+      const layerConstraint = constraints.elkLayerConstraints.find((c) => c.node === node.id);
+      if (layerConstraint) {
+        opts['org.eclipse.elk.layered.layering.layerConstraint'] = layerConstraint.constraint;
+      }
+    } else if (isTopLevel) {
+      opts['org.eclipse.elk.partitioning.partition'] = String(node.layout.semanticRank);
+    }
+
+    return opts;
+  };
+
+  const buildChildren = (parentId: string | undefined, isTopLevel: boolean): ElkNodeLike[] =>
     (childrenByParent.get(parentId) ?? []).map((node) => ({
       id: node.id,
       width: node.size.width,
       height: node.size.height,
-      layoutOptions: {
-        'org.eclipse.elk.partitioning.partition': String(node.layout.semanticRank),
-        'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
-      },
-      children: buildChildren(node.id),
+      layoutOptions: nodeLayoutOptions(node, isTopLevel),
+      children: buildChildren(node.id, false),
     }));
 
   return {
@@ -173,9 +196,16 @@ export function buildElkGraphInput(graph: SizedGraph): ElkGraphInput {
       'org.eclipse.elk.spacing.nodeNode': String(graph.strategy.spacing.node),
       'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': String(graph.strategy.spacing.layer),
       'org.eclipse.elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+      'org.eclipse.elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'org.eclipse.elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
+      'org.eclipse.elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+      'org.eclipse.elk.layered.compaction.postCompaction.strategy': 'LEFT',
+      'org.eclipse.elk.layered.cycleBreaking.strategy': 'GREEDY_MODEL_ORDER',
+      'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+      'org.eclipse.elk.padding': '[top=30,left=30,bottom=30,right=30]',
       'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
     },
-    children: buildChildren(undefined),
+    children: buildChildren(undefined, true),
     edges: graph.edges.map((edge) => ({
       id: edge.id,
       sources: [edge.source],
