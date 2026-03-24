@@ -100,6 +100,56 @@ describe('analyzeGraph', () => {
     expect(profile.containerCount).toBe(1);
   });
 
+  it('classifies nodes by technology regex patterns', () => {
+    const model: ArchitectureDiagramModel = {
+      nodes: [
+        makeNode('gw', { data: { title: 'Edge', technology: 'Kong' } }),
+        makeNode('nginx-gw', { data: { title: 'Proxy', technology: 'Nginx' } }),
+        makeNode('celery-worker', { data: { title: 'Tasks', technology: 'Celery' } }),
+        makeNode('sidekiq-worker', { data: { title: 'Jobs', technology: 'Sidekiq' } }),
+        makeNode('react-app', { data: { title: 'Dashboard', technology: 'React' } }),
+        makeNode('flutter-app', { data: { title: 'Mobile', technology: 'Flutter' } }),
+        makeNode('target'),
+      ],
+      edges: [
+        makeEdge('e1', 'gw', 'target'),
+        makeEdge('e2', 'nginx-gw', 'target'),
+        makeEdge('e3', 'celery-worker', 'target'),
+        makeEdge('e4', 'sidekiq-worker', 'target'),
+        makeEdge('e5', 'target', 'react-app'),
+        makeEdge('e6', 'target', 'flutter-app'),
+        makeEdge('e7', 'react-app', 'gw'),
+        makeEdge('e8', 'flutter-app', 'gw'),
+      ],
+    };
+
+    const profile = analyzeGraph(model);
+
+    expect(profile.nodeRoles.get('gw')).toBe('gateway');
+    expect(profile.nodeRoles.get('nginx-gw')).toBe('gateway');
+    expect(profile.nodeRoles.get('celery-worker')).toBe('worker');
+    expect(profile.nodeRoles.get('sidekiq-worker')).toBe('worker');
+    expect(profile.nodeRoles.get('react-app')).toBe('frontend');
+    expect(profile.nodeRoles.get('flutter-app')).toBe('frontend');
+  });
+
+  it('returns SCC as array of sets with >1 member', () => {
+    const model: ArchitectureDiagramModel = {
+      nodes: [makeNode('a'), makeNode('b'), makeNode('c'), makeNode('d')],
+      edges: [
+        makeEdge('e1', 'a', 'b'),
+        makeEdge('e2', 'b', 'c'),
+        makeEdge('e3', 'c', 'a'),
+        makeEdge('e4', 'c', 'd'),
+      ],
+    };
+
+    const profile = analyzeGraph(model);
+    const sccMembers = profile.scc.map((s) => Array.from(s).sort());
+
+    expect(sccMembers).toEqual([['a', 'b', 'c']]);
+  });
+
   it('detects disconnected components with union-find', () => {
     const model: ArchitectureDiagramModel = {
       nodes: [makeNode('a'), makeNode('b'), makeNode('c'), makeNode('d'), makeNode('e')],

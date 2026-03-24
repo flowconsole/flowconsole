@@ -1,3 +1,6 @@
+import Graph from 'graphology';
+import { connectedComponents, stronglyConnectedComponents } from 'graphology-components';
+
 import type { ArchitectureDiagramModel } from '../types';
 import type { GraphProfile, NodeRole, SemanticNode } from './types';
 
@@ -53,9 +56,30 @@ function nodeHints(node: SemanticNode) {
     .toLowerCase();
 }
 
+const GATEWAY_TECH_RE = /gateway|nginx|envoy|haproxy|kong|traefik|balancer/i;
+const WORKER_TECH_RE = /worker|scheduler|cron|job|celery|sidekiq/i;
+const FRONTEND_TECH_RE = /react|angular|vue|spa|webapp|mobile|ios|android|flutter/i;
+
+function technologyOf(node: SemanticNode): string {
+  return (node.data.technology ?? '').toLowerCase();
+}
+
+function isGatewayByTechnology(node: SemanticNode) {
+  return GATEWAY_TECH_RE.test(technologyOf(node));
+}
+
+function isWorkerByTechnology(node: SemanticNode) {
+  return WORKER_TECH_RE.test(technologyOf(node));
+}
+
+function isFrontendByTechnology(node: SemanticNode) {
+  return FRONTEND_TECH_RE.test(technologyOf(node));
+}
+
 function isGateway(node: SemanticNode, hints: string) {
   return (
     node.data.shape === 'gateway' ||
+    isGatewayByTechnology(node) ||
     hints.includes('gateway') ||
     hints.includes('api gateway') ||
     hints.includes('bff') ||
@@ -64,8 +88,9 @@ function isGateway(node: SemanticNode, hints: string) {
   );
 }
 
-function isWorker(hints: string) {
+function isWorker(node: SemanticNode, hints: string) {
   return (
+    isWorkerByTechnology(node) ||
     hints.includes('worker') ||
     hints.includes('background') ||
     hints.includes('scheduler') ||
@@ -75,8 +100,9 @@ function isWorker(hints: string) {
   );
 }
 
-function isFrontend(hints: string) {
+function isFrontend(node: SemanticNode, hints: string) {
   return (
+    isFrontendByTechnology(node) ||
     hints.includes(' ui') ||
     hints.startsWith('ui ') ||
     hints.includes('spa') ||
@@ -163,7 +189,7 @@ export function classifyNodeRole(
     return 'gateway';
   }
 
-  if (isWorker(hints)) {
+  if (isWorker(node, hints)) {
     return 'worker';
   }
 
@@ -179,7 +205,7 @@ export function classifyNodeRole(
     return 'store';
   }
 
-  if (isFrontend(hints)) {
+  if (isFrontend(node, hints)) {
     return 'frontend';
   }
 
@@ -211,45 +237,24 @@ function computeMaxNestingDepth(nodesById: Map<string, SemanticNode>) {
   return maxDepth;
 }
 
-function computeDisconnectedComponents(model: ArchitectureDiagramModel) {
-  const parent = new Map<string, string>();
-
-  const find = (id: string): string => {
-    const current = parent.get(id) ?? id;
-    if (current === id) {
-      parent.set(id, id);
-      return id;
-    }
-    const root = find(current);
-    parent.set(id, root);
-    return root;
-  };
-
-  const union = (a: string, b: string) => {
-    const rootA = find(a);
-    const rootB = find(b);
-    if (rootA !== rootB) {
-      parent.set(rootB, rootA);
-    }
-  };
+function buildGraphologyGraph(model: ArchitectureDiagramModel): Graph {
+  const graph = new Graph({ type: 'directed', allowSelfLoops: true });
 
   for (const node of model.nodes) {
-    parent.set(node.id, node.id);
+    graph.addNode(node.id);
   }
 
   for (const edge of model.edges) {
-    union(edge.source, edge.target);
+    graph.addEdge(edge.source, edge.target);
   }
 
-  const groups = new Map<string, Set<string>>();
-  for (const node of model.nodes) {
-    const root = find(node.id);
-    const group = groups.get(root) ?? new Set<string>();
-    group.add(node.id);
-    groups.set(root, group);
-  }
+  return graph;
+}
 
-  return Array.from(groups.values()).sort((a, b) => a.size - b.size || [...a][0].localeCompare([...b][0]));
+function computeDisconnectedComponents(graph: Graph): Set<string>[] {
+  return connectedComponents(graph)
+    .map((component) => new Set(component))
+    .sort((a, b) => a.size - b.size || [...a][0].localeCompare([...b][0]));
 }
 
 function computeClusters(index: GraphIndex) {
@@ -308,62 +313,15 @@ function computeClusters(index: GraphIndex) {
   return clusters;
 }
 
-function computeSCC(index: GraphIndex): ReadonlyArray<ReadonlySet<string>> {
-  const ids = Array.from(index.nodesById.keys());
-  const nodeIdx = new Map<string, number>();
-  const lowLink = new Map<string, number>();
-  const onStack = new Set<string>();
-  const stack: string[] = [];
-  const result: ReadonlySet<string>[] = [];
-  let currentIdx = 0;
-
-  const strongConnect = (nodeId: string) => {
-    nodeIdx.set(nodeId, currentIdx);
-    lowLink.set(nodeId, currentIdx);
-    currentIdx += 1;
-    stack.push(nodeId);
-    onStack.add(nodeId);
-
-    for (const neighbor of index.adjacency.get(nodeId) ?? []) {
-      if (!nodeIdx.has(neighbor)) {
-        strongConnect(neighbor);
-        lowLink.set(nodeId, Math.min(lowLink.get(nodeId) ?? 0, lowLink.get(neighbor) ?? 0));
-      } else if (onStack.has(neighbor)) {
-        lowLink.set(nodeId, Math.min(lowLink.get(nodeId) ?? 0, nodeIdx.get(neighbor) ?? 0));
-      }
-    }
-
-    if (lowLink.get(nodeId) !== nodeIdx.get(nodeId)) {
-      return;
-    }
-
-    const component = new Set<string>();
-    let member: string | undefined;
-    do {
-      member = stack.pop();
-      if (!member) {
-        break;
-      }
-      onStack.delete(member);
-      component.add(member);
-    } while (member !== nodeId);
-
-    if (component.size > 1) {
-      result.push(component);
-    }
-  };
-
-  for (const id of ids) {
-    if (!nodeIdx.has(id)) {
-      strongConnect(id);
-    }
-  }
-
-  return result;
+function computeSCC(graph: Graph): ReadonlyArray<ReadonlySet<string>> {
+  return stronglyConnectedComponents(graph)
+    .filter((component) => component.length > 1)
+    .map((component) => new Set(component) as ReadonlySet<string>);
 }
 
 export function analyzeGraph(model: ArchitectureDiagramModel): GraphProfile {
   const index = buildIndex(model);
+  const graph = buildGraphologyGraph(model);
   const { inDegree, outDegree } = buildDegrees(model);
   const nodeRoles = new Map<string, NodeRole>();
 
@@ -400,8 +358,8 @@ export function analyzeGraph(model: ArchitectureDiagramModel): GraphProfile {
     maxNestingDepth: computeMaxNestingDepth(index.nodesById),
     edgesPerNode: model.nodes.length === 0 ? 0 : model.edges.length / model.nodes.length,
     hasFlows: (model.flows?.length ?? 0) > 0,
-    disconnectedComponents: computeDisconnectedComponents(model),
-    scc: computeSCC(index),
+    disconnectedComponents: computeDisconnectedComponents(graph),
+    scc: computeSCC(graph),
     nodeRoles,
     clusters: computeClusters(index),
     sourceSinks: { sources, sinks },
