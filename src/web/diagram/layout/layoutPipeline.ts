@@ -152,6 +152,7 @@ function toDiagramModel(
 ): ArchitectureDiagramModel {
   return {
     nodes: graph.nodes.map((node) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { absolutePosition: _absolutePosition, size, layout: _layout, ...baseNode } = node;
       return {
         ...baseNode,
@@ -165,6 +166,7 @@ function toDiagramModel(
         },
       };
     }),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     edges: graph.edges.map(({ routing: _routing, ...edge }) => ({
       ...edge,
       data: { ...edge.data },

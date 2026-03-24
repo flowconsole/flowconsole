@@ -164,6 +164,7 @@ function normalizeParentIds(nodes: ArchitectureNode[], visibleNodeIds: ReadonlyS
       return node;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { parentId: _parentId, extent: _extent, expandParent: _expandParent, ...rest } = node;
     return rest as ArchitectureNode;
   });

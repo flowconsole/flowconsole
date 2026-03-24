@@ -32,12 +32,12 @@ function resolveAnchorPoint(
   const width =
     (typeof node.measured?.width === 'number' && node.measured.width) ||
     (typeof node.width === 'number' ? node.width : undefined) ||
-    (typeof (node as any).style?.width === 'number' ? (node as any).style.width : undefined) ||
+    (typeof (node as unknown as { style?: { width?: number } }).style?.width === 'number' ? (node as unknown as { style: { width: number } }).style.width : undefined) ||
     (typeof node.initialWidth === 'number' ? node.initialWidth : undefined);
   const height =
     (typeof node.measured?.height === 'number' && node.measured.height) ||
     (typeof node.height === 'number' ? node.height : undefined) ||
-    (typeof (node as any).style?.height === 'number' ? (node as any).style.height : undefined) ||
+    (typeof (node as unknown as { style?: { height?: number } }).style?.height === 'number' ? (node as unknown as { style: { height: number } }).style.height : undefined) ||
     (typeof node.initialHeight === 'number' ? node.initialHeight : undefined);
   if (!width || !height) return undefined;
   const { x, y } = node.internals.positionAbsolute;
