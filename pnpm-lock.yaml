@@ -636,6 +636,9 @@ importers:
       graphology-components:
         specifier: ^1.5.4
         version: 1.5.4(graphology-types@0.24.8)
+      graphology-dag:
+        specifier: ^0.4.1
+        version: 0.4.1(graphology-types@0.24.8)
       graphology-types:
         specifier: ^0.24.8
         version: 0.24.8
@@ -5882,6 +5885,11 @@ packages:
 
   graphology-components@1.5.4:
     resolution: {integrity: sha512-O37vC226wgnN0C6FUWHNe4fbTzaF51CcQjwX3naId/QTzH/PkUtXaanCShj9ws5Vju+z4u3zvSeEZE84Bo9jlA==}
+    peerDependencies:
+      graphology-types: '>=0.19.0'
+
+  graphology-dag@0.4.1:
+    resolution: {integrity: sha512-3ch9oOAnHZDoT043vyg7ukmSkKJ505nFzaHaYOn0IF2PgGo5VtIavyVK4UpbIa4tli3hhGm1ZTdBsubTmaxu/w==}
     peerDependencies:
       graphology-types: '>=0.19.0'
 
@@ -14374,6 +14382,12 @@ snapshots:
       graphology-indices: 0.17.0(graphology-types@0.24.8)
       graphology-types: 0.24.8
       graphology-utils: 2.5.2(graphology-types@0.24.8)
+
+  graphology-dag@0.4.1(graphology-types@0.24.8):
+    dependencies:
+      graphology-types: 0.24.8
+      graphology-utils: 2.5.2(graphology-types@0.24.8)
+      mnemonist: 0.39.8
 
   graphology-indices@0.17.0(graphology-types@0.24.8):
     dependencies:

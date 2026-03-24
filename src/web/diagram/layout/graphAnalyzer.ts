@@ -2,6 +2,7 @@ import Graph from 'graphology';
 import { connectedComponents, stronglyConnectedComponents } from 'graphology-components';
 
 import type { ArchitectureDiagramModel } from '../types';
+import { detectPatterns } from './patternDetector';
 import type { GraphProfile, NodeRole, SemanticNode } from './types';
 
 type DegreeMaps = {
@@ -364,7 +365,7 @@ export function analyzeGraph(model: ArchitectureDiagramModel): GraphProfile {
     clusters: computeClusters(index),
     sourceSinks: { sources, sinks },
     containerChildCounts,
-    subgraphPatterns: new Map<string, never>(),
+    subgraphPatterns: detectPatterns(model, index.childrenByParent),
     inDegree,
     outDegree,
   };

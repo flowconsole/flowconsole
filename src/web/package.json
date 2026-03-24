@@ -55,6 +55,7 @@
     "fast-equals": "^5.3.2",
     "graphology": "^0.26.0",
     "graphology-components": "^1.5.4",
+    "graphology-dag": "^0.4.1",
     "graphology-types": "^0.24.8",
     "graphviz-wasm": "^3.0.2",
     "monaco-editor": "^0.55.1",
