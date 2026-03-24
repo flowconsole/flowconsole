@@ -23,6 +23,23 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /layout-visual\.spec/,
+    },
+    {
+      name: 'visual-regression',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1600, height: 1000 },
+      },
+      testMatch: /layout-visual\.spec/,
+      timeout: 30000,
+      expect: {
+        timeout: 10000,
+        toHaveScreenshot: {
+          maxDiffPixelRatio: 0.01,
+          animations: 'disabled',
+        },
+      },
     },
   ],
   webServer: {
