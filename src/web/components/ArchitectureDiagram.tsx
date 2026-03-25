@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -22,7 +22,7 @@ import type {
 import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
 import { buildScopedModel, scopeTrail } from '../diagram/utils/scopedModel';
-import { layoutWithGraphviz } from '../diagram/graphvizLayoutService';
+import { computeLayout } from '../diagram/layout/computeLayout';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
 
@@ -39,19 +39,7 @@ type ArchitectureDiagramProps = {
   themeControls?: ThemeControls;
 };
 
-const PADDING = 32;
-
-function withParentAutoResize(nodes: ArchitectureDiagramModel['nodes']) {
-  return nodes.map((node) =>
-    node.parentId
-      ? {
-          ...node,
-          extent: node.extent ?? 'parent',
-          expandParent: node.expandParent ?? true,
-        }
-      : node
-  );
-}
+const ROOT_FOCUS_ID = '__root__';
 
 function sizeOf(node: ArchitectureDiagramModel['nodes'][number]) {
   const w =
@@ -67,45 +55,22 @@ function sizeOf(node: ArchitectureDiagramModel['nodes'][number]) {
   return { width: w, height: h };
 }
 
-function autoResizeParents(nodes: ArchitectureDiagramModel['nodes']) {
-  const next = nodes.map((n) => ({ ...n }));
+// --- Highlight state ---
 
-  const byParent = new Map<string, ArchitectureDiagramModel['nodes']>();
-  next.forEach((node) => {
-    if (!node.parentId) return;
-    const list = byParent.get(node.parentId) ?? [];
-    list.push(node);
-    byParent.set(node.parentId, list);
-  });
+type HighlightState = {
+  hoveredNodeId: string | null;
+  hoveredEdgeId: string | null;
+  connectedNodeIds: Set<string>;
+  connectedEdgeIds: Set<string>;
+  mousePos?: { x: number; y: number };
+};
 
-  next.forEach((node, idx) => {
-    if (!byParent.has(node.id)) return;
-    const children = byParent.get(node.id)!;
-    let minX = Number.POSITIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-
-    children.forEach((child) => {
-      const { width, height } = sizeOf(child);
-      minX = Math.min(minX, child.position.x);
-      minY = Math.min(minY, child.position.y);
-      maxX = Math.max(maxX, child.position.x + width);
-      maxY = Math.max(maxY, child.position.y + height);
-    });
-
-    const { width: baseW, height: baseH } = sizeOf(node);
-    const newWidth = Math.max(baseW, maxX - minX + PADDING * 2);
-    const newHeight = Math.max(baseH, maxY - minY + PADDING * 2);
-
-    next[idx] = {
-      ...node,
-      style: { ...node.style, width: newWidth, height: newHeight },
-    };
-  });
-
-  return next;
-}
+const EMPTY_HIGHLIGHT: HighlightState = {
+  hoveredNodeId: null,
+  hoveredEdgeId: null,
+  connectedNodeIds: new Set(),
+  connectedEdgeIds: new Set(),
+};
 
 export function ArchitectureDiagram({
   model,
@@ -119,13 +84,19 @@ export function ArchitectureDiagram({
   themeControls,
 }: ArchitectureDiagramProps) {
   const effectiveScheme = themeControls?.resolvedScheme;
+
+  // --- Drill-down state ---
   const [scopeId, setScopeId] = useState<string | undefined>();
   const modelToRender = useMemo(() => buildScopedModel(model, scopeId), [model, scopeId]);
+  const trail = useMemo(() => scopeTrail(model, scopeId), [model, scopeId]);
+  const parentScopeId = trail.length > 1 ? trail[trail.length - 2].id : undefined;
+
+  // --- React Flow state ---
   const [nodes, setNodes] = useNodesState<ArchitectureNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ArchitectureEdge>([]);
-  const trail = useMemo(() => scopeTrail(model, scopeId), [model, scopeId]);
-  const ROOT_FOCUS_ID = '__root__';
-  const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>(ROOT_FOCUS_ID);
+  const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>();
+
+  // --- Flow panel ---
   const flows = model.flows ?? [];
   const [isFlowPanelVisible, setFlowPanelVisible] = useState(false);
   const defaultFlow = useMemo(
@@ -136,22 +107,92 @@ export function ArchitectureDiagram({
   const [activeFlowId, setActiveFlowId] = useState<string | undefined>(defaultFlow.id);
   const [activeFlowStep, setActiveFlowStep] = useState(-1);
   const [flowAnimationTick, setFlowAnimationTick] = useState(0);
+
+  // --- Lookup maps ---
   const nodeTitles = useMemo(() => {
     const map = new Map<string, string>();
     model.nodes.forEach((n) => map.set(n.id, n.data.title));
     return map;
   }, [model.nodes]);
+
   const nodeIndex = useMemo(() => {
     const map = new Map<string, ArchitectureNode>();
     model.nodes.forEach((n) => map.set(n.id, n));
     return map;
   }, [model.nodes]);
+
   const visibleNodeMap = useMemo(() => {
     const map = new Map<string, ArchitectureNode>();
     nodes.forEach((n) => map.set(n.id, n));
     return map;
   }, [nodes]);
 
+  // --- Highlight ---
+  const [highlight, setHighlight] = useState<HighlightState>(EMPTY_HIGHLIGHT);
+  const isHighlightActive = highlight.hoveredNodeId !== null || highlight.hoveredEdgeId !== null;
+
+  const onNodeMouseEnter = useCallback(
+    (event: React.MouseEvent, node: ArchitectureNode) => {
+      const connEdges = edges.filter(
+        (e) => e.source === node.id || e.target === node.id
+      );
+      const connNodes = new Set(connEdges.flatMap((e) => [e.source, e.target]));
+      connNodes.add(node.id);
+      setHighlight({
+        hoveredNodeId: node.id,
+        hoveredEdgeId: null,
+        connectedNodeIds: connNodes,
+        connectedEdgeIds: new Set(connEdges.map((e) => e.id)),
+        mousePos: { x: event.clientX, y: event.clientY },
+      });
+    },
+    [edges]
+  );
+
+  const onNodeMouseLeave = useCallback(() => {
+    setHighlight(EMPTY_HIGHLIGHT);
+  }, []);
+
+  const onEdgeMouseEnter = useCallback(
+    (_event: React.MouseEvent, edge: ArchitectureEdge) => {
+      setHighlight({
+        hoveredNodeId: null,
+        hoveredEdgeId: edge.id,
+        connectedNodeIds: new Set([edge.source, edge.target]),
+        connectedEdgeIds: new Set([edge.id]),
+      });
+    },
+    []
+  );
+
+  const onEdgeMouseLeave = useCallback(() => {
+    setHighlight(EMPTY_HIGHLIGHT);
+  }, []);
+
+  const highlightedNodes = useMemo(() => {
+    if (!isHighlightActive) return nodes;
+    return nodes.map((node) => ({
+      ...node,
+      className: highlight.connectedNodeIds.has(node.id) ? 'highlight-active' : 'highlight-dimmed',
+    }));
+  }, [nodes, isHighlightActive, highlight.connectedNodeIds]);
+
+  const highlightedEdges = useMemo(() => {
+    if (!isHighlightActive) return edges;
+    return edges.map((edge) => {
+      const isConnected = highlight.connectedEdgeIds.has(edge.id);
+      return {
+        ...edge,
+        className: isConnected ? 'highlight-active' : 'highlight-dimmed',
+        data: {
+          ...edge.data,
+          hovered: isConnected && highlight.hoveredEdgeId === edge.id,
+        },
+      };
+    });
+  }, [edges, isHighlightActive, highlight.connectedEdgeIds, highlight.hoveredEdgeId]);
+
+  // --- Layout computation ---
   useEffect(() => {
     setScopeId(undefined);
   }, [model]);
@@ -168,43 +209,33 @@ export function ArchitectureDiagram({
     };
   }, []);
 
+  const needsFitView = useRef(false);
   useEffect(() => {
-    let cancelled = false;
-
-    const update = async () => {
-      const baseModel = autoLayout ? await layoutWithGraphviz(modelToRender) : modelToRender;
-      if (cancelled) return;
-      setNodes(autoResizeParents(withParentAutoResize(baseModel.nodes)));
-      setEdges(baseModel.edges);
-    };
-
-    void update();
-    
-    return () => {
-      cancelled = true;
-    };
+    const result = autoLayout
+      ? computeLayout(modelToRender)
+      : { nodes: modelToRender.nodes, edges: modelToRender.edges };
+    setNodes(result.nodes);
+    setEdges(result.edges);
+    needsFitView.current = true;
   }, [modelToRender, autoLayout, setNodes, setEdges]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {
-      setNodes((nds) =>
-        autoResizeParents(
-          withParentAutoResize(applyNodeChanges<ArchitectureNode>(changes, nds))
-        )
-      );
+      setNodes((nds) => applyNodeChanges<ArchitectureNode>(changes, nds));
     },
     [setNodes]
   );
 
+  // --- Scope/focus transitions ---
+  const [scopeTransition, setScopeTransition] = useState(false);
   useEffect(() => {
-    setEdges(modelToRender.edges);
-  }, [modelToRender.edges, setEdges]);
-
-  useEffect(() => {
-    setPendingFocus(scopeId ?? ROOT_FOCUS_ID);
     setFlowAnimationTick((tick) => tick + 1);
+    setScopeTransition(true);
+    const timer = setTimeout(() => setScopeTransition(false), 450);
+    return () => clearTimeout(timer);
   }, [scopeId]);
 
+  // --- Flow panel logic ---
   useEffect(() => {
     if (!activeFlowId && flows.length) {
       setActiveFlowId(flows[0]?.id);
@@ -214,30 +245,20 @@ export function ArchitectureDiagram({
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
     if (!isFlowPanelVisible) {
-      if (activeFlowStep !== -1) {
-        setActiveFlowStep(-1);
-      }
+      if (activeFlowStep !== -1) setActiveFlowStep(-1);
       return;
     }
     if (!flow) {
-      if (activeFlowStep !== 0) {
-        setActiveFlowStep(0);
-      }
+      if (activeFlowStep !== 0) setActiveFlowStep(0);
       return;
     }
     const bounded = Math.min(Math.max(activeFlowStep, 0), Math.max(flow.steps.length - 1, 0));
-    if (bounded !== activeFlowStep) {
-      setActiveFlowStep(bounded);
-    }
+    if (bounded !== activeFlowStep) setActiveFlowStep(bounded);
   }, [activeFlowId, flows, activeFlowStep, isFlowPanelVisible]);
 
   useEffect(() => {
-    // On close: reset active step and fit the view to show the whole diagram.
-    if (!isFlowPanelVisible) {
-      setPendingFocus(ROOT_FOCUS_ID);
-    }
-  }, [isFlowPanelVisible]);
-
+    if (!isFlowPanelVisible) needsFitView.current = true;
+  }, [isFlowPanelVisible, needsFitView]);
 
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
@@ -333,7 +354,7 @@ export function ArchitectureDiagram({
     }
   }, [activeFlowId, activeFlowStep, flows, nodeIndex, visibleNodeMap]);
 
-
+  // --- Navigation ---
   const findClosestContainer = useCallback(
     (nodeId: string) => {
       let current = nodeIndex.get(nodeId);
@@ -354,15 +375,23 @@ export function ArchitectureDiagram({
       if (!target) return;
       const targetScope =
         target.type === 'container' ? target.id : findClosestContainer(nodeId);
-      if (targetScope !== scopeId) {
-        setScopeId(targetScope);
-      }
+      if (targetScope !== scopeId) setScopeId(targetScope);
       setPendingFocus(nodeId);
     },
     [findClosestContainer, nodeIndex, scopeId]
   );
 
-  const parentScopeId = trail.length > 1 ? trail[trail.length - 2].id : undefined;
+  // Click ghost node → navigate to its parent scope
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: ArchitectureNode) => {
+      if (node.data.ghost && node.data.ghostParentId) {
+        setScopeId(node.data.ghostParentId);
+      }
+    },
+    []
+  );
+
+  // --- Theme ---
   const minimapTheme = useMemo(
     () =>
       effectiveScheme === 'light'
@@ -381,193 +410,361 @@ export function ArchitectureDiagram({
     [effectiveScheme]
   );
 
+  // --- Tooltip data ---
+  const hoveredNode = highlight.hoveredNodeId ? nodeIndex.get(highlight.hoveredNodeId) : undefined;
+
   return (
-    <ReactFlow
-      className={`architecture-diagram theme-${effectiveScheme}`}
-      fitView
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
+    <>
+      <ReactFlow
+        className={`architecture-diagram theme-${effectiveScheme}${scopeTransition ? ' scope-transition' : ''}`}
+        fitView
+        nodes={highlightedNodes}
+        edges={highlightedEdges}
+        onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         proOptions={{ hideAttribution: true }}
         elevateNodesOnSelect={false}
-      selectNodesOnDrag={editable}
-      nodesDraggable={editable}
-      nodesConnectable={editable}
-      elementsSelectable={editable}
-      edgesReconnectable={editable}
-      panOnDrag={editable}
-      minZoom={0.1}
-      maxZoom={2}
-      connectionLineComponent={FloatingConnectionLine}
-      panActivationKeyCode={'Shift'}
-    >
-      <MiniMap
-        pannable
-        zoomable
-        style={{ background: minimapTheme.background, border: '1px solid var(--diagram-border)' }}
-        nodeColor={() => minimapTheme.node}
-        nodeStrokeColor={() => minimapTheme.stroke}
-        maskColor={minimapTheme.mask}
-      />
-      <NavigationPanel
-        model={model}
-        viewId={viewId}
-        viewTitle={viewTitle}
-        viewDescription={viewDescription}
-        flows={flows}
-        activeFlowId={activeFlowId}
-        activeFlowStep={activeFlowStep}
-        nodeTitles={nodeTitles}
-        onSelectFlow={(id) => {
-          setActiveFlowId(id);
-          setActiveFlowStep(-1);
-        }}
-        onFlowStepChange={(step) => setActiveFlowStep(step)}
-        onNavigate={handleNavigate}
-        onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
-        themeControls={themeControls}
-      />
-      {flows.length && isFlowPanelVisible ? (
-        <Panel position="top-left" style={{ marginTop: 42 }}>
-          <div className="flow-panel">
-            <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
-              <strong style={{ fontSize: 12 }}>Flow</strong>
-              <select
-                value={activeFlowId ?? ''}
-                onChange={(e) => {
-                  const nextId = e.target.value || undefined;
-                  setActiveFlowId(nextId);
-                  setActiveFlowStep(-1);
-                }}
-              >
-                {flowOptions.map((f, idx) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name || `Flow ${idx}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {(() => {
-              const flow = flows.find((f) => f.id === activeFlowId);
-              const steps = flow?.steps ?? [];
-              const current =
-                activeFlowStep >= 0 && steps.length
-                  ? steps[Math.min(activeFlowStep, Math.max(steps.length - 1, 0))]
-                  : undefined;
-              return flow && current ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
-                    <button
-                      onClick={() => setActiveFlowStep((s) => Math.max(s - 1, 0))}
-                      disabled={activeFlowStep <= 0}
-                    >
-                      Prev
-                    </button>
-                    <span style={{ fontSize: 12 }}>
-                      Step {activeFlowStep + 1}/{steps.length}
-                    </span>
-                    <button
-                      onClick={() =>
-                        setActiveFlowStep((s) => {
-                          const next = s < 0 ? 0 : s + 1;
-                          return Math.min(next, Math.max(steps.length - 1, 0));
-                        })
-                      }
-                      disabled={activeFlowStep >= steps.length - 1}
-                    >
-                      Next
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 12 }}>
-                    <div>
-                      <strong>Source:</strong> {nodeTitles.get(current.sourceId) ?? current.sourceId}
-                    </div>
-                    <div>
-                      <strong>Target:</strong> {nodeTitles.get(current.targetId) ?? current.targetId}
-                    </div>
-                    {current.label ? (
-                      <div>
-                        <strong>Action:</strong> {current.label}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, color: 'var(--diagram-text-muted)' }}>
-                  No steps in this flow
-                </div>
-              );
-            })()}
-          </div>
-        </Panel>
-      ) : null}
-      <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
-      {scopeId ? (
-        <Panel position="top-right">
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              alignItems: 'center',
-              background: 'var(--diagram-surface)',
-              color: 'var(--diagram-text)',
-              borderRadius: 12,
-              padding: '8px 12px',
-              boxShadow: 'var(--diagram-card-shadow)',
-            }}
-          >
-            <span style={{ fontWeight: 700, fontSize: 12, opacity: 0.9 }}>
-              View: {trail.map((p) => p.data.title).join(' / ')}
-            </span>
-            {parentScopeId ? (
-              <button
-                onClick={() => setScopeId(parentScopeId)}
-                style={{
-                  border: '1px solid var(--diagram-border)',
-                  background: 'var(--diagram-surface-muted)',
-                  color: 'var(--diagram-text)',
-                  borderRadius: 8,
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                }}
-              >
-                Go Up
-              </button>
-            ) : null}
-            <button
-              onClick={() => setScopeId(undefined)}
-              style={{
-                border: '1px solid var(--diagram-border)',
-                background: 'transparent',
-                color: 'var(--diagram-text-muted)',
-                borderRadius: 8,
-                padding: '4px 8px',
-                cursor: 'pointer',
+        selectNodesOnDrag={editable}
+        nodesDraggable={editable}
+        nodesConnectable={editable}
+        elementsSelectable={editable}
+        edgesReconnectable={editable}
+        panOnDrag={editable}
+        minZoom={0.1}
+        maxZoom={2}
+        connectionLineComponent={FloatingConnectionLine}
+        panActivationKeyCode={'Shift'}
+        onNodeClick={onNodeClick}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
+        onEdgeMouseEnter={onEdgeMouseEnter}
+        onEdgeMouseLeave={onEdgeMouseLeave}
+      >
+        <MiniMap
+          pannable
+          zoomable
+          style={{ background: minimapTheme.background, border: '1px solid var(--diagram-border)' }}
+          nodeColor={() => minimapTheme.node}
+          nodeStrokeColor={() => minimapTheme.stroke}
+          maskColor={minimapTheme.mask}
+        />
+        <NavigationPanel
+          model={model}
+          viewId={viewId}
+          viewTitle={viewTitle}
+          viewDescription={viewDescription}
+          flows={flows}
+          activeFlowId={activeFlowId}
+          activeFlowStep={activeFlowStep}
+          nodeTitles={nodeTitles}
+          onSelectFlow={(id: string | undefined) => {
+            setActiveFlowId(id);
+            setActiveFlowStep(-1);
+          }}
+          onFlowStepChange={(step: number) => setActiveFlowStep(step)}
+          onNavigate={handleNavigate}
+          onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
+          themeControls={themeControls}
+        />
+
+        {/* Flow step panel */}
+        {flows.length && isFlowPanelVisible ? (
+          <Panel position="top-left" style={{ marginTop: 42 }}>
+            <FlowStepPanel
+              flows={flows}
+              activeFlowId={activeFlowId}
+              activeFlowStep={activeFlowStep}
+              flowOptions={flowOptions}
+              nodeTitles={nodeTitles}
+              onSelectFlow={(id: string | undefined) => {
+                setActiveFlowId(id);
+                setActiveFlowStep(-1);
               }}
-            >
-              Root view
-            </button>
-          </div>
-        </Panel>
+              onStepChange={setActiveFlowStep}
+            />
+          </Panel>
+        ) : null}
+
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
+
+        {/* Breadcrumbs */}
+        {scopeId ? (
+          <Panel position="top-right">
+            <Breadcrumbs
+              trail={trail}
+              parentScopeId={parentScopeId}
+              onGoUp={() => setScopeId(parentScopeId)}
+              onGoRoot={() => setScopeId(undefined)}
+              onGoTo={(id: string) => setScopeId(id)}
+            />
+          </Panel>
+        ) : null}
+
+        <ViewportController
+          focusTarget={pendingFocus}
+          onFocused={() => setPendingFocus(undefined)}
+          nodes={nodes}
+          rootMarker={ROOT_FOCUS_ID}
+          needsFitView={needsFitView}
+        />
+      </ReactFlow>
+
+      {/* Tooltip — rendered outside ReactFlow, positioned fixed */}
+      {hoveredNode && highlight.mousePos ? (
+        <DiagramTooltip node={hoveredNode} mousePos={highlight.mousePos} />
       ) : null}
-      <ViewportController
-        focusTarget={pendingFocus}
-        onFocused={() => setPendingFocus(undefined)}
-        nodes={nodes}
-        rootMarker={ROOT_FOCUS_ID}
-      />
-    </ReactFlow>
+    </>
   );
 }
+
+// --- DiagramTooltip ---
+
+type DiagramTooltipProps = {
+  node: ArchitectureNode;
+  mousePos: { x: number; y: number };
+};
+
+function DiagramTooltip({ node, mousePos }: DiagramTooltipProps) {
+  const data = node.data;
+  const offsetX = 16;
+  const offsetY = 16;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        left: mousePos.x + offsetX,
+        top: mousePos.y + offsetY,
+        background: 'var(--diagram-panel)',
+        color: 'var(--diagram-text)',
+        border: '1px solid var(--diagram-border)',
+        borderRadius: 10,
+        padding: '10px 14px',
+        boxShadow: 'var(--diagram-card-shadow)',
+        fontSize: 12,
+        maxWidth: 320,
+        zIndex: 9999,
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{data.title}</div>
+      {data.subtitle ? (
+        <div style={{ color: 'var(--diagram-text-muted)', marginBottom: 4 }}>{data.subtitle}</div>
+      ) : null}
+      {data.description ? (
+        <div style={{ marginBottom: 4 }}>{data.description}</div>
+      ) : null}
+      {data.tags?.length ? (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+          {data.tags.map((tag: string) => (
+            <span
+              key={tag}
+              style={{
+                background: 'var(--diagram-border)',
+                borderRadius: 4,
+                padding: '1px 6px',
+                fontSize: 10,
+              }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {node.type === 'container' ? (
+        <div style={{ color: 'var(--diagram-primary)', fontStyle: 'italic' }}>
+          Click to drill down
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// --- Breadcrumbs ---
+
+type BreadcrumbsProps = {
+  trail: ReadonlyArray<{ id: string; title: string }>;
+  parentScopeId?: string;
+  onGoUp: () => void;
+  onGoRoot: () => void;
+  onGoTo: (id: string) => void;
+};
+
+function Breadcrumbs({ trail, parentScopeId, onGoUp, onGoRoot, onGoTo }: BreadcrumbsProps) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 4,
+        alignItems: 'center',
+        background: 'var(--diagram-panel)',
+        color: 'var(--diagram-text)',
+        borderRadius: 12,
+        padding: '8px 12px',
+        border: '1px solid var(--diagram-border)',
+        boxShadow: 'var(--diagram-card-shadow)',
+        fontSize: 12,
+      }}
+    >
+      <button
+        onClick={onGoRoot}
+        style={{
+          border: 'none',
+          background: 'none',
+          color: 'var(--diagram-primary)',
+          cursor: 'pointer',
+          padding: '2px 4px',
+          borderRadius: 4,
+          fontWeight: 600,
+        }}
+      >
+        Root
+      </button>
+      {trail.map((item, idx) => {
+        const isLast = idx === trail.length - 1;
+        return (
+          <span key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: 'var(--diagram-text-muted)' }}>/</span>
+            {isLast ? (
+              <span style={{ fontWeight: 700 }}>{item.title}</span>
+            ) : (
+              <button
+                onClick={() => onGoTo(item.id)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--diagram-primary)',
+                  cursor: 'pointer',
+                  padding: '2px 4px',
+                  borderRadius: 4,
+                }}
+              >
+                {item.title}
+              </button>
+            )}
+          </span>
+        );
+      })}
+      {parentScopeId ? (
+        <button
+          onClick={onGoUp}
+          style={{
+            border: '1px solid var(--diagram-border)',
+            background: 'var(--diagram-panel)',
+            color: 'var(--diagram-text)',
+            borderRadius: 8,
+            padding: '4px 8px',
+            cursor: 'pointer',
+            marginLeft: 8,
+          }}
+        >
+          Up
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+// --- Flow step panel ---
+
+type FlowStepPanelProps = {
+  flows: FlowDefinition[];
+  activeFlowId?: string;
+  activeFlowStep: number;
+  flowOptions: FlowDefinition[];
+  nodeTitles: Map<string, string>;
+  onSelectFlow: (id: string | undefined) => void;
+  onStepChange: (step: number) => void;
+};
+
+function FlowStepPanel({
+  flows,
+  activeFlowId,
+  activeFlowStep,
+  flowOptions,
+  nodeTitles,
+  onSelectFlow,
+  onStepChange,
+}: FlowStepPanelProps) {
+  const flow = flows.find((f) => f.id === activeFlowId);
+  const steps = flow?.steps ?? [];
+  const current =
+    activeFlowStep >= 0 && steps.length
+      ? steps[Math.min(activeFlowStep, Math.max(steps.length - 1, 0))]
+      : undefined;
+
+  return (
+    <div className="flow-panel">
+      <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
+        <strong style={{ fontSize: 12 }}>Flow</strong>
+        <select
+          value={activeFlowId ?? ''}
+          onChange={(e) => onSelectFlow(e.target.value || undefined)}
+        >
+          {flowOptions.map((f, idx) => (
+            <option key={f.id} value={f.id}>
+              {f.name || `Flow ${idx}`}
+            </option>
+          ))}
+        </select>
+      </div>
+      {flow && current ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="flow-panel__row" style={{ justifyContent: 'space-between' }}>
+            <button
+              onClick={() => onStepChange(Math.max(activeFlowStep - 1, 0))}
+              disabled={activeFlowStep <= 0}
+            >
+              Prev
+            </button>
+            <span style={{ fontSize: 12 }}>
+              Step {activeFlowStep + 1}/{steps.length}
+            </span>
+            <button
+              onClick={() =>
+                onStepChange(Math.min(
+                  activeFlowStep < 0 ? 0 : activeFlowStep + 1,
+                  Math.max(steps.length - 1, 0)
+                ))
+              }
+              disabled={activeFlowStep >= steps.length - 1}
+            >
+              Next
+            </button>
+          </div>
+          <div style={{ fontSize: 12 }}>
+            <div>
+              <strong>Source:</strong> {nodeTitles.get(current.sourceId) ?? current.sourceId}
+            </div>
+            <div>
+              <strong>Target:</strong> {nodeTitles.get(current.targetId) ?? current.targetId}
+            </div>
+            {current.label ? (
+              <div>
+                <strong>Action:</strong> {current.label}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--diagram-text-muted)' }}>
+          No steps in this flow
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Viewport controller ---
 
 type ViewportControllerProps = {
   focusTarget?: string | string[];
   onFocused: () => void;
   nodes: ArchitectureNode[];
   rootMarker: string;
+  needsFitView: React.RefObject<boolean>;
 };
 
 function ViewportController({
@@ -575,15 +772,34 @@ function ViewportController({
   onFocused,
   nodes,
   rootMarker,
+  needsFitView,
 }: ViewportControllerProps) {
   const reactFlow = useReactFlow<ArchitectureNode, ArchitectureEdge>();
 
+  // fitView after scope change — wait for ReactFlow to measure new nodes
+  useEffect(() => {
+    if (!needsFitView.current || !nodes.length) return;
+    // Double rAF: first lets React commit DOM, second lets ReactFlow measure
+    const outer = requestAnimationFrame(() => {
+      const inner = requestAnimationFrame(() => {
+        needsFitView.current = false;
+        reactFlow.fitView({ padding: 0.15, duration: 300 });
+      });
+      cancelRef.current = inner;
+    });
+    const cancelRef = { current: outer };
+    return () => {
+      cancelAnimationFrame(outer);
+      cancelAnimationFrame(cancelRef.current);
+    };
+  }, [nodes, reactFlow, needsFitView]);
+
+  // Focus on specific node(s) — flow steps, navigation
   useEffect(() => {
     if (!focusTarget || !nodes.length) return;
     const frame = requestAnimationFrame(() => {
       const ids = Array.isArray(focusTarget) ? focusTarget : [focusTarget];
       if (ids.length === 1 && ids[0] === rootMarker) {
-        reactFlow.fitView({ padding: 0.2, duration: 400 });
         onFocused();
         return;
       }

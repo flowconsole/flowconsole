@@ -116,7 +116,7 @@ describe('RelationshipEdge', () => {
     expect(baseEdge.getAttribute('data-marker-start')).toBeNull();
     expect(baseEdge.getAttribute('class')).toContain('relationship-path--directional');
     expect(style.strokeWidth).toBe(2.4);
-    expect(style.stroke).toBe('var(--diagram-primary)');
+    expect(style.stroke).toBe('var(--diagram-muted)');
     expect(screen.getByText('Main')).toBeInTheDocument();
     expect(screen.getByText('Detail')).toBeInTheDocument();
     expect(screen.getByText('★')).toBeInTheDocument();

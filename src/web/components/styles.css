@@ -75,6 +75,41 @@
   cursor: not-allowed;
 }
 
+/* Highlight / dim on hover */
+.react-flow__node.highlight-dimmed {
+  opacity: 0.18;
+  transition: opacity 200ms ease;
+}
+
+.react-flow__node.highlight-active {
+  opacity: 1;
+  filter: brightness(1.15);
+  transition: opacity 200ms ease, filter 200ms ease;
+}
+
+.react-flow__edge.highlight-dimmed path.react-flow__edge-path,
+.react-flow__edge.highlight-dimmed .relationship-path {
+  opacity: 0.1;
+  transition: opacity 200ms ease;
+}
+
+.react-flow__edge.highlight-dimmed .relationship-label {
+  opacity: 0.1;
+  transition: opacity 200ms ease;
+}
+
+.react-flow__edge.highlight-active path.react-flow__edge-path,
+.react-flow__edge.highlight-active .relationship-path {
+  opacity: 1;
+  stroke-width: 2.8;
+  transition: opacity 200ms ease, stroke-width 200ms ease;
+}
+
+.react-flow__edge.highlight-active .relationship-label {
+  opacity: 1;
+  transition: opacity 200ms ease;
+}
+
 @keyframes dash-move {
   from {
     stroke-dashoffset: 0;
@@ -82,4 +117,20 @@
   to {
     stroke-dashoffset: 18;
   }
+}
+
+/* Drill-down transition animation */
+@keyframes scope-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.architecture-diagram.scope-transition .react-flow__viewport {
+  animation: scope-fade-in 400ms ease-out;
 }

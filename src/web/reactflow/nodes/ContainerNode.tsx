@@ -38,17 +38,19 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
             height: '100%',
           }}
         >
-          <button
-            onClick={handleOpen}
-            aria-label="Open container"
-            className="diagram-container__open-button"
-            style={{
-              border: `1px solid ${accent}`,
-              color: accent,
-            }}
-          >
-            <IconZoomScan size={16} stroke={1.85} aria-hidden="true" />
-          </button>
+          {data.showOpenButton !== false ? (
+            <button
+              onClick={handleOpen}
+              aria-label="Open container"
+              className="diagram-container__open-button"
+              style={{
+                border: `1px solid ${accent}`,
+                color: accent,
+              }}
+            >
+              <IconZoomScan size={16} stroke={1.85} aria-hidden="true" />
+            </button>
+          ) : null}
           <div
             style={{
               display: 'flex',
@@ -89,7 +91,7 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
               </span>
             ) : null}
             {typeof data.childCount === 'number' && data.childCount > 0 ? (
-              <span style={{ fontSize: 10, opacity: 0.7 }}></span>
+              <span style={{ fontSize: 10, opacity: 0.7 }}>{data.childCount} elements</span>
             ) : null}
             {data.badge ? (
               <span className="diagram-badge" style={{ borderColor: accent, color: accent }}>

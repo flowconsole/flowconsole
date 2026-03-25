@@ -382,7 +382,11 @@
 }
 
 .relationship-path {
-  transition: stroke 150ms ease, stroke-width 150ms ease, opacity 150ms ease;
+  transition: stroke 200ms ease, stroke-width 200ms ease, opacity 200ms ease;
+}
+
+.relationship-label {
+  transition: border-color 200ms ease;
 }
 
 .relationship-path--animated {
@@ -430,4 +434,20 @@
 .hidden-handle {
   opacity: 0;
   border: none;
+}
+
+/* Ghost nodes — external references in scoped view */
+.diagram-card--ghost {
+  opacity: 0.55;
+  border-style: dashed;
+  border-width: 1.5px;
+  background: transparent;
+}
+
+.diagram-card--ghost .diagram-card__shell {
+  opacity: 0.3;
+}
+
+.diagram-card--ghost .diagram-card__title {
+  font-style: italic;
 }

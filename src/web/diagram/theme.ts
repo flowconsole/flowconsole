@@ -16,14 +16,15 @@ export function toneToColor(tone: ElementTone = 'primary') {
 }
 
 export function relationshipStroke(kind: RelationshipKind = 'dependency') {
+  const muted = toneToColor('muted');
   switch (kind) {
     case 'sync':
-      return { stroke: toneToColor('primary'), strokeDasharray: undefined };
+      return { stroke: muted, activeStroke: toneToColor('primary'), strokeDasharray: undefined };
     case 'async':
-      return { stroke: toneToColor('success'), strokeDasharray: '6 6' };
+      return { stroke: muted, activeStroke: toneToColor('success'), strokeDasharray: '6 6' };
     case 'event':
-      return { stroke: toneToColor('warning'), strokeDasharray: '2 6' };
+      return { stroke: muted, activeStroke: toneToColor('warning'), strokeDasharray: '2 6' };
     default:
-      return { stroke: toneToColor('muted'), strokeDasharray: undefined };
+      return { stroke: muted, activeStroke: muted, strokeDasharray: undefined };
   }
 }

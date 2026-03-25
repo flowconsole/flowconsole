@@ -16,6 +16,8 @@ type BaseNodeData = {
   status?: ElementStatus;
   flowHighlighted?: boolean;
   flowCurrent?: 'source' | 'target';
+  ghost?: boolean;
+  ghostParentId?: string;
 };
 
 export type ElementNodeData = BaseNodeData & {

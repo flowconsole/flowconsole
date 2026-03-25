@@ -380,6 +380,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     manualPath?.labelPoint ?? graphvizLabel ?? { x: fallbackLabelX, y: fallbackLabelY };
 
   const stroke = relationshipStroke(data?.kind);
+  const currentStroke = hovered ? stroke.activeStroke : stroke.stroke;
   const direction = data?.direction ?? 'forward';
   const isDirectional = direction !== 'none';
   const markerStart = direction === 'both' ? `url(#${id}-start)` : undefined;
@@ -538,7 +539,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
             orient="auto"
             markerUnits="userSpaceOnUse"
           >
-            <path d="M2,2 L10,6 L2,10 Z" fill={stroke.stroke} />
+            <path d="M2,2 L10,6 L2,10 Z" fill={currentStroke} />
           </marker>
           {direction === 'both' ? (
             <marker
@@ -550,7 +551,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
               orient="auto-start-reverse"
               markerUnits="userSpaceOnUse"
             >
-              <path d="M2,2 L10,6 L2,10 Z" fill={stroke.stroke} />
+              <path d="M2,2 L10,6 L2,10 Z" fill={currentStroke} />
             </marker>
           ) : null}
         </defs>
@@ -563,7 +564,8 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
         markerStart={markerStart}
         style={{
           strokeWidth: 2.4,
-          ...stroke,
+          stroke: currentStroke,
+          strokeDasharray: stroke.strokeDasharray,
           ...animatedStyle,
           ...flowStyle,
           ...style,
@@ -600,7 +602,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
               transform: `translate(-50%, -50%) translate(${resolvedLabelPoint.x + offsetX}px, ${
                 resolvedLabelPoint.y + offsetY
               }px)`,
-              borderColor: stroke.stroke,
+              borderColor: currentStroke,
             }}
           >
             {hasIcon ? <span className="relationship-label__icon">{data?.icon}</span> : null}
@@ -627,7 +629,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
                 className="relationship-control-point nodrag nopan"
                 style={{
                   transform: `translate(-50%, -50%) translate(${point.x}px, ${point.y}px)`,
-                  borderColor: stroke.stroke,
+                  borderColor: currentStroke,
                 }}
                 onPointerDown={handleControlPointerDown(index)}
               />

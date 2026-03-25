@@ -34,6 +34,7 @@ export function ElementNode({ data, selected }: NodeProps<ElementNodeType>) {
   const visualShape = shape in shapeIcons ? shape : 'generic';
   const Icon = shapeIcons[shape] ?? IconSquareRounded;
   const customIcon = data.icon?.trim();
+  const isGhost = data.ghost === true;
   const cardStyle = {
     borderColor: accent,
     boxShadow: selected ? `0 0 0 2px ${accent}33, var(--diagram-card-shadow)` : undefined,
@@ -42,7 +43,7 @@ export function ElementNode({ data, selected }: NodeProps<ElementNodeType>) {
 
   return (
     <div
-      className={`diagram-card diagram-card--${visualShape}`}
+      className={`diagram-card diagram-card--${visualShape}${isGhost ? ' diagram-card--ghost' : ''}`}
       style={cardStyle}
     >
       <div className={`diagram-card__shell diagram-card__shell--${visualShape}`} aria-hidden="true" />
