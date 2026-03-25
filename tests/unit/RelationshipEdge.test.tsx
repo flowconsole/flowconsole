@@ -160,12 +160,12 @@ describe('RelationshipEdge', () => {
       sourceAnchor: { position: Position.Right, offset: 1 },
       targetAnchor: { position: Position.Left, offset: 0.25 },
     });
-    expect(getBezierPathMock).toHaveBeenCalled();
-    const call = getBezierPathMock.mock.calls[0][0];
-    expect(call.sourceX).toBe(110); // 10 + 100
-    expect(call.sourceY).toBe(70); // 20 + 1 * 50
-    expect(call.targetX).toBe(200); // left anchor at x
-    expect(call.targetY).toBe(110); // 100 + 0.25 * 40
+    // The path should be rendered using the resolved anchor coordinates
+    const baseEdge = screen.getByTestId('base-edge');
+    const path = baseEdge.getAttribute('d') ?? '';
+    // Source: x=10+100=110, y=20+1*50=70. Target: x=200, y=100+0.25*40=110
+    expect(path).toContain('M 110,70');
+    expect(path).toContain('200,110');
   });
 
   it('prefers manual control points over graphviz path', () => {

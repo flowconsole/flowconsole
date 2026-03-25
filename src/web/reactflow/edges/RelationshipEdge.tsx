@@ -1,7 +1,6 @@
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getBezierPath,
   Position,
   useInternalNode,
   useReactFlow,
@@ -19,6 +18,56 @@ const catmullRomLine = line<Point>()
   .curve(curveCatmullRomOpen.alpha(0.7))
   .x((d) => Math.round(d.x))
   .y((d) => Math.round(d.y));
+
+/**
+ * Build a rounded polyline SVG path through waypoints.
+ * At each intermediate point, replaces the sharp corner with a quadratic
+ * bezier arc of the given radius. Guaranteed no loops or overshooting.
+ */
+function roundedPolylinePath(points: Point[], radius = 20): string | undefined {
+  if (points.length < 2) return undefined;
+  if (points.length === 2) {
+    return `M ${Math.round(points[0].x)},${Math.round(points[0].y)} L ${Math.round(points[1].x)},${Math.round(points[1].y)}`;
+  }
+
+  const parts: string[] = [];
+  parts.push(`M ${Math.round(points[0].x)},${Math.round(points[0].y)}`);
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+
+    // Distance to prev and next
+    const dPrev = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+    const dNext = Math.hypot(next.x - curr.x, next.y - curr.y);
+    // Clamp radius so it doesn't exceed half the segment length
+    const r = Math.min(radius, dPrev / 2, dNext / 2);
+
+    if (r < 1) {
+      // Too short to round — just line to the point
+      parts.push(`L ${Math.round(curr.x)},${Math.round(curr.y)}`);
+      continue;
+    }
+
+    // Point on segment before the corner
+    const t1 = r / dPrev;
+    const beforeX = curr.x + (prev.x - curr.x) * t1;
+    const beforeY = curr.y + (prev.y - curr.y) * t1;
+
+    // Point on segment after the corner
+    const t2 = r / dNext;
+    const afterX = curr.x + (next.x - curr.x) * t2;
+    const afterY = curr.y + (next.y - curr.y) * t2;
+
+    parts.push(`L ${Math.round(beforeX)},${Math.round(beforeY)}`);
+    parts.push(`Q ${Math.round(curr.x)},${Math.round(curr.y)} ${Math.round(afterX)},${Math.round(afterY)}`);
+  }
+
+  const last = points[points.length - 1];
+  parts.push(`L ${Math.round(last.x)},${Math.round(last.y)}`);
+  return parts.join(' ');
+}
 
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
@@ -349,21 +398,17 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   const sy = sourceAnchorPoint?.y ?? fallbackGeometry.sy;
   const tx = targetAnchorPoint?.x ?? fallbackGeometry.tx;
   const ty = targetAnchorPoint?.y ?? fallbackGeometry.ty;
-  const sourcePos = data?.sourceAnchor?.position ?? fallbackGeometry.sourcePos;
-  const targetPos = data?.targetAnchor?.position ?? fallbackGeometry.targetPos;
-
-  const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(
-    () =>
-      getBezierPath({
-        sourceX: sx,
-        sourceY: sy,
-        sourcePosition: sourcePos,
-        targetPosition: targetPos,
-        targetX: tx,
-        targetY: ty,
-      }),
-    [sourcePos, sx, sy, targetPos, tx, ty]
-  );
+  const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(() => {
+    const mx = (sx + tx) / 2;
+    const my = (sy + ty) / 2;
+    // Straight line as cubic bezier — control points on the line = arrow points straight
+    const cp1x = sx + (tx - sx) * 0.25;
+    const cp1y = sy + (ty - sy) * 0.25;
+    const cp2x = sx + (tx - sx) * 0.75;
+    const cp2y = sy + (ty - sy) * 0.75;
+    const path = `M ${sx},${sy} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${tx},${ty}`;
+    return [path, mx, my] as [string, number, number];
+  }, [sx, sy, tx, ty]);
 
   const storedControlPoints = data?.controlPoints ?? [];
   const controlPoints = draftPoints ?? storedControlPoints;
@@ -396,9 +441,8 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     const floatTgt = (targetNode && getNodeIntersectionToward(targetNode, raw[raw.length - 2])) ?? raw[raw.length - 1];
 
     const points = [floatSrc, ...raw.slice(1, -1), floatTgt];
-    // curveCatmullRomOpen drops first/last curve segments — pad with duplicate endpoints
-    const padded = [points[0], ...points, points[points.length - 1]];
-    const path = smoothPath(padded);
+    // Rounded polyline: no loops, no overshooting — just lines with rounded corners
+    const path = roundedPolylinePath(points);
     const labelPoint = data.labelPos ?? midpoint(points);
     return path ? { path, labelPoint } : undefined;
   }, [data?.pathType, data?.layoutPoints, data?.labelPos, sourceNode, targetNode]);

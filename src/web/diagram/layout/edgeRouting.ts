@@ -284,7 +284,7 @@ function computeWaypoints(
   }
 
   // If the direct line doesn't cross any intermediate node, use default bezier
-  if (!lineIntersectsAnyRect(sourcePort, targetPort, intermediateRects)) {
+  if (!corridorIntersectsAnyRect(sourcePort, targetPort, intermediateRects)) {
     return [sourcePort, targetPort];
   }
 
@@ -360,46 +360,33 @@ function hasHook(points: ReadonlyArray<Point>, isHorizontal: boolean): boolean {
 }
 
 /**
- * Check if a line segment from `a` to `b` intersects any node rectangle.
- * Uses a simple AABB test against the bezier's bounding box (the straight line).
+ * Check if any node rectangle falls within the corridor between `a` and `b`.
+ * The corridor accounts for bezier curve bulge — it's the bounding box of
+ * the line expanded by the bezier's typical offset on the cross axis.
  */
-function lineIntersectsAnyRect(
+function corridorIntersectsAnyRect(
   a: Point,
   b: Point,
   rects: ReadonlyArray<NodeRect>
 ): boolean {
-  const margin = 5;
+  // The corridor is the bounding box of the line, expanded on the cross axis
+  // to account for bezier curve bulge (roughly 1/3 of the main-axis distance)
+  const mainDist = Math.abs(b.y - a.y);
+  const crossDist = Math.abs(b.x - a.x);
+  const bulge = Math.max(mainDist, crossDist) * 0.35;
+
+  const minX = Math.min(a.x, b.x) - bulge;
+  const maxX = Math.max(a.x, b.x) + bulge;
+  const minY = Math.min(a.y, b.y);
+  const maxY = Math.max(a.y, b.y);
+
   for (const r of rects) {
-    const rLeft = r.x - margin;
-    const rRight = r.x + r.width + margin;
-    const rTop = r.y - margin;
-    const rBottom = r.y + r.height + margin;
-
-    // Liang-Barsky line-rectangle intersection
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const p = [-dx, dx, -dy, dy];
-    const q = [a.x - rLeft, rRight - a.x, a.y - rTop, rBottom - a.y];
-
-    let tMin = 0;
-    let tMax = 1;
-    let skip = false;
-
-    for (let i = 0; i < 4; i++) {
-      if (p[i] === 0) {
-        if (q[i] < 0) { skip = true; break; }
-      } else {
-        const t = q[i] / p[i];
-        if (p[i] < 0) {
-          tMin = Math.max(tMin, t);
-        } else {
-          tMax = Math.min(tMax, t);
-        }
-        if (tMin > tMax) { skip = true; break; }
-      }
-    }
-
-    if (!skip && tMin <= tMax) return true;
+    // AABB overlap test: corridor vs node rect
+    if (r.x + r.width < minX) continue;
+    if (r.x > maxX) continue;
+    if (r.y + r.height < minY) continue;
+    if (r.y > maxY) continue;
+    return true;
   }
   return false;
 }
