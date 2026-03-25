@@ -25,6 +25,7 @@ export interface LayoutResult {
     readonly width: number;
     readonly height: number;
   };
+  readonly layers?: ReadonlyArray<ReadonlyArray<string>>;
 }
 
 export type NodeWithLayer = {

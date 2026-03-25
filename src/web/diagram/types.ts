@@ -65,6 +65,7 @@ export type RelationshipEdgeData = {
   flowCurrent?: boolean;
   originalEdgeIds?: string[];
   flowTick?: number;
+  pathType?: 'smooth';
 };
 
 export type ElementNodeType = Node<ElementNodeData, 'element'>;

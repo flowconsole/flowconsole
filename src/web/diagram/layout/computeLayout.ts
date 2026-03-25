@@ -4,6 +4,7 @@ import { DEFAULT_LAYOUT_CONFIG } from './types';
 import { assignLayers } from './layerAssignment';
 import { reduceCrossings } from './crossingReduction';
 import { assignCoordinates } from './coordinateAssignment';
+import { routeEdges } from './edgeRouting';
 
 /**
  * Compute layout positions for a flat set of nodes (one drill-down level).
@@ -30,6 +31,9 @@ export function computeLayout(
   const orderedLayers = reduceCrossings(rawLayers, adjacency, reverseAdjacency);
   const { positions, bounds } = assignCoordinates(orderedLayers, model, effectiveConfig);
 
+  // Stage 4: Edge routing — compute waypoints that avoid nodes
+  const routedEdgeMap = routeEdges(positions, model.edges, orderedLayers, effectiveConfig);
+
   const nodes = model.nodes.map((node) => {
     const pos = positions.get(node.id);
     if (!pos) return node;
@@ -44,5 +48,14 @@ export function computeLayout(
     };
   });
 
-  return { nodes, edges: model.edges, bounds };
+  const edges = model.edges.map((edge) => {
+    const routed = routedEdgeMap.get(edge.id);
+    if (!routed) return edge;
+    return {
+      ...edge,
+      data: { ...edge.data, ...routed },
+    };
+  });
+
+  return { nodes, edges, bounds, layers: orderedLayers };
 }

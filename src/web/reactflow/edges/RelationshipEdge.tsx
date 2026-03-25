@@ -56,6 +56,30 @@ function resolveAnchorPoint(
   }
 }
 
+// Returns the intersection point of a ray from node center toward a target point
+// with the node's bounding rectangle.
+function getNodeIntersectionToward(
+  node: InternalNodeInstance,
+  toward: Point
+): Point | undefined {
+  const w = node.measured?.width;
+  const h = node.measured?.height;
+  if (!w || !h) return undefined;
+  const pos = node.internals.positionAbsolute;
+  const cx = pos.x + w / 2;
+  const cy = pos.y + h / 2;
+  const dx = toward.x - cx;
+  const dy = toward.y - cy;
+  if (dx === 0 && dy === 0) return { x: cx, y: pos.y + h }; // fallback: bottom center
+  const hw = w / 2;
+  const hh = h / 2;
+  // Scale factor to reach rectangle boundary
+  const sx = dx !== 0 ? hw / Math.abs(dx) : Infinity;
+  const sy = dy !== 0 ? hh / Math.abs(dy) : Infinity;
+  const s = Math.min(sx, sy);
+  return { x: cx + dx * s, y: cy + dy * s };
+}
+
 // this helper function returns the intersection point
 // of the line between the center of the intersectionNode and the target node
 function getNodeIntersection(
@@ -73,15 +97,15 @@ function getNodeIntersection(
   if (!intersectionNodeWidth || !intersectionNodeHeight || !targetWidth || !targetHeight) {
     return targetPosition;
   }
- 
+
   const w = intersectionNodeWidth / 2;
   const h = intersectionNodeHeight / 2;
- 
+
   const x2 = intersectionNodePosition.x + w;
   const y2 = intersectionNodePosition.y + h;
   const x1 = targetPosition.x + targetWidth / 2;
   const y1 = targetPosition.y + targetHeight / 2;
- 
+
   const xx1 = (x1 - x2) / (2 * w) - (y1 - y2) / (2 * h);
   const yy1 = (x1 - x2) / (2 * w) + (y1 - y2) / (2 * h);
   const a = 1 / (Math.abs(xx1) + Math.abs(yy1));
@@ -89,7 +113,7 @@ function getNodeIntersection(
   const yy3 = a * yy1;
   const x = w * (xx3 + yy3) + x2;
   const y = h * (-xx3 + yy3) + y2;
- 
+
   return { x, y };
 }
 
@@ -188,6 +212,7 @@ function smoothPath(points: Point[] | undefined) {
   if (!points || points.length < 2) return undefined;
   return catmullRomLine(points) ?? undefined;
 }
+
 
 function distance(a: Point, b: Point) {
   return Math.hypot(b.x - a.x, b.y - a.y);
@@ -346,7 +371,9 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   const manualPath = useMemo(() => {
     if (!controlPoints.length) return undefined;
     const manualPoints = [{ x: sx, y: sy }, ...controlPoints, { x: tx, y: ty }];
-    const path = smoothPath(manualPoints);
+    // Pad endpoints for curveCatmullRomOpen which drops first/last segments
+    const padded = [manualPoints[0], ...manualPoints, manualPoints[manualPoints.length - 1]];
+    const path = smoothPath(padded);
     const labelPoint = midpoint(manualPoints);
     return path
       ? {
@@ -356,10 +383,31 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
       : undefined;
   }, [controlPoints, sx, sy, tx, ty]);
 
+  // Smooth routed path (from edgeRouting pipeline)
+  // Uses floating anchor points: ray from node center toward the edge's direction
+  const smoothRoutedPath = useMemo(() => {
+    if (data?.pathType !== 'smooth' || !data?.layoutPoints?.length) return undefined;
+    const raw = data.layoutPoints;
+    if (raw.length < 4) return undefined;
+
+    // Floating source: intersection of node boundary with ray toward second waypoint
+    const floatSrc = (sourceNode && getNodeIntersectionToward(sourceNode, raw[1])) ?? raw[0];
+    // Floating target: intersection of node boundary with ray toward second-to-last waypoint
+    const floatTgt = (targetNode && getNodeIntersectionToward(targetNode, raw[raw.length - 2])) ?? raw[raw.length - 1];
+
+    const points = [floatSrc, ...raw.slice(1, -1), floatTgt];
+    // curveCatmullRomOpen drops first/last curve segments — pad with duplicate endpoints
+    const padded = [points[0], ...points, points[points.length - 1]];
+    const path = smoothPath(padded);
+    const labelPoint = data.labelPos ?? midpoint(points);
+    return path ? { path, labelPoint } : undefined;
+  }, [data?.pathType, data?.layoutPoints, data?.labelPos, sourceNode, targetNode]);
+
   const graphvizPoints = useMemo(() => {
+    if (data?.pathType === 'smooth') return undefined; // handled above
     if (!data?.layoutPoints?.length) return undefined;
     return normalizeGraphvizPoints(data.layoutPoints, { x: sx, y: sy }, { x: tx, y: ty });
-  }, [data?.layoutPoints, sx, sy, tx, ty]);
+  }, [data?.pathType, data?.layoutPoints, sx, sy, tx, ty]);
 
   const graphvizPath = useMemo(
     () => bezierPathFromGraphviz(graphvizPoints),
@@ -367,17 +415,18 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   );
 
   const graphvizLabel = useMemo(() => {
+    if (data?.pathType === 'smooth') return undefined;
     if (!data?.labelPos) return undefined;
     if (!data?.layoutPoints?.length) return data.labelPos;
     const base = data.layoutPoints[0];
     const dx = sx - (base?.x ?? sx);
     const dy = sy - (base?.y ?? sy);
     return { x: data.labelPos.x + dx, y: data.labelPos.y + dy };
-  }, [data?.labelPos, data?.layoutPoints, sx, sy]);
+  }, [data?.pathType, data?.labelPos, data?.layoutPoints, sx, sy]);
 
-  const resolvedPath = manualPath?.path ?? graphvizPath ?? fallbackPath;
+  const resolvedPath = manualPath?.path ?? smoothRoutedPath?.path ?? graphvizPath ?? fallbackPath;
   const resolvedLabelPoint =
-    manualPath?.labelPoint ?? graphvizLabel ?? { x: fallbackLabelX, y: fallbackLabelY };
+    manualPath?.labelPoint ?? smoothRoutedPath?.labelPoint ?? graphvizLabel ?? { x: fallbackLabelX, y: fallbackLabelY };
 
   const stroke = relationshipStroke(data?.kind);
   const currentStroke = hovered ? stroke.activeStroke : stroke.stroke;

@@ -23,6 +23,8 @@ import './styles.css';
 import { FloatingConnectionLine } from '../reactflow/edges/FloatingConnectionLine';
 import { buildScopedModel, scopeTrail } from '../diagram/utils/scopedModel';
 import { computeLayout } from '../diagram/layout/computeLayout';
+import { routeEdges } from '../diagram/layout/edgeRouting';
+import { DEFAULT_LAYOUT_CONFIG } from '../diagram/layout/types';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
 
@@ -210,20 +212,70 @@ export function ArchitectureDiagram({
   }, []);
 
   const needsFitView = useRef(false);
+  const layoutLayersRef = useRef<ReadonlyArray<ReadonlyArray<string>>>([]);
+  const layoutEdgesRef = useRef<ReadonlyArray<ArchitectureEdge>>([]);
+
   useEffect(() => {
     const result = autoLayout
       ? computeLayout(modelToRender)
-      : { nodes: modelToRender.nodes, edges: modelToRender.edges };
+      : { nodes: modelToRender.nodes, edges: modelToRender.edges, layers: undefined };
     setNodes(result.nodes);
     setEdges(result.edges);
+    layoutLayersRef.current = result.layers ?? [];
+    layoutEdgesRef.current = modelToRender.edges;
     needsFitView.current = true;
   }, [modelToRender, autoLayout, setNodes, setEdges]);
 
+  // Re-route edges when nodes are dragged, avoiding obstacle nodes
+  const rerouteEdges = useCallback(
+    (updatedNodes: ArchitectureNode[]) => {
+      const layers = layoutLayersRef.current;
+      const originalEdges = layoutEdgesRef.current;
+      if (!layers.length || !originalEdges.length) return;
+
+      // Build position map from current node positions
+      const positions = new Map<string, { x: number; y: number; width: number; height: number }>();
+      for (const node of updatedNodes) {
+        const x = node.position?.x ?? 0;
+        const y = node.position?.y ?? 0;
+        const w = (node.measured?.width ?? (typeof node.style?.width === 'number' ? node.style.width : undefined)) ?? DEFAULT_LAYOUT_CONFIG.nodeWidth;
+        const h = (node.measured?.height ?? (typeof node.style?.height === 'number' ? node.style.height : undefined)) ?? DEFAULT_LAYOUT_CONFIG.nodeHeight;
+        positions.set(node.id, { x, y, width: w, height: h });
+      }
+
+      const routedMap = routeEdges(positions, originalEdges, layers, DEFAULT_LAYOUT_CONFIG);
+
+      setEdges((eds) =>
+        eds.map((edge) => {
+          const routed = routedMap.get(edge.id);
+          if (!routed) {
+            // Remove stale routing data if edge is no longer routed
+            if (edge.data?.pathType === 'smooth') {
+              const { layoutPoints: _, pathType: __, labelPos: ___, sourceAnchor: ____, targetAnchor: _____, ...restData } = edge.data ?? {};
+              return { ...edge, data: restData as typeof edge.data };
+            }
+            return edge;
+          }
+          return { ...edge, data: { ...edge.data, ...routed } };
+        })
+      );
+    },
+    [setEdges]
+  );
+
   const onNodesChange = useCallback(
     (changes: NodeChange<ArchitectureNode>[]) => {
-      setNodes((nds) => applyNodeChanges<ArchitectureNode>(changes, nds));
+      setNodes((nds) => {
+        const updated = applyNodeChanges<ArchitectureNode>(changes, nds);
+        // Re-route on position changes (drag)
+        const hasDrag = changes.some((c) => c.type === 'position' && c.dragging);
+        if (hasDrag) {
+          rerouteEdges(updated);
+        }
+        return updated;
+      });
     },
-    [setNodes]
+    [setNodes, rerouteEdges]
   );
 
   // --- Scope/focus transitions ---
@@ -425,7 +477,6 @@ export function ArchitectureDiagram({
     <>
       <ReactFlow
         className={`architecture-diagram theme-${effectiveScheme}${scopeTransition ? ' scope-transition' : ''}`}
-        fitView
         nodes={highlightedNodes}
         edges={highlightedEdges}
         onNodesChange={onNodesChange}
