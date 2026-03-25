@@ -30,18 +30,20 @@ export type RoutedEdge = {
 export function routeEdges(
   positions: PositionMap,
   edges: ReadonlyArray<ArchitectureEdge>,
-  layers: ReadonlyArray<ReadonlyArray<string>>,
+  _layers: ReadonlyArray<ReadonlyArray<string>>,
   config: LayoutConfig
 ): Map<string, RoutedEdge> {
   const result = new Map<string, RoutedEdge>();
-  if (layers.length === 0 || edges.length === 0) return result;
+  if (positions.size === 0 || edges.length === 0) return result;
 
   const isHorizontal = config.direction === 'RIGHT';
 
-  // Build node rects with layer info
+  // Recompute layers from current positions: cluster nodes by main-axis position
+  const dynamicLayers = computeDynamicLayers(positions, isHorizontal);
+
   const nodeLayerIndex = new Map<string, number>();
-  for (let i = 0; i < layers.length; i++) {
-    for (const id of layers[i]) {
+  for (let i = 0; i < dynamicLayers.length; i++) {
+    for (const id of dynamicLayers[i]) {
       nodeLayerIndex.set(id, i);
     }
   }
@@ -53,10 +55,10 @@ export function routeEdges(
   }
 
   // Build layer bounds: for each layer, the min/max main-axis extent of its nodes
-  const layerBounds = computeLayerBounds(nodeRects, layers.length, isHorizontal);
+  const layerBounds = computeLayerBounds(nodeRects, dynamicLayers.length, isHorizontal);
 
   // Compute channel midpoints between adjacent layers
-  const channels = computeChannels(layerBounds, layers.length);
+  const channels = computeChannels(layerBounds, dynamicLayers.length);
 
   // Group edges by which channels they traverse → assign distinct tracks
   // Only route multi-layer edges (skipping ≥1 layer) — adjacent/same-layer use default bezier
@@ -141,6 +143,48 @@ export function routeEdges(
 }
 
 // --- Internal helpers ---
+
+/**
+ * Recompute layers from current node positions by clustering nodes
+ * that overlap on the main axis into the same layer.
+ * Sorted by main-axis center position.
+ */
+function computeDynamicLayers(
+  positions: PositionMap,
+  isHorizontal: boolean
+): string[][] {
+  // Sort nodes by main-axis center
+  const entries = [...positions.entries()].map(([id, pos]) => {
+    const mainCenter = isHorizontal
+      ? pos.x + pos.width / 2
+      : pos.y + pos.height / 2;
+    const mainStart = isHorizontal ? pos.x : pos.y;
+    const mainEnd = isHorizontal ? pos.x + pos.width : pos.y + pos.height;
+    return { id, mainCenter, mainStart, mainEnd };
+  });
+  entries.sort((a, b) => a.mainCenter - b.mainCenter);
+
+  if (entries.length === 0) return [];
+
+  // Cluster: nodes whose main-axis extents overlap go in the same layer
+  const layers: string[][] = [[entries[0].id]];
+  let layerEnd = entries[0].mainEnd;
+
+  for (let i = 1; i < entries.length; i++) {
+    const e = entries[i];
+    if (e.mainStart < layerEnd) {
+      // Overlaps with current layer
+      layers[layers.length - 1].push(e.id);
+      layerEnd = Math.max(layerEnd, e.mainEnd);
+    } else {
+      // New layer
+      layers.push([e.id]);
+      layerEnd = e.mainEnd;
+    }
+  }
+
+  return layers;
+}
 
 type LayerBound = { readonly start: number; readonly end: number };
 
@@ -354,7 +398,7 @@ function hasHook(points: ReadonlyArray<Point>, isHorizontal: boolean): boolean {
     points[points.length - 1].x - points[0].x,
     points[points.length - 1].y - points[0].y
   );
-  if (directLen > 0 && routeLen / directLen > 2.5) return true;
+  if (directLen > 0 && routeLen / directLen > 5) return true;
 
   return false;
 }
@@ -373,7 +417,7 @@ function corridorIntersectsAnyRect(
   // to account for bezier curve bulge (roughly 1/3 of the main-axis distance)
   const mainDist = Math.abs(b.y - a.y);
   const crossDist = Math.abs(b.x - a.x);
-  const bulge = Math.max(mainDist, crossDist) * 0.35;
+  const bulge = Math.max(mainDist, crossDist) * 0.15;
 
   const minX = Math.min(a.x, b.x) - bulge;
   const maxX = Math.max(a.x, b.x) + bulge;

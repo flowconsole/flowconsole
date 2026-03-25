@@ -1,6 +1,7 @@
 import {
   BaseEdge,
   EdgeLabelRenderer,
+  getBezierPath,
   Position,
   useInternalNode,
   useReactFlow,
@@ -24,7 +25,7 @@ const catmullRomLine = line<Point>()
  * At each intermediate point, replaces the sharp corner with a quadratic
  * bezier arc of the given radius. Guaranteed no loops or overshooting.
  */
-function roundedPolylinePath(points: Point[], radius = 20): string | undefined {
+function roundedPolylinePath(points: Point[], radius = 50): string | undefined {
   if (points.length < 2) return undefined;
   if (points.length === 2) {
     return `M ${Math.round(points[0].x)},${Math.round(points[0].y)} L ${Math.round(points[1].x)},${Math.round(points[1].y)}`;
@@ -399,16 +400,15 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
   const tx = targetAnchorPoint?.x ?? fallbackGeometry.tx;
   const ty = targetAnchorPoint?.y ?? fallbackGeometry.ty;
   const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(() => {
-    const mx = (sx + tx) / 2;
-    const my = (sy + ty) / 2;
-    // Straight line as cubic bezier — control points on the line = arrow points straight
-    const cp1x = sx + (tx - sx) * 0.25;
-    const cp1y = sy + (ty - sy) * 0.25;
-    const cp2x = sx + (tx - sx) * 0.75;
-    const cp2y = sy + (ty - sy) * 0.75;
-    const path = `M ${sx},${sy} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${tx},${ty}`;
-    return [path, mx, my] as [string, number, number];
-  }, [sx, sy, tx, ty]);
+    return getBezierPath({
+      sourceX: sx,
+      sourceY: sy,
+      targetX: tx,
+      targetY: ty,
+      sourcePosition: fallbackGeometry.sourcePos,
+      targetPosition: fallbackGeometry.targetPos,
+    });
+  }, [sx, sy, tx, ty, fallbackGeometry.sourcePos, fallbackGeometry.targetPos]);
 
   const storedControlPoints = data?.controlPoints ?? [];
   const controlPoints = draftPoints ?? storedControlPoints;
