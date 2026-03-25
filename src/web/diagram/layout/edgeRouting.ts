@@ -310,14 +310,54 @@ function computeWaypoints(
     return [sourcePort, targetPort];
   }
 
-  return [
+  const waypoints = [
     sourcePort,
     toPoint(srcChMain, gapCross),
     toPoint(tgtChMain, gapCross),
     targetPort,
   ];
+
+  // Detect hooks: if the routed path is much longer than the direct line,
+  // or if it reverses direction (non-monotonic in main axis), skip routing
+  if (hasHook(waypoints, isHorizontal)) {
+    return [sourcePort, targetPort];
+  }
+
+  return waypoints;
 }
 
+
+/**
+ * Detect if waypoints form a "hook" — the path reverses direction on the main axis
+ * or takes a detour more than 2x the direct distance.
+ */
+function hasHook(points: ReadonlyArray<Point>, isHorizontal: boolean): boolean {
+  if (points.length < 3) return false;
+
+  // Check monotonicity on main axis: path should not reverse direction
+  const mainValues = points.map((p) => isHorizontal ? p.x : p.y);
+  const totalDir = Math.sign(mainValues[mainValues.length - 1] - mainValues[0]);
+  if (totalDir !== 0) {
+    for (let i = 1; i < mainValues.length; i++) {
+      const segDir = Math.sign(mainValues[i] - mainValues[i - 1]);
+      // Reversal on main axis = hook
+      if (segDir !== 0 && segDir !== totalDir) return true;
+    }
+  }
+
+  // Check detour ratio: routed length vs direct distance
+  let routeLen = 0;
+  for (let i = 1; i < points.length; i++) {
+    routeLen += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  }
+  const directLen = Math.hypot(
+    points[points.length - 1].x - points[0].x,
+    points[points.length - 1].y - points[0].y
+  );
+  if (directLen > 0 && routeLen / directLen > 2.5) return true;
+
+  return false;
+}
 
 /**
  * Check if a line segment from `a` to `b` intersects any node rectangle.
