@@ -532,26 +532,26 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
         <defs>
           <marker
             id={`${id}-end`}
-            markerWidth="18"
-            markerHeight="18"
-            refX="9"
-            refY="6"
+            markerWidth={hovered ? 18 : 12}
+            markerHeight={hovered ? 18 : 12}
+            refX={hovered ? 9 : 6}
+            refY={hovered ? 6 : 4}
             orient="auto"
             markerUnits="userSpaceOnUse"
           >
-            <path d="M2,2 L10,6 L2,10 Z" fill={currentStroke} />
+            <path d={hovered ? 'M2,2 L10,6 L2,10 Z' : 'M1,1 L7,4 L1,7 Z'} fill={currentStroke} />
           </marker>
           {direction === 'both' ? (
             <marker
               id={`${id}-start`}
-              markerWidth="18"
-              markerHeight="18"
-              refX="9"
-              refY="6"
+              markerWidth={hovered ? 18 : 12}
+              markerHeight={hovered ? 18 : 12}
+              refX={hovered ? 9 : 6}
+              refY={hovered ? 6 : 4}
               orient="auto-start-reverse"
               markerUnits="userSpaceOnUse"
             >
-              <path d="M2,2 L10,6 L2,10 Z" fill={currentStroke} />
+              <path d={hovered ? 'M2,2 L10,6 L2,10 Z' : 'M1,1 L7,4 L1,7 Z'} fill={currentStroke} />
             </marker>
           ) : null}
         </defs>
@@ -563,7 +563,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
         markerEnd={markerEnd}
         markerStart={markerStart}
         style={{
-          strokeWidth: 2.4,
+          strokeWidth: hovered ? 2.4 : 1.2,
           stroke: currentStroke,
           strokeDasharray: stroke.strokeDasharray,
           ...animatedStyle,
@@ -597,7 +597,7 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
       {(data?.label || data?.detail || hasIcon) && (
         <EdgeLabelRenderer>
           <div
-            className="relationship-label"
+            className={`relationship-label${hovered ? ' relationship-label--visible' : ''}`}
             style={{
               transform: `translate(-50%, -50%) translate(${resolvedLabelPoint.x + offsetX}px, ${
                 resolvedLabelPoint.y + offsetY

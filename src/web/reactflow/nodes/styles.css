@@ -4,11 +4,11 @@
   height: 100%;
   width: 100%;
   padding: 5px 5px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
   border: 1px solid var(--diagram-border);
   border-radius: 14px;
   box-shadow: var(--diagram-card-shadow);
-  background: rgba(58, 58, 58, 0.288);
+  background: var(--diagram-container-bg);
+  color: var(--diagram-text);
 }
 
 .diagram-container__header {
@@ -421,14 +421,22 @@
   background: var(--diagram-panel);
   border: 1px solid var(--diagram-border);
   color: var(--diagram-text);
-  padding: 6px 10px;
-  border-radius: 10px;
+  padding: 3px 7px;
+  border-radius: 8px;
   display: inline-flex;
-  gap: 8px;
+  gap: 5px;
   align-items: center;
-  font-size: 12px;
+  font-size: 11px;
   box-shadow: var(--diagram-card-shadow);
   z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, border-color 200ms ease;
+}
+
+.relationship-label--visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .hidden-handle {

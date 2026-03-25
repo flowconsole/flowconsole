@@ -175,11 +175,11 @@ function SearchItem({ item, level, activeId, onSelect, query, expanded, onToggle
         borderRadius: 10,
         background:
           activeId === item.id
-            ? 'rgba(59,130,246,0.14)'
+            ? 'var(--navpanel-item-active)'
             : hovered
               ? 'var(--navpanel-item-hover)'
-              : 'rgba(255,255,255,0.02)',
-        border: activeId === item.id ? '1px solid rgba(59,130,246,0.4)' : '1px solid rgba(255,255,255,0.05)',
+              : 'transparent',
+        border: activeId === item.id ? '1px solid var(--navpanel-item-active-border)' : '1px solid var(--navpanel-border)',
         marginLeft: level * 14,
         cursor: 'pointer',
       }}

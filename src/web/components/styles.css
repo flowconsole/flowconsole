@@ -10,10 +10,12 @@
   --diagram-warning: #eab308;
   --diagram-danger: #ef4444;
   --diagram-muted: #64748b;
+  --diagram-container-bg: rgba(58, 58, 58, 0.29);
   --diagram-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
-:root[data-theme='light'] {
+:root[data-theme='light'],
+:root.light {
   --diagram-bg: #f6f8fb;
   --diagram-panel: #ffffff;
   --diagram-border: #dce3ed;
@@ -25,6 +27,7 @@
   --diagram-warning: #ca8a04;
   --diagram-danger: #dc2626;
   --diagram-muted: #94a3b8;
+  --diagram-container-bg: rgba(226, 232, 240, 0.45);
   --diagram-card-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 

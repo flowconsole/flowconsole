@@ -6,7 +6,6 @@ import { NavigationPanelDropdown } from './NavigationPanelDropdown';
 import SearchOverlay from './SearchOverlay';
 import type { ArchitectureNode, ArchitectureDiagramModel, FlowDefinition } from '../../diagram/types';
 import { useHoverPopover, useNavigationHistory } from '../../hooks/hooks';
-import type { ThemeControls } from '../../types/theme';
 import './styles.css';
 
 export type NavigationItem = {
@@ -33,7 +32,6 @@ type Props = {
   onFlowStepChange?: (step: number) => void;
   onNavigate?: (id: string) => void;
   onToggleFlowPanel?: () => void;
-  themeControls?: ThemeControls;
 };
 
 function shouldIncludeInTree(node: ArchitectureNode) {
@@ -129,7 +127,6 @@ export function NavigationPanel({
   viewDescription,
   onNavigate,
   onToggleFlowPanel,
-  themeControls,
 }: Props) {
   const { roots, index } = useMemo(() => buildNavigationTree(model), [model]);
   const flat = useMemo(() => collectFlat(roots), [roots]);
@@ -243,7 +240,6 @@ export function NavigationPanel({
               onOpenFlows={() => onToggleFlowPanel?.()}
               onTitleHoverStart={hoverPopover.openByHover}
               onTitleHoverEnd={hoverPopover.closeByHover}
-              themeControls={themeControls}
             />
           </div>
         </Popover.Target>

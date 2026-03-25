@@ -4,9 +4,32 @@
   height: 100%;
   padding: 12px;
   gap: 12px;
-  background: #0b1120;
-  color: #f0f4ff;
+  background: var(--wb-bg);
+  color: var(--wb-text);
   width: 100%;
+
+  --wb-bg: #0b1120;
+  --wb-text: #f0f4ff;
+  --wb-text-muted: #94a3b8;
+  --wb-label: #cbd5f5;
+  --wb-input-bg: #0f172a;
+  --wb-border: #1f2937;
+  --wb-error-bg: #2b0d0d;
+  --wb-error-border: #7f1d1d;
+  --wb-error-text: #fecaca;
+}
+
+:root[data-theme='light'] .code-pane,
+:root.light .code-pane {
+  --wb-bg: #f8fafc;
+  --wb-text: #0f172a;
+  --wb-text-muted: #475569;
+  --wb-label: #334155;
+  --wb-input-bg: #ffffff;
+  --wb-border: #e2e8f0;
+  --wb-error-bg: #fef2f2;
+  --wb-error-border: #fecaca;
+  --wb-error-text: #991b1b;
 }
 
 .code-pane__header {
@@ -21,13 +44,13 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #cbd5f5;
+  color: var(--wb-label);
 }
 
 .code-pane__header p {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--wb-text-muted);
 }
 
 .code-pane__sample-picker {
@@ -35,14 +58,14 @@
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #cbd5f5;
+  color: var(--wb-label);
 }
 
 .code-pane__sample-picker select {
-  background: #0f172a;
-  border: 1px solid #1f2937;
+  background: var(--wb-input-bg);
+  border: 1px solid var(--wb-border);
   border-radius: 8px;
-  color: #f8fafc;
+  color: var(--wb-text);
   padding: 6px 10px;
   font-size: 13px;
 }
@@ -50,7 +73,7 @@
 .code-pane__sample-description {
   margin: 0;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--wb-text-muted);
 }
 
 .code-pane__editor {
@@ -58,16 +81,16 @@
   min-height: 0;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--wb-border);
 }
 
 .code-pane__error {
-  background: #2b0d0d;
-  border: 1px solid #7f1d1d;
+  background: var(--wb-error-bg);
+  border: 1px solid var(--wb-error-border);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: 12px;
-  color: #fecaca;
+  color: var(--wb-error-text);
 }
 
 .code-pane__error pre {
@@ -79,7 +102,7 @@
 .diagram-pane {
   position: relative;
   height: 100%;
-  background: #020617;
+  background: var(--diagram-bg);
 }
 
 .diagram-pane__canvas {
@@ -101,18 +124,17 @@
 }
 
 .progress-card {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: var(--diagram-panel);
+  border: 1px solid var(--diagram-border);
   border-radius: 16px;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  color: #f8fafc;
+  color: var(--diagram-text);
   min-width: 220px;
-  box-shadow: 0 20px 70px rgba(2, 6, 23, 0.7);
+  box-shadow: var(--diagram-card-shadow);
 }
-
 .progress-card__spinner {
   width: 36px;
   height: 36px;

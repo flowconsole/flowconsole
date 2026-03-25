@@ -186,11 +186,11 @@ export function ArchitectureDiagram({
         className: isConnected ? 'highlight-active' : 'highlight-dimmed',
         data: {
           ...edge.data,
-          hovered: isConnected && highlight.hoveredEdgeId === edge.id,
+          hovered: isConnected,
         },
       };
     });
-  }, [edges, isHighlightActive, highlight.connectedEdgeIds, highlight.hoveredEdgeId]);
+  }, [edges, isHighlightActive, highlight.connectedEdgeIds]);
 
   // --- Layout computation ---
   useEffect(() => {
@@ -381,14 +381,22 @@ export function ArchitectureDiagram({
     [findClosestContainer, nodeIndex, scopeId]
   );
 
-  // Click ghost node → navigate to its parent scope
+  // Click ghost node → navigate to the scope where the original node lives
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: ArchitectureNode) => {
-      if (node.data.ghost && node.data.ghostParentId) {
-        setScopeId(node.data.ghostParentId);
+      if (!node.data.ghost) return;
+      const originalId = node.id.replace(/^ghost:/, '');
+      const original = nodeIndex.get(originalId);
+      if (!original) return;
+      // Container ghost → drill into that container
+      if (original.type === 'container') {
+        setScopeId(originalId);
+      } else {
+        // Element ghost → go to its parent container
+        setScopeId(original.parentId);
       }
     },
-    []
+    [nodeIndex]
   );
 
   // --- Theme ---
@@ -466,7 +474,6 @@ export function ArchitectureDiagram({
           onFlowStepChange={(step: number) => setActiveFlowStep(step)}
           onNavigate={handleNavigate}
           onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
-          themeControls={themeControls}
         />
 
         {/* Flow step panel */}

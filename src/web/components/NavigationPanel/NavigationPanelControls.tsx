@@ -1,7 +1,6 @@
 import { ActionIcon, Group, Text, Tooltip } from '../ui';
-import { IconArrowLeft, IconArrowRight, IconChevronRight, IconGitBranch, IconMoonStars, IconSearch, IconSunHigh } from '@tabler/icons-react';
+import { IconArrowLeft, IconArrowRight, IconChevronRight, IconGitBranch, IconSearch } from '@tabler/icons-react';
 import { isMacOs } from '@xyflow/system';
-import type { ThemeControls } from '../../types/theme';
 
 type Crumb = { id: string; title: string };
 
@@ -18,7 +17,6 @@ type Props = {
   activeId?: string;
   onTitleHoverStart?: () => void;
   onTitleHoverEnd?: () => void;
-  themeControls?: ThemeControls;
 };
 
 export function NavigationPanelControls({
@@ -34,15 +32,7 @@ export function NavigationPanelControls({
   activeId,
   onTitleHoverStart,
   onTitleHoverEnd,
-  themeControls,
 }: Props) {
-  const isDark = themeControls?.resolvedScheme === 'dark';
-  const themeLabel =
-    themeControls?.scheme === 'auto'
-      ? `Theme: System (${themeControls.resolvedScheme})`
-      : themeControls
-        ? `Theme: ${themeControls.scheme}`
-        : 'Theme';
   const isMac = isMacOs();
 
   return (
@@ -128,21 +118,6 @@ export function NavigationPanelControls({
               <IconGitBranch size={16} />
             </ActionIcon>
           </Tooltip>
-             
-          {themeControls ? (
-            <Tooltip label={`${themeLabel}. Click to cycle`} openDelay={300}>
-              <ActionIcon
-                variant="light"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  themeControls.toggleScheme();
-                }}
-                aria-label="Toggle theme"
-              >
-                {isDark ? <IconSunHigh size={16} /> : <IconMoonStars size={16} />}
-              </ActionIcon>
-            </Tooltip>
-          ) : null}
         </Group>
       </Group>
     </div>
