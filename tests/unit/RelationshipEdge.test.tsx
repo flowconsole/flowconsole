@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { getBezierPath, Position, useInternalNode, useReactFlow } from '@xyflow/react';
+import { Position, useInternalNode, useReactFlow } from '@xyflow/react';
 import { RelationshipEdge } from '../../src/web/reactflow/edges/RelationshipEdge';
 
 vi.mock('@xyflow/react', () => {
@@ -87,7 +87,6 @@ describe('RelationshipEdge', () => {
 
   let nodes: Record<string, any>;
   const useInternalNodeMock = vi.mocked(useInternalNode);
-  const getBezierPathMock = vi.mocked(getBezierPath);
   const reactFlow = useReactFlow() as any;
 
   beforeEach(() => {
@@ -100,7 +99,6 @@ describe('RelationshipEdge', () => {
       }
     });
     reactFlow.screenToFlowPosition.mockImplementation(({ x, y }: { x: number; y: number }) => ({ x, y }));
-    getBezierPathMock.mockReturnValue(['bezier-path', 10, 20]);
   });
 
   const renderEdge = (data: EdgeData = {}, extra: Partial<typeof baseProps> = {}) =>

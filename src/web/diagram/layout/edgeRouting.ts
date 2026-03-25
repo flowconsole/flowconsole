@@ -88,7 +88,9 @@ export function routeEdges(
     layerNodeRects.set(rect.layer, list);
   }
 
-  // Route each edge
+  // Route each edge — first pass: compute raw waypoints
+  const rawRoutes = new Map<string, { waypoints: Point[]; edge: ArchitectureEdge; srcLayer: number; tgtLayer: number }>();
+
   for (const edge of edges) {
     if (edge.source === edge.target) continue;
     const srcPos = positions.get(edge.source);
@@ -108,9 +110,17 @@ export function routeEdges(
       isHorizontal
     );
 
-    // Skip edges with fewer than 4 waypoints — Catmull-Rom needs ≥4 points.
-    // For straight or near-straight edges, the fallback bezier in RelationshipEdge works fine.
     if (waypoints.length < 4) continue;
+    rawRoutes.set(edge.id, { waypoints, edge, srcLayer, tgtLayer });
+  }
+
+  // Second pass: bundle edges with similar mid-corridor cross positions
+  bundleEdges(rawRoutes, isHorizontal);
+
+  // Third pass: emit results
+  for (const [edgeId, { waypoints, srcLayer, tgtLayer }] of rawRoutes) {
+    const srcPos = positions.get(rawRoutes.get(edgeId)!.edge.source)!;
+    const tgtPos = positions.get(rawRoutes.get(edgeId)!.edge.target)!;
 
     const sourcePort = waypoints[0];
     const targetPort = waypoints[waypoints.length - 1];
@@ -130,7 +140,7 @@ export function routeEdges(
 
     const labelPos = computeLabelPos(waypoints);
 
-    result.set(edge.id, {
+    result.set(edgeId, {
       layoutPoints: waypoints,
       sourceAnchor,
       targetAnchor,
@@ -143,6 +153,124 @@ export function routeEdges(
 }
 
 // --- Internal helpers ---
+
+/**
+ * Bundle edges: snap similar mid-corridor cross positions AND
+ * merge nearby source/target ports on the same node.
+ * Mutates waypoints in-place.
+ */
+function bundleEdges(
+  routes: Map<string, { waypoints: Point[]; edge: ArchitectureEdge; srcLayer: number; tgtLayer: number }>,
+  isHorizontal: boolean
+): void {
+  const midThreshold = 60;
+  const portThreshold = 30;
+
+  // --- 1. Bundle mid-corridor cross positions ---
+  const edgeMids: Array<{ id: string; cross: number }> = [];
+  for (const [id, { waypoints }] of routes) {
+    const inner = waypoints.slice(1, -1);
+    if (inner.length === 0) continue;
+    const avg = inner.reduce((s, p) => s + (isHorizontal ? p.y : p.x), 0) / inner.length;
+    edgeMids.push({ id, cross: avg });
+  }
+
+  edgeMids.sort((a, b) => a.cross - b.cross);
+
+  const groups: Array<{ ids: string[]; sum: number }> = [];
+  for (const em of edgeMids) {
+    const last = groups[groups.length - 1];
+    if (last && Math.abs(em.cross - last.sum / last.ids.length) < midThreshold) {
+      last.ids.push(em.id);
+      last.sum += em.cross;
+    } else {
+      groups.push({ ids: [em.id], sum: em.cross });
+    }
+  }
+
+  for (const group of groups) {
+    if (group.ids.length < 2) continue;
+    const sharedCross = group.sum / group.ids.length;
+    for (const id of group.ids) {
+      const route = routes.get(id);
+      if (!route) continue;
+      const { waypoints } = route;
+      for (let i = 1; i < waypoints.length - 1; i++) {
+        waypoints[i] = isHorizontal
+          ? { x: waypoints[i].x, y: sharedCross }
+          : { x: sharedCross, y: waypoints[i].y };
+      }
+    }
+  }
+
+  // --- 2. Bundle nearby ports on the same node ---
+  // Group edges by source node, then snap close source ports together.
+  // Same for target node.
+  bundlePorts(routes, 'source', portThreshold);
+  bundlePorts(routes, 'target', portThreshold);
+}
+
+/** Snap nearby ports on the same node to a shared position. */
+function bundlePorts(
+  routes: Map<string, { waypoints: Point[]; edge: ArchitectureEdge; srcLayer: number; tgtLayer: number }>,
+  end: 'source' | 'target',
+  threshold: number
+): void {
+  // Group by node id
+  const byNode = new Map<string, string[]>();
+  for (const [id, { edge }] of routes) {
+    const nodeId = end === 'source' ? edge.source : edge.target;
+    const list = byNode.get(nodeId) ?? [];
+    list.push(id);
+    byNode.set(nodeId, list);
+  }
+
+  for (const edgeIds of byNode.values()) {
+    if (edgeIds.length < 2) continue;
+
+    // Get port points
+    const ports = edgeIds.map((id) => {
+      const wp = routes.get(id)!.waypoints;
+      const pt = end === 'source' ? wp[0] : wp[wp.length - 1];
+      return { id, x: pt.x, y: pt.y };
+    });
+
+    // Sort by distance from centroid for stable clustering
+    ports.sort((a, b) => {
+      const d = a.x - b.x;
+      return d !== 0 ? d : a.y - b.y;
+    });
+
+    // Greedy cluster
+    const clusters: Array<{ ids: string[]; sumX: number; sumY: number }> = [];
+    for (const p of ports) {
+      const last = clusters[clusters.length - 1];
+      if (last) {
+        const avgX = last.sumX / last.ids.length;
+        const avgY = last.sumY / last.ids.length;
+        if (Math.hypot(p.x - avgX, p.y - avgY) < threshold) {
+          last.ids.push(p.id);
+          last.sumX += p.x;
+          last.sumY += p.y;
+          continue;
+        }
+      }
+      clusters.push({ ids: [p.id], sumX: p.x, sumY: p.y });
+    }
+
+    // Snap ports in each cluster
+    for (const cluster of clusters) {
+      if (cluster.ids.length < 2) continue;
+      const sharedX = cluster.sumX / cluster.ids.length;
+      const sharedY = cluster.sumY / cluster.ids.length;
+      for (const id of cluster.ids) {
+        const wp = routes.get(id)!.waypoints;
+        const idx = end === 'source' ? 0 : wp.length - 1;
+        wp[idx] = { x: sharedX, y: sharedY };
+      }
+    }
+  }
+}
 
 /**
  * Recompute layers from current node positions by clustering nodes

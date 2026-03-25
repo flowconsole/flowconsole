@@ -1,7 +1,6 @@
 import {
   BaseEdge,
   EdgeLabelRenderer,
-  getBezierPath,
   Position,
   useInternalNode,
   useReactFlow,
@@ -349,8 +348,6 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     sourceY,
     targetX,
     targetY,
-    sourcePosition,
-    targetPosition,
   } = props;
 
   const [localHovered, setLocalHovered] = useState(false);
@@ -372,20 +369,8 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     };
   }, []);
 
-  const fallbackGeometry = useMemo(() => {
-    if (sourceNode && targetNode) {
-      return getEdgeParams(sourceNode, targetNode);
-    }
-    return {
-      sx: sourceX,
-      sy: sourceY,
-      tx: targetX,
-      ty: targetY,
-      sourcePos: sourcePosition ?? Position.Right,
-      targetPos: targetPosition ?? Position.Left,
-    };
-  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition]);
-
+  // Compute floating anchor points using the same algorithm for both
+  // routed and fallback paths — ray from node center toward the other node.
   const sourceAnchorPoint = useMemo(
     () => resolveAnchorPoint(sourceNode, data?.sourceAnchor),
     [sourceNode, data?.sourceAnchor]
@@ -395,20 +380,36 @@ export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
     [targetNode, data?.targetAnchor]
   );
 
-  const sx = sourceAnchorPoint?.x ?? fallbackGeometry.sx;
-  const sy = sourceAnchorPoint?.y ?? fallbackGeometry.sy;
-  const tx = targetAnchorPoint?.x ?? fallbackGeometry.tx;
-  const ty = targetAnchorPoint?.y ?? fallbackGeometry.ty;
+  const floatingGeometry = useMemo(() => {
+    // Use getNodeIntersectionToward for both source and target —
+    // same algorithm as routed edges, consistent anchor style.
+    const targetCenter: Point = targetNode
+      ? { x: targetNode.internals.positionAbsolute.x + (targetNode.measured?.width ?? 0) / 2,
+          y: targetNode.internals.positionAbsolute.y + (targetNode.measured?.height ?? 0) / 2 }
+      : { x: targetX, y: targetY };
+    const sourceCenter: Point = sourceNode
+      ? { x: sourceNode.internals.positionAbsolute.x + (sourceNode.measured?.width ?? 0) / 2,
+          y: sourceNode.internals.positionAbsolute.y + (sourceNode.measured?.height ?? 0) / 2 }
+      : { x: sourceX, y: sourceY };
+
+    const srcPt = (sourceNode && getNodeIntersectionToward(sourceNode, targetCenter)) ?? { x: sourceX, y: sourceY };
+    const tgtPt = (targetNode && getNodeIntersectionToward(targetNode, sourceCenter)) ?? { x: targetX, y: targetY };
+    return { sx: srcPt.x, sy: srcPt.y, tx: tgtPt.x, ty: tgtPt.y };
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY]);
+
+  const sx = sourceAnchorPoint?.x ?? floatingGeometry.sx;
+  const sy = sourceAnchorPoint?.y ?? floatingGeometry.sy;
+  const tx = targetAnchorPoint?.x ?? floatingGeometry.tx;
+  const ty = targetAnchorPoint?.y ?? floatingGeometry.ty;
+
+  // Fallback: straight line rendered as rounded polyline (consistent with routed paths)
   const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(() => {
-    return getBezierPath({
-      sourceX: sx,
-      sourceY: sy,
-      targetX: tx,
-      targetY: ty,
-      sourcePosition: fallbackGeometry.sourcePos,
-      targetPosition: fallbackGeometry.targetPos,
-    });
-  }, [sx, sy, tx, ty, fallbackGeometry.sourcePos, fallbackGeometry.targetPos]);
+    const pts: Point[] = [{ x: sx, y: sy }, { x: tx, y: ty }];
+    const path = roundedPolylinePath(pts) ?? `M ${sx},${sy} L ${tx},${ty}`;
+    const mx = (sx + tx) / 2;
+    const my = (sy + ty) / 2;
+    return [path, mx, my] as [string, number, number];
+  }, [sx, sy, tx, ty]);
 
   const storedControlPoints = data?.controlPoints ?? [];
   const controlPoints = draftPoints ?? storedControlPoints;
