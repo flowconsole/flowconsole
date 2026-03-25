@@ -474,11 +474,17 @@ export function ArchitectureDiagram({
           onFlowStepChange={(step: number) => setActiveFlowStep(step)}
           onNavigate={handleNavigate}
           onToggleFlowPanel={() => setFlowPanelVisible((v) => !v)}
+          scopeTrail={trail}
+          scopeId={scopeId}
+          parentScopeId={parentScopeId}
+          onGoUp={() => setScopeId(parentScopeId)}
+          onGoRoot={() => setScopeId(undefined)}
+          onGoToScope={(id: string) => setScopeId(id)}
         />
 
         {/* Flow step panel */}
         {flows.length && isFlowPanelVisible ? (
-          <Panel position="top-left" style={{ marginTop: 42 }}>
+          <Panel position="top-left" style={{ marginTop: 36 }}>
             <FlowStepPanel
               flows={flows}
               activeFlowId={activeFlowId}
@@ -495,19 +501,6 @@ export function ArchitectureDiagram({
         ) : null}
 
         <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
-
-        {/* Breadcrumbs */}
-        {scopeId ? (
-          <Panel position="top-right">
-            <Breadcrumbs
-              trail={trail}
-              parentScopeId={parentScopeId}
-              onGoUp={() => setScopeId(parentScopeId)}
-              onGoRoot={() => setScopeId(undefined)}
-              onGoTo={(id: string) => setScopeId(id)}
-            />
-          </Panel>
-        ) : null}
 
         <ViewportController
           focusTarget={pendingFocus}
@@ -584,91 +577,6 @@ function DiagramTooltip({ node, mousePos }: DiagramTooltipProps) {
         <div style={{ color: 'var(--diagram-primary)', fontStyle: 'italic' }}>
           Click to drill down
         </div>
-      ) : null}
-    </div>
-  );
-}
-
-// --- Breadcrumbs ---
-
-type BreadcrumbsProps = {
-  trail: ReadonlyArray<{ id: string; title: string }>;
-  parentScopeId?: string;
-  onGoUp: () => void;
-  onGoRoot: () => void;
-  onGoTo: (id: string) => void;
-};
-
-function Breadcrumbs({ trail, parentScopeId, onGoUp, onGoRoot, onGoTo }: BreadcrumbsProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 4,
-        alignItems: 'center',
-        background: 'var(--diagram-panel)',
-        color: 'var(--diagram-text)',
-        borderRadius: 12,
-        padding: '8px 12px',
-        border: '1px solid var(--diagram-border)',
-        boxShadow: 'var(--diagram-card-shadow)',
-        fontSize: 12,
-      }}
-    >
-      <button
-        onClick={onGoRoot}
-        style={{
-          border: 'none',
-          background: 'none',
-          color: 'var(--diagram-primary)',
-          cursor: 'pointer',
-          padding: '2px 4px',
-          borderRadius: 4,
-          fontWeight: 600,
-        }}
-      >
-        Root
-      </button>
-      {trail.map((item, idx) => {
-        const isLast = idx === trail.length - 1;
-        return (
-          <span key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ color: 'var(--diagram-text-muted)' }}>/</span>
-            {isLast ? (
-              <span style={{ fontWeight: 700 }}>{item.title}</span>
-            ) : (
-              <button
-                onClick={() => onGoTo(item.id)}
-                style={{
-                  border: 'none',
-                  background: 'none',
-                  color: 'var(--diagram-primary)',
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                  borderRadius: 4,
-                }}
-              >
-                {item.title}
-              </button>
-            )}
-          </span>
-        );
-      })}
-      {parentScopeId ? (
-        <button
-          onClick={onGoUp}
-          style={{
-            border: '1px solid var(--diagram-border)',
-            background: 'var(--diagram-panel)',
-            color: 'var(--diagram-text)',
-            borderRadius: 8,
-            padding: '4px 8px',
-            cursor: 'pointer',
-            marginLeft: 8,
-          }}
-        >
-          Up
-        </button>
       ) : null}
     </div>
   );

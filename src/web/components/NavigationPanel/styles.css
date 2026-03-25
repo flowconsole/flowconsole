@@ -26,8 +26,9 @@
 
 .navigation-panel {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 8px;
+  left: 8px;
+  right: 8px;
   pointer-events: all;
   z-index: 9999;
   display: flex;
@@ -36,40 +37,68 @@
 .navpanel-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   pointer-events: all;
   background: var(--navpanel-bg);
-  padding: 8px 10px;
+  padding: 5px 10px;
   border-radius: 10px;
   backdrop-filter: blur(6px);
   box-shadow: var(--navpanel-shadow);
   border: 1px solid var(--navpanel-border);
   cursor: pointer;
   color: var(--navpanel-text-strong);
+  width: 100%;
 }
 .navpanel-controls svg {
   flex-shrink: 0;
 }
-.navpanel-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 160px;
+.navpanel-home {
+  flex-shrink: 0;
 }
-.navpanel-breadcrumb {
-  font-weight: 600;
-  color: var(--navpanel-heading);
-  font-size: 13px;
+.navpanel-scope {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  gap: 4px;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navpanel-heading);
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--navpanel-border);
 }
-.navpanel-crumb {
+.navpanel-scope__segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.navpanel-scope__crumb {
   white-space: nowrap;
+}
+.navpanel-scope__crumb--link {
+  background: none;
+  border: none;
+  color: var(--diagram-primary);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.navpanel-scope__crumb--link:hover {
+  background: var(--navpanel-item-hover);
+}
+.navpanel-scope__crumb--current {
+  font-weight: 700;
+  color: var(--navpanel-text-strong);
+  padding: 2px 4px;
+  font-size: 12px;
 }
 .navpanel-actions {
   margin-left: auto;
+  flex-shrink: 0;
 }
 .navpanel-shell {
   background: transparent;
@@ -165,7 +194,8 @@
 }
 
 @media (max-width: 640px) {
-  .navigation-panel { top: 8px; left: 8px; }
-  .navpanel-controls { padding: 6px; }
-  .navpanel-dropdown { width: calc(100vw - 24px) !important; }
+  .navigation-panel { top: 4px; left: 4px; right: 4px; }
+  .navpanel-controls { padding: 4px 6px; }
+  .navpanel-scope { display: none; }
+  .navpanel-dropdown { width: calc(100vw - 16px) !important; }
 }

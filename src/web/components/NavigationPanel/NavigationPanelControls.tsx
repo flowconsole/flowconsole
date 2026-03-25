@@ -1,97 +1,67 @@
-import { ActionIcon, Group, Text, Tooltip } from '../ui';
-import { IconArrowLeft, IconArrowRight, IconChevronRight, IconGitBranch, IconSearch } from '@tabler/icons-react';
-import { isMacOs } from '@xyflow/system';
-
-type Crumb = { id: string; title: string };
+import { ActionIcon, Group, Tooltip } from '../ui';
+import { IconChevronRight, IconGitBranch, IconHome, IconSearch } from '@tabler/icons-react';
 
 type Props = {
-  breadcrumbs: Crumb[];
-  viewTitle?: string;
   onToggle: () => void;
-  onBack: () => void;
-  onForward: () => void;
-  canBack: boolean;
-  canForward: boolean;
   onOpenSearch?: () => void;
   onOpenFlows?: () => void;
-  activeId?: string;
-  onTitleHoverStart?: () => void;
-  onTitleHoverEnd?: () => void;
+  onHomeHoverStart?: () => void;
+  onHomeHoverEnd?: () => void;
+  scopeTrail?: ReadonlyArray<{ id: string; title: string }>;
+  scopeId?: string;
+  onGoRoot?: () => void;
+  onGoToScope?: (id: string) => void;
 };
 
 export function NavigationPanelControls({
-  breadcrumbs,
-  viewTitle,
   onToggle,
-  onBack,
-  onForward,
-  canBack,
-  canForward,
   onOpenSearch,
   onOpenFlows,
-  activeId,
-  onTitleHoverStart,
-  onTitleHoverEnd,
+  onHomeHoverStart,
+  onHomeHoverEnd,
+  scopeTrail,
+  scopeId,
+  onGoRoot,
+  onGoToScope,
 }: Props) {
-  const isMac = isMacOs();
-
   return (
     <div className="navpanel-controls" onClick={onToggle}>
-      <Group gap={8} style={{ flexWrap: 'nowrap' }}>
+      <Group gap={8} style={{ flexWrap: 'nowrap', flex: 1, minWidth: 0 }}>
 
-        <div
-          className="navpanel-meta"
-          onMouseEnter={onTitleHoverStart}
-          onMouseLeave={onTitleHoverEnd}
+        <button
+          className="navpanel-scope__crumb navpanel-scope__crumb--link navpanel-home"
+          onClick={(e) => { e.stopPropagation(); scopeId ? onGoRoot?.() : onToggle(); }}
+          onMouseEnter={onHomeHoverStart}
+          onMouseLeave={onHomeHoverEnd}
         >
-          <div className="navpanel-breadcrumb">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={crumb.id} className="navpanel-crumb">
-                {crumb.title}
-                {idx < breadcrumbs.length - 1 ? (
-                  <IconChevronRight size={14} stroke={2} style={{ opacity: 0.6, margin: '0 4px' }} />
-                ) : null}
-              </span>
-            ))}
+          <IconHome size={15} />
+        </button>
+
+        {/* Scope breadcrumbs — shown when drilled into a container */}
+        {scopeId && scopeTrail?.length ? (
+          <div className="navpanel-scope">
+            {scopeTrail.map((item, idx) => {
+              const isLast = idx === scopeTrail.length - 1;
+              return (
+                <span key={item.id} className="navpanel-scope__segment">
+                  <IconChevronRight size={12} stroke={2} style={{ opacity: 0.4 }} />
+                  {isLast ? (
+                    <span className="navpanel-scope__crumb navpanel-scope__crumb--current">{item.title}</span>
+                  ) : (
+                    <button
+                      className="navpanel-scope__crumb navpanel-scope__crumb--link"
+                      onClick={(e) => { e.stopPropagation(); onGoToScope?.(item.id); }}
+                    >
+                      {item.title}
+                    </button>
+                  )}
+                </span>
+              );
+            })}
           </div>
-          {viewTitle ? (
-            <Text size="sm" style={{ fontWeight: 700, color: 'var(--navpanel-text-strong)' }}>
-              {viewTitle}
-            </Text>
-          ) : null}
-        </div>
+        ) : null}
+
         <Group gap={6} className="navpanel-actions">
-          {activeId ? (
-            <Text size="sm" style={{ fontWeight: 700, color: 'var(--navpanel-text-strong)' }}>
-              {activeId}
-            </Text>
-          ) : null}
-          <Tooltip label="Back" openDelay={300}>
-            <ActionIcon
-              variant="light"
-              disabled={!canBack}
-              onClick={(e) => {
-                e.stopPropagation();
-                onBack();
-              }}
-              aria-label="Back"
-            >
-              <IconArrowLeft size={16} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Forward" openDelay={300}>
-            <ActionIcon
-              variant="light"
-              disabled={!canForward}
-              onClick={(e) => {
-                e.stopPropagation();
-                onForward();
-              }}
-              aria-label="Forward"
-            >
-              <IconArrowRight size={16} />
-            </ActionIcon>
-          </Tooltip>
           <Tooltip label="Search views" openDelay={300}>
             <ActionIcon
               variant="filled"
@@ -103,7 +73,6 @@ export function NavigationPanelControls({
               aria-label="Search views"
             >
               <IconSearch size={16} />
-              {isMac ? '' : ''}
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Flows" openDelay={300}>

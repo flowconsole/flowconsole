@@ -32,6 +32,12 @@ type Props = {
   onFlowStepChange?: (step: number) => void;
   onNavigate?: (id: string) => void;
   onToggleFlowPanel?: () => void;
+  scopeTrail?: ReadonlyArray<{ id: string; title: string }>;
+  scopeId?: string;
+  parentScopeId?: string;
+  onGoUp?: () => void;
+  onGoRoot?: () => void;
+  onGoToScope?: (id: string) => void;
 };
 
 function shouldIncludeInTree(node: ArchitectureNode) {
@@ -109,24 +115,17 @@ function collectFlat(items: NavigationItem[]) {
   return result;
 }
 
-function breadcrumbsFor(id: string | undefined, index: Map<string, NavigationItem>) {
-  if (!id || !index.has(id)) return [];
-  const chain: NavigationItem[] = [];
-  let current: NavigationItem | undefined = index.get(id);
-  while (current) {
-    chain.unshift(current);
-    current = current.parentId ? index.get(current.parentId) : undefined;
-  }
-  return chain.map((c) => ({ id: c.id, title: c.title }));
-}
 
 export function NavigationPanel({
   model,
-  viewId,
-  viewTitle,
-  viewDescription,
   onNavigate,
   onToggleFlowPanel,
+  scopeTrail,
+  scopeId,
+  parentScopeId,
+  onGoUp,
+  onGoRoot,
+  onGoToScope,
 }: Props) {
   const { roots, index } = useMemo(() => buildNavigationTree(model), [model]);
   const flat = useMemo(() => collectFlat(roots), [roots]);
@@ -192,22 +191,6 @@ export function NavigationPanel({
     setSearchOverlayOpen(false);
   };
 
-  const breadcrumbs = useMemo(() => {
-    const base = breadcrumbsFor(activeId, index);
-    if (base.length === 0 && (viewTitle || viewId)) {
-      return [{ id: viewId ?? 'view', title: viewTitle ?? viewId ?? 'Current view' }];
-    }
-    return base;
-  }, [activeId, index, viewId, viewTitle]);
-
-  const handleBack = () => {
-    if (!history.canBack) return;
-    history.goBack();
-  };
-  const handleForward = () => {
-    if (!history.canForward) return;
-    history.goForward();
-  };
 
   return (
     <div className="navigation-panel">
@@ -226,20 +209,18 @@ export function NavigationPanel({
             }}
           >
             <NavigationPanelControls
-              breadcrumbs={breadcrumbs}
-              viewTitle={viewTitle || viewDescription || viewId}
               onToggle={() => hoverPopover.toggleByClick()}
-              onBack={handleBack}
-              onForward={handleForward}
-              canBack={history.canBack}
-              canForward={history.canForward}
-              activeId={activeId}
               onOpenSearch={() => {
                 setSearchOverlayOpen(true);
               }}
               onOpenFlows={() => onToggleFlowPanel?.()}
-              onTitleHoverStart={hoverPopover.openByHover}
-              onTitleHoverEnd={hoverPopover.closeByHover}
+              onHomeHoverStart={hoverPopover.openByHover}
+              onHomeHoverEnd={hoverPopover.closeByHover}
+              scopeTrail={scopeTrail}
+              scopeId={scopeId}
+              onGoUp={onGoUp}
+              onGoRoot={onGoRoot}
+              onGoToScope={onGoToScope}
             />
           </div>
         </Popover.Target>
