@@ -122,8 +122,6 @@ export function NavigationPanel({
   onToggleFlowPanel,
   scopeTrail,
   scopeId,
-  parentScopeId,
-  onGoUp,
   onGoRoot,
   onGoToScope,
 }: Props) {
@@ -218,7 +216,6 @@ export function NavigationPanel({
               onHomeHoverEnd={hoverPopover.closeByHover}
               scopeTrail={scopeTrail}
               scopeId={scopeId}
-              onGoUp={onGoUp}
               onGoRoot={onGoRoot}
               onGoToScope={onGoToScope}
             />

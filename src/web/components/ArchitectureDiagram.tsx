@@ -28,6 +28,11 @@ import { DEFAULT_LAYOUT_CONFIG } from '../diagram/layout/types';
 import NavigationPanel from './NavigationPanel';
 import type { ThemeControls } from '../types/theme';
 
+export type ElementSelection =
+  | { kind: 'node'; item: ArchitectureNode }
+  | { kind: 'edge'; item: ArchitectureEdge }
+  | null;
+
 type ArchitectureDiagramProps = {
   model: ArchitectureDiagramModel;
   nodeTypes?: ArchitectureNodeTypes;
@@ -39,6 +44,8 @@ type ArchitectureDiagramProps = {
   viewDescription?: string;
   resolvedScheme?: 'light' | 'dark';
   themeControls?: ThemeControls;
+  /** Callback when a node or edge is clicked. null = click on empty pane (deselect). */
+  onElementSelect?: (selection: ElementSelection) => void;
 };
 
 const ROOT_FOCUS_ID = '__root__';
@@ -64,7 +71,6 @@ type HighlightState = {
   hoveredEdgeId: string | null;
   connectedNodeIds: Set<string>;
   connectedEdgeIds: Set<string>;
-  mousePos?: { x: number; y: number };
 };
 
 const EMPTY_HIGHLIGHT: HighlightState = {
@@ -84,6 +90,7 @@ export function ArchitectureDiagram({
   viewTitle,
   viewDescription,
   themeControls,
+  onElementSelect,
 }: ArchitectureDiagramProps) {
   const effectiveScheme = themeControls?.resolvedScheme;
 
@@ -134,7 +141,7 @@ export function ArchitectureDiagram({
   const isHighlightActive = highlight.hoveredNodeId !== null || highlight.hoveredEdgeId !== null;
 
   const onNodeMouseEnter = useCallback(
-    (event: React.MouseEvent, node: ArchitectureNode) => {
+    (_event: React.MouseEvent, node: ArchitectureNode) => {
       const connEdges = edges.filter(
         (e) => e.source === node.id || e.target === node.id
       );
@@ -145,7 +152,6 @@ export function ArchitectureDiagram({
         hoveredEdgeId: null,
         connectedNodeIds: connNodes,
         connectedEdgeIds: new Set(connEdges.map((e) => e.id)),
-        mousePos: { x: event.clientX, y: event.clientY },
       });
     },
     [edges]
@@ -433,23 +439,35 @@ export function ArchitectureDiagram({
     [findClosestContainer, nodeIndex, scopeId]
   );
 
-  // Click ghost node → navigate to the scope where the original node lives
+  // Click node → ghost navigation or element selection
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: ArchitectureNode) => {
-      if (!node.data.ghost) return;
-      const originalId = node.id.replace(/^ghost:/, '');
-      const original = nodeIndex.get(originalId);
-      if (!original) return;
-      // Container ghost → drill into that container
-      if (original.type === 'container') {
-        setScopeId(originalId);
-      } else {
-        // Element ghost → go to its parent container
-        setScopeId(original.parentId);
+      if (node.data.ghost) {
+        const originalId = node.id.replace(/^ghost:/, '');
+        const original = nodeIndex.get(originalId);
+        if (!original) return;
+        if (original.type === 'container') {
+          setScopeId(originalId);
+        } else {
+          setScopeId(original.parentId);
+        }
+        return;
       }
+      onElementSelect?.({ kind: 'node', item: node });
     },
-    [nodeIndex]
+    [nodeIndex, onElementSelect]
   );
+
+  const onEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: ArchitectureEdge) => {
+      onElementSelect?.({ kind: 'edge', item: edge });
+    },
+    [onElementSelect]
+  );
+
+  const onPaneClick = useCallback(() => {
+    onElementSelect?.(null);
+  }, [onElementSelect]);
 
   // --- Theme ---
   const minimapTheme = useMemo(
@@ -470,37 +488,35 @@ export function ArchitectureDiagram({
     [effectiveScheme]
   );
 
-  // --- Tooltip data ---
-  const hoveredNode = highlight.hoveredNodeId ? nodeIndex.get(highlight.hoveredNodeId) : undefined;
-
   return (
-    <>
-      <ReactFlow
-        className={`architecture-diagram theme-${effectiveScheme}${scopeTransition ? ' scope-transition' : ''}`}
-        nodes={highlightedNodes}
-        edges={highlightedEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        proOptions={{ hideAttribution: true }}
-        elevateNodesOnSelect={false}
-        selectNodesOnDrag={editable}
-        nodesDraggable={editable}
-        nodesConnectable={editable}
-        elementsSelectable={editable}
-        edgesReconnectable={editable}
-        panOnDrag={editable}
-        minZoom={0.1}
-        maxZoom={2}
-        connectionLineComponent={FloatingConnectionLine}
-        panActivationKeyCode={'Shift'}
-        onNodeClick={onNodeClick}
-        onNodeMouseEnter={onNodeMouseEnter}
-        onNodeMouseLeave={onNodeMouseLeave}
-        onEdgeMouseEnter={onEdgeMouseEnter}
-        onEdgeMouseLeave={onEdgeMouseLeave}
-      >
+    <ReactFlow
+      className={`architecture-diagram theme-${effectiveScheme}${scopeTransition ? ' scope-transition' : ''}`}
+      nodes={highlightedNodes}
+      edges={highlightedEdges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
+      proOptions={{ hideAttribution: true }}
+      elevateNodesOnSelect={false}
+      selectNodesOnDrag={editable}
+      nodesDraggable={editable}
+      nodesConnectable={editable}
+      elementsSelectable={editable}
+      edgesReconnectable={editable}
+      panOnDrag={editable}
+      minZoom={0.1}
+      maxZoom={2}
+      connectionLineComponent={FloatingConnectionLine}
+      panActivationKeyCode={'Shift'}
+      onNodeClick={onNodeClick}
+      onNodeMouseEnter={onNodeMouseEnter}
+      onNodeMouseLeave={onNodeMouseLeave}
+      onEdgeClick={onEdgeClick}
+      onEdgeMouseEnter={onEdgeMouseEnter}
+      onEdgeMouseLeave={onEdgeMouseLeave}
+      onPaneClick={onPaneClick}
+    >
         <MiniMap
           pannable
           zoomable
@@ -561,75 +577,6 @@ export function ArchitectureDiagram({
           needsFitView={needsFitView}
         />
       </ReactFlow>
-
-      {/* Tooltip — rendered outside ReactFlow, positioned fixed */}
-      {hoveredNode && highlight.mousePos ? (
-        <DiagramTooltip node={hoveredNode} mousePos={highlight.mousePos} />
-      ) : null}
-    </>
-  );
-}
-
-// --- DiagramTooltip ---
-
-type DiagramTooltipProps = {
-  node: ArchitectureNode;
-  mousePos: { x: number; y: number };
-};
-
-function DiagramTooltip({ node, mousePos }: DiagramTooltipProps) {
-  const data = node.data;
-  const offsetX = 16;
-  const offsetY = 16;
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        left: mousePos.x + offsetX,
-        top: mousePos.y + offsetY,
-        background: 'var(--diagram-panel)',
-        color: 'var(--diagram-text)',
-        border: '1px solid var(--diagram-border)',
-        borderRadius: 10,
-        padding: '10px 14px',
-        boxShadow: 'var(--diagram-card-shadow)',
-        fontSize: 12,
-        maxWidth: 320,
-        zIndex: 9999,
-        pointerEvents: 'none',
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>{data.title}</div>
-      {data.subtitle ? (
-        <div style={{ color: 'var(--diagram-text-muted)', marginBottom: 4 }}>{data.subtitle}</div>
-      ) : null}
-      {data.description ? (
-        <div style={{ marginBottom: 4 }}>{data.description}</div>
-      ) : null}
-      {data.tags?.length ? (
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
-          {data.tags.map((tag: string) => (
-            <span
-              key={tag}
-              style={{
-                background: 'var(--diagram-border)',
-                borderRadius: 4,
-                padding: '1px 6px',
-                fontSize: 10,
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {node.type === 'container' ? (
-        <div style={{ color: 'var(--diagram-primary)', fontStyle: 'italic' }}>
-          Click to drill down
-        </div>
-      ) : null}
-    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 export { CodeDiagramWorkbench } from './components/Workbench/CodeDiagramWorkbench';
 export { NavigationPanel } from './components/NavigationPanel/NavigationPanel';
 export { ArchitectureDiagram } from './components/ArchitectureDiagram';
+export type { ElementSelection } from './components/ArchitectureDiagram';
 export { FlowConsoleLogo } from './components/FlowConsoleLogo';
 export * from './languages';
 export * from './languages/types';
