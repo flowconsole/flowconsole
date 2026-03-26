@@ -9,7 +9,6 @@ vi.mock('@xyflow/react', () => {
     screenToFlowPosition: vi.fn(),
   };
 
-  const getBezierPath = vi.fn(() => ['bezier-path', 10, 20]);
   const useInternalNode = vi.fn();
   const useReactFlow = vi.fn(() => reactFlowInstance);
 
@@ -47,7 +46,6 @@ vi.mock('@xyflow/react', () => {
     __esModule: true,
     BaseEdge,
     EdgeLabelRenderer,
-    getBezierPath,
     Position,
     useInternalNode,
     useReactFlow,
@@ -159,9 +157,10 @@ describe('RelationshipEdge', () => {
       targetAnchor: { position: Position.Left, offset: 0.25 },
     });
     // Source: x=10+100=110, y=20+1*50=70. Target: x=200, y=100+0.25*40=110
-    expect(getBezierPathMock).toHaveBeenCalledWith(
-      expect.objectContaining({ sourceX: 110, sourceY: 70, targetX: 200, targetY: 110 })
-    );
+    const baseEdge = screen.getByTestId('base-edge');
+    const path = baseEdge.getAttribute('d') ?? '';
+    expect(path).toContain('110,70');
+    expect(path).toContain('200,110');
   });
 
   it('prefers manual control points over graphviz path', () => {
