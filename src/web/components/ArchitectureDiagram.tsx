@@ -46,6 +46,8 @@ type ArchitectureDiagramProps = {
   themeControls?: ThemeControls;
   /** Callback when a node or edge is clicked. null = click on empty pane (deselect). */
   onElementSelect?: (selection: ElementSelection) => void;
+  /** When set, the diagram will focus (zoom/pan) to this node after layout. */
+  focusElementId?: string;
 };
 
 const ROOT_FOCUS_ID = '__root__';
@@ -91,6 +93,7 @@ export function ArchitectureDiagram({
   viewDescription,
   themeControls,
   onElementSelect,
+  focusElementId,
 }: ArchitectureDiagramProps) {
   const effectiveScheme = themeControls?.resolvedScheme;
 
@@ -104,6 +107,16 @@ export function ArchitectureDiagram({
   const [nodes, setNodes] = useNodesState<ArchitectureNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ArchitectureEdge>([]);
   const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>();
+
+  // Apply external focus request — center viewport and select the node
+  useEffect(() => {
+    if (focusElementId) {
+      setPendingFocus(focusElementId);
+      setNodes((prev) =>
+        prev.map((n) => ({ ...n, selected: n.id === focusElementId }))
+      );
+    }
+  }, [focusElementId, setNodes]);
 
   // --- Flow panel ---
   const flows = model.flows ?? [];
@@ -229,8 +242,11 @@ export function ArchitectureDiagram({
     setEdges(result.edges);
     layoutLayersRef.current = result.layers ?? [];
     layoutEdgesRef.current = modelToRender.edges;
-    needsFitView.current = true;
-  }, [modelToRender, autoLayout, setNodes, setEdges]);
+    // Skip fitView when an external focus target is provided — ViewportController will center on it
+    if (!focusElementId) {
+      needsFitView.current = true;
+    }
+  }, [modelToRender, autoLayout, setNodes, setEdges, focusElementId]);
 
   // Re-route edges when nodes are dragged, avoiding obstacle nodes
   const rerouteEdges = useCallback(
@@ -315,8 +331,8 @@ export function ArchitectureDiagram({
   }, [activeFlowId, flows, activeFlowStep, isFlowPanelVisible]);
 
   useEffect(() => {
-    if (!isFlowPanelVisible) needsFitView.current = true;
-  }, [isFlowPanelVisible, needsFitView]);
+    if (!isFlowPanelVisible && !focusElementId) needsFitView.current = true;
+  }, [isFlowPanelVisible, needsFitView, focusElementId]);
 
   useEffect(() => {
     const flow = flows.find((f) => f.id === activeFlowId);
