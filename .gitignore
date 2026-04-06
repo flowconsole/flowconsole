@@ -36,3 +36,4 @@ tmp/
 *.sln
 *.sw?
 .VSCodeCounter/
+company/
