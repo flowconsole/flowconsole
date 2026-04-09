@@ -1,0 +1,102 @@
+apiVersion: rules.flowconsole.io/v1alpha1
+kind: RuleFile
+rules:
+  - id: critical-services-must-have-dependencies
+    name: Critical services must have dependencies
+    kind: graph
+    target: observed
+    severity: warning
+    blocking: false
+    description: Критичные сервисы не должны быть полностью изолированными в observed-проекции.
+    enabled: true
+    tags:
+      - governance
+      - topology
+    sourceFamilies:
+      - code
+      - infra
+    subject:
+      entity: elements
+      kinds:
+        - Service
+        - Application
+      tagsAll:
+        - critical
+      sourceFamilies:
+        - code
+    mode: perItem
+    let:
+      outgoingCount: count(outgoing(item))
+    assert: outgoingCount > 0
+    message: Критичный компонент '${item.name}' не имеет исходящих зависимостей
+
+  - id: gateway-must-reach-payment-worker
+    name: Gateway must reach payment worker
+    kind: path
+    target: observed
+    severity: error
+    blocking: true
+    description: Для основного платежного потока должен существовать маршрут от gateway до payment-worker.
+    enabled: true
+    tags:
+      - path
+      - payments
+    sourceFamilies:
+      - code
+      - infra
+    from:
+      entity: elements
+      kinds:
+        - Gateway
+      name:
+        equals: api-gateway
+      sourceFamilies:
+        - infra
+    to:
+      entity: elements
+      kinds:
+        - Worker
+      name:
+        equals: payment-worker
+      sourceFamilies:
+        - code
+    via:
+      entity: elements
+      kinds:
+        - Service
+        - Application
+        - Queue
+    maxDepth: 5
+    allowCycles: false
+    mode: aggregate
+    let:
+      pathCount: count(paths)
+    assert: pathCount > 0
+    message: От api-gateway до payment-worker не найден допустимый путь
+
+  - id: no-unmatched-observed-gateways
+    name: Unmatched observed gateways are forbidden
+    kind: diff
+    target: diff
+    severity: error
+    blocking: true
+    description: В diff-проекции не должно быть gateway-компонентов, которые появились только в observed-источниках.
+    enabled: true
+    tags:
+      - drift
+      - diff
+    sourceFamilies:
+      - code
+      - infra
+    subject:
+      entity: diffItems
+      kinds:
+        - Gateway
+      where: item.changeKind == "unmatchedObserved"
+    changeKinds:
+      - unmatchedObserved
+    mode: aggregate
+    let:
+      unmatchedGatewayCount: count(items)
+    assert: unmatchedGatewayCount == 0
+    message: В diff-проекции обнаружены gateway-компоненты без соответствия в declared-модели
