@@ -36,6 +36,10 @@ interface ParseOptions {
   output?: string;
 }
 
+interface CiDemoOptions {
+  color?: boolean;
+}
+
 registerDynamicLanguage({
   csharp,
   python,
@@ -88,6 +92,55 @@ async function parseFile(options: ParseOptions): Promise<void> {
   }
 }
 
+const ansiCodes = {
+  reset: '\x1b[0m',
+  bold: '\x1b[1m',
+  dim: '\x1b[2m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  purple: '\x1b[35m',
+  cyan: '\x1b[36m',
+  gray: '\x1b[90m',
+} as const;
+
+function colorize(value: string, color: keyof typeof ansiCodes, enabled: boolean): string {
+  if (!enabled) {
+    return value;
+  }
+
+  return `${ansiCodes[color]}${value}${ansiCodes.reset}`;
+}
+
+function formatStatus(label: string, color: keyof typeof ansiCodes, enabled: boolean): string {
+  return colorize(label.padEnd(8, ' '), color, enabled);
+}
+
+function printCiDemo(options: CiDemoOptions): void {
+  const colorEnabled = options.color !== false;
+  const c = (value: string, color: keyof typeof ansiCodes) => colorize(value, color, colorEnabled);
+  const status = (label: string, color: keyof typeof ansiCodes) => formatStatus(label, color, colorEnabled);
+
+  console.log(c('flowconsole-ci / architecture-gate', 'bold'));
+  console.log(c('$ fctl verify', 'dim'));
+  console.log('');
+  console.log(`${status('OK', 'green')} repository available`);
+  console.log(`${status('OK', 'green')} searching model...`);
+  console.log(`${status('OK', 'green')} model found ${c('./arch', 'bold')}`);
+  console.log(`${status('PASS', 'green')} FC001 no cyclic container dependencies`);
+  console.log(`${status('PASS', 'green')} FC002 public web apps call APIs through gateway`);
+  console.log(`${status('FAIL', 'red')} FC027 ordering boundary depends on catalog storage`);
+  console.log(`${status('DRIFT', 'red')} unexpected dependency ${c('Ordering.API -> Catalog.Postgres', 'bold')}`);
+  console.log(`${status('DRIFT', 'red')} missing expected link ${c('WebApp -> Ordering.API', 'bold')}`);
+  console.log(`${status('DRIFT', 'red')} new container not in target model ${c('Discount.Worker', 'bold')}`);
+  console.log('');
+  console.log(`${c('summary', 'blue')}   ${c('architecture drift detected', 'red')}`);
+  console.log(`${c('rules', 'gray')}     2 passed, 1 failed`);
+  console.log(`${c('drift', 'gray')}     3 changes require architecture review`);
+  console.log(`${c('result', 'gray')}    ${c('FAILED', 'red')}`);
+}
+
 yargs(helpers.hideBin(process.argv))
   .command(
     'parse <file>',
@@ -116,6 +169,20 @@ yargs(helpers.hideBin(process.argv))
         console.error(error);
         process.exit(1);
       });
+    }
+  )
+  .command(
+    'ci-demo',
+    'Print colorful demo CI output for screenshots',
+    (yargs) => {
+      return yargs.option('color', {
+        describe: 'Enable ANSI colors',
+        type: 'boolean',
+        default: true,
+      });
+    },
+    (argv) => {
+      printCiDemo({ color: argv.color });
     }
   )
   .command(
