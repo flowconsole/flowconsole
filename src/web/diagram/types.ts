@@ -69,10 +69,18 @@ export type RelationshipEdgeData = {
 };
 
 export type ElementNodeType = Node<ElementNodeData, 'element'>;
+export type CircleNodeType = Node<ElementNodeData, 'circle'>;
+export type HexagonNodeType = Node<ElementNodeData, 'hexagon'>;
+export type CloudNodeType = Node<ElementNodeData, 'cloud'>;
 export type ContainerNodeType = Node<ContainerNodeData, 'container'>;
 export type RelationshipEdgeType = Edge<RelationshipEdgeData, 'relationship'>;
 
-export type ArchitectureNode = ElementNodeType | ContainerNodeType;
+export type ArchitectureNode =
+  | ElementNodeType
+  | CircleNodeType
+  | HexagonNodeType
+  | CloudNodeType
+  | ContainerNodeType;
 export type ArchitectureEdge = RelationshipEdgeType;
 
 export type FlowStep = {

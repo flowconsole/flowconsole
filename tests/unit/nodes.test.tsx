@@ -1,8 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { ContainerNodeType, ElementNodeType } from '../../src/web/diagram/types';
 import { ContainerNode } from '../../src/web/reactflow/nodes/ContainerNode';
 import { ElementNode } from '../../src/web/reactflow/nodes/ElementNode';
+import { CircleNode } from '../../src/web/reactflow/nodes/CircleNode';
+import { HexagonNode } from '../../src/web/reactflow/nodes/HexagonNode';
+import { CloudNode } from '../../src/web/reactflow/nodes/CloudNode';
+import { BaseElementNode } from '../../src/web/reactflow/nodes/BaseElementNode';
+import { fireEvent } from '@testing-library/react';
 
 vi.mock('../../src/web/reactflow/nodes/HiddenHandles', () => ({
   HiddenHandles: () => <div data-testid="handles" />,
@@ -178,6 +183,121 @@ describe('Diagram nodes', () => {
       expect(card.getAttribute('role')).toBeNull();
       expect(card.getAttribute('tabindex')).toBeNull();
       expect(card.getAttribute('onclick')).toBeNull();
+    });
+  });
+
+  describe('BaseElementNode', () => {
+    it('renders with minimal data', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Test' }} shapeClassName="service" />
+      );
+      expect(screen.getByText('Test')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--service');
+    });
+
+    it('renders shapeBackground SVG layer when provided', () => {
+      const bg = <svg data-testid="shape-svg"><circle cx="50" cy="50" r="48" /></svg>;
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Circle Test' }} shapeClassName="circle" shapeBackground={bg} />
+      );
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
+      expect(screen.getByTestId('shape-svg')).toBeInTheDocument();
+      // Should NOT render the shell div when shapeBackground is provided
+      expect(container.querySelector('.diagram-card__shell')).toBeNull();
+    });
+
+    it('renders shell div when no shapeBackground is provided', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Rect Test' }} shapeClassName="service" />
+      );
+      expect(container.querySelector('.diagram-card__shell')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeNull();
+    });
+
+    it('applies ghost styling when ghost flag is set', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Ghost', ghost: true }} shapeClassName="service" />
+      );
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--ghost');
+    });
+  });
+
+  describe('CircleNode', () => {
+    const renderCircle = (data: Partial<ElementNodeType['data']> = {}, selected = false) =>
+      render(<CircleNode id="circle-1" data={{ title: 'Circle', ...data }} selected={selected} />);
+
+    it('renders without errors with minimal data', () => {
+      const { container } = renderCircle();
+      expect(screen.getByText('Circle')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--generic');
+      expect(screen.getByTestId('handles')).toBeInTheDocument();
+    });
+
+    it('contains an SVG circle element in the DOM', () => {
+      const { container } = renderCircle();
+      const circleEl = container.querySelector('circle');
+      expect(circleEl).not.toBeNull();
+      expect(circleEl?.getAttribute('cx')).toBe('50');
+      expect(circleEl?.getAttribute('cy')).toBe('50');
+    });
+
+    it('renders the shape background layer', () => {
+      const { container } = renderCircle();
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-shape-svg')).toBeInTheDocument();
+    });
+  });
+
+  describe('HexagonNode', () => {
+    const renderHexagon = (data: Partial<ElementNodeType['data']> = {}, selected = false) =>
+      render(<HexagonNode id="hex-1" data={{ title: 'Hexagon', ...data }} selected={selected} />);
+
+    it('renders without errors with minimal data', () => {
+      const { container } = renderHexagon();
+      expect(screen.getByText('Hexagon')).toBeInTheDocument();
+      expect(screen.getByTestId('handles')).toBeInTheDocument();
+    });
+
+    it('contains an SVG polygon element with 6 points in the DOM', () => {
+      const { container } = renderHexagon();
+      const polygon = container.querySelector('polygon');
+      expect(polygon).not.toBeNull();
+      const points = polygon?.getAttribute('points') ?? '';
+      // 6 vertices means 6 comma-separated pairs
+      expect(points.split(' ').length).toBe(6);
+    });
+
+    it('renders the shape background layer', () => {
+      const { container } = renderHexagon();
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-shape-svg')).toBeInTheDocument();
+    });
+  });
+
+  describe('CloudNode', () => {
+    const renderCloud = (data: Partial<ElementNodeType['data']> = {}, selected = false) =>
+      render(<CloudNode id="cloud-1" data={{ title: 'Cloud', ...data }} selected={selected} />);
+
+    it('renders without errors with minimal data', () => {
+      const { container } = renderCloud();
+      expect(screen.getByText('Cloud')).toBeInTheDocument();
+      expect(screen.getByTestId('handles')).toBeInTheDocument();
+    });
+
+    it('contains an SVG path element with smooth Bezier curves (d attribute > 20 chars)', () => {
+      const { container } = renderCloud();
+      const path = container.querySelector('path');
+      expect(path).not.toBeNull();
+      const d = path?.getAttribute('d') ?? '';
+      expect(d.length).toBeGreaterThan(20);
+      // Should contain C (cubic Bezier) commands for smooth curves
+      expect(d).toContain('C');
+    });
+
+    it('renders the shape background layer', () => {
+      const { container } = renderCloud();
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-shape-svg')).toBeInTheDocument();
     });
   });
 });
