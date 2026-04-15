@@ -4323,6 +4323,91 @@
       "name": "ShapeKind",
       "symbolId": "flowconsole-sdk:ShapeKind"
     },
+    "@flowconsole/sdk.SoftwareSystem": {
+      "assembly": "@flowconsole/sdk",
+      "base": "@flowconsole/sdk.Component",
+      "docs": {
+        "stability": "stable"
+      },
+      "fqn": "@flowconsole/sdk.SoftwareSystem",
+      "initializer": {
+        "docs": {
+          "stability": "stable"
+        },
+        "locationInModule": {
+          "filename": "flowconsole-sdk.ts",
+          "line": 580
+        },
+        "parameters": [
+          {
+            "name": "args",
+            "type": {
+              "fqn": "@flowconsole/sdk.SoftwareSystemArgs"
+            }
+          }
+        ]
+      },
+      "kind": "class",
+      "locationInModule": {
+        "filename": "flowconsole-sdk.ts",
+        "line": 577
+      },
+      "name": "SoftwareSystem",
+      "properties": [
+        {
+          "docs": {
+            "stability": "stable"
+          },
+          "immutable": true,
+          "locationInModule": {
+            "filename": "flowconsole-sdk.ts",
+            "line": 578
+          },
+          "name": "domain",
+          "optional": true,
+          "type": {
+            "primitive": "string"
+          }
+        }
+      ],
+      "symbolId": "flowconsole-sdk:SoftwareSystem"
+    },
+    "@flowconsole/sdk.SoftwareSystemArgs": {
+      "assembly": "@flowconsole/sdk",
+      "datatype": true,
+      "docs": {
+        "stability": "stable"
+      },
+      "fqn": "@flowconsole/sdk.SoftwareSystemArgs",
+      "interfaces": [
+        "@flowconsole/sdk.ComponentArgs"
+      ],
+      "kind": "interface",
+      "locationInModule": {
+        "filename": "flowconsole-sdk.ts",
+        "line": 493
+      },
+      "name": "SoftwareSystemArgs",
+      "properties": [
+        {
+          "abstract": true,
+          "docs": {
+            "stability": "stable"
+          },
+          "immutable": true,
+          "locationInModule": {
+            "filename": "flowconsole-sdk.ts",
+            "line": 494
+          },
+          "name": "domain",
+          "optional": true,
+          "type": {
+            "primitive": "string"
+          }
+        }
+      ],
+      "symbolId": "flowconsole-sdk:SoftwareSystemArgs"
+    },
     "@flowconsole/sdk.Sqs": {
       "assembly": "@flowconsole/sdk",
       "base": "@flowconsole/sdk.Queue",
@@ -4438,91 +4523,6 @@
       },
       "name": "SvelteApp",
       "symbolId": "flowconsole-sdk:SvelteApp"
-    },
-    "@flowconsole/sdk.System": {
-      "assembly": "@flowconsole/sdk",
-      "base": "@flowconsole/sdk.Component",
-      "docs": {
-        "stability": "stable"
-      },
-      "fqn": "@flowconsole/sdk.System",
-      "initializer": {
-        "docs": {
-          "stability": "stable"
-        },
-        "locationInModule": {
-          "filename": "flowconsole-sdk.ts",
-          "line": 580
-        },
-        "parameters": [
-          {
-            "name": "args",
-            "type": {
-              "fqn": "@flowconsole/sdk.SystemArgs"
-            }
-          }
-        ]
-      },
-      "kind": "class",
-      "locationInModule": {
-        "filename": "flowconsole-sdk.ts",
-        "line": 577
-      },
-      "name": "System",
-      "properties": [
-        {
-          "docs": {
-            "stability": "stable"
-          },
-          "immutable": true,
-          "locationInModule": {
-            "filename": "flowconsole-sdk.ts",
-            "line": 578
-          },
-          "name": "domain",
-          "optional": true,
-          "type": {
-            "primitive": "string"
-          }
-        }
-      ],
-      "symbolId": "flowconsole-sdk:System"
-    },
-    "@flowconsole/sdk.SystemArgs": {
-      "assembly": "@flowconsole/sdk",
-      "datatype": true,
-      "docs": {
-        "stability": "stable"
-      },
-      "fqn": "@flowconsole/sdk.SystemArgs",
-      "interfaces": [
-        "@flowconsole/sdk.ComponentArgs"
-      ],
-      "kind": "interface",
-      "locationInModule": {
-        "filename": "flowconsole-sdk.ts",
-        "line": 493
-      },
-      "name": "SystemArgs",
-      "properties": [
-        {
-          "abstract": true,
-          "docs": {
-            "stability": "stable"
-          },
-          "immutable": true,
-          "locationInModule": {
-            "filename": "flowconsole-sdk.ts",
-            "line": 494
-          },
-          "name": "domain",
-          "optional": true,
-          "type": {
-            "primitive": "string"
-          }
-        }
-      ],
-      "symbolId": "flowconsole-sdk:SystemArgs"
     },
     "@flowconsole/sdk.Topic": {
       "assembly": "@flowconsole/sdk",
@@ -4876,5 +4876,5 @@
     }
   },
   "version": "2.0.0",
-  "fingerprint": "LQnnZq4pLwcBD/clJwvmGxq1GKwkjeSMqn/cVatrN9I="
+  "fingerprint": "v5tyOHuYiusS5vpj8DrnTvq3+f33DF7UD5GOreWqT8w="
 }

@@ -86,7 +86,7 @@ declare global {
     readonly role?: string;
   }
 
-  interface System extends Component {
+  interface SoftwareSystem extends Component {
     readonly domain?: string;
   }
 
@@ -198,7 +198,7 @@ declare global {
 
   type DslEntity =
     | User
-    | System
+    | SoftwareSystem
     | Namespace
     | Container
     | Module
@@ -340,8 +340,8 @@ declare module '@flowconsole/sdk' {
   export interface UserArgs extends ComponentArgs { role?: string; }
   export class User extends Component { role?: string; constructor(args: UserArgs); }
 
-  export interface SystemArgs extends ComponentArgs { domain?: string; }
-  export class System extends Component { domain?: string; constructor(args: SystemArgs); }
+  export interface SoftwareSystemArgs extends ComponentArgs { domain?: string; }
+  export class SoftwareSystem extends Component { domain?: string; constructor(args: SoftwareSystemArgs); }
 
   export class Namespace extends Component { constructor(args: ComponentArgs); }
   export class Container extends Component { constructor(args: ComponentArgs); }

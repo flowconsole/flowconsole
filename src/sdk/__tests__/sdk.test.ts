@@ -14,7 +14,7 @@ import {
   // Base classes
   Component,
   User,
-  System,
+  SoftwareSystem,
   Namespace,
   Container,
   Module,
@@ -80,8 +80,8 @@ describe('Base element classes', () => {
     expect(u.role).toBe('Admin');
   });
 
-  it('System has kind SERVICE and domain', () => {
-    const s = new System({ name: 'MySystem', domain: 'e-commerce' });
+  it('SoftwareSystem has kind SERVICE and domain', () => {
+    const s = new SoftwareSystem({ name: 'MySystem', domain: 'e-commerce' });
     expect(s.kind).toBe(ElementKind.SERVICE);
     expect(s.domain).toBe('e-commerce');
   });
@@ -151,7 +151,7 @@ describe('Base element classes', () => {
   });
 
   it('Component stores all common args', () => {
-    const parent = new System({ name: 'Parent' });
+    const parent = new SoftwareSystem({ name: 'Parent' });
     const style: ComponentStyle = { preset: StylePreset.HIGHLIGHTED, color: '#ff0000' };
     const c = new Container({
       id: 'test-id',
@@ -700,7 +700,7 @@ describe('inferRelationships', () => {
   });
 
   it('belongsTo generates Contains relationship', () => {
-    const sys = new System({ name: 'Shop' });
+    const sys = new SoftwareSystem({ name: 'Shop' });
     const api = new RestApi({ name: 'API', belongsTo: sys });
     const rels = inferRelationships([sys, api], [], []);
     expect(rels).toHaveLength(1);
@@ -761,7 +761,7 @@ describe('validateBelongsTo', () => {
   });
 
   it('Topic with non-Broker parent throws', () => {
-    const sys = new System({ name: 'Shop' });
+    const sys = new SoftwareSystem({ name: 'Shop' });
     const topic = new Topic({ name: 'bad', belongsTo: sys as any });
     expect(() => validateBelongsTo([topic])).toThrow('Topic "bad" must have a Broker as belongsTo parent');
   });
@@ -772,14 +772,14 @@ describe('validateBelongsTo', () => {
     expect(() => validateBelongsTo([topic])).not.toThrow();
   });
 
-  it('System with parent throws', () => {
-    const parent = new System({ name: 'Parent' });
-    const child = new System({ name: 'Child', belongsTo: parent as any });
-    expect(() => validateBelongsTo([child])).toThrow('System "Child" cannot have a parent');
+  it('SoftwareSystem with parent throws', () => {
+    const parent = new SoftwareSystem({ name: 'Parent' });
+    const child = new SoftwareSystem({ name: 'Child', belongsTo: parent as any });
+    expect(() => validateBelongsTo([child])).toThrow('SoftwareSystem "Child" cannot have a parent');
   });
 
-  it('Container with System parent passes', () => {
-    const sys = new System({ name: 'Shop' });
+  it('Container with SoftwareSystem parent passes', () => {
+    const sys = new SoftwareSystem({ name: 'Shop' });
     const c = new Container({ name: 'API', belongsTo: sys });
     expect(() => validateBelongsTo([c])).not.toThrow();
   });
@@ -796,14 +796,14 @@ describe('validateBelongsTo', () => {
     expect(() => validateBelongsTo([mod])).not.toThrow();
   });
 
-  it('Module can belong to System', () => {
-    const sys = new System({ name: 'Shop' });
+  it('Module can belong to SoftwareSystem', () => {
+    const sys = new SoftwareSystem({ name: 'Shop' });
     const mod = new Module({ name: 'Auth', belongsTo: sys });
     expect(() => validateBelongsTo([mod])).not.toThrow();
   });
 
-  it('Namespace can belong to System', () => {
-    const sys = new System({ name: 'Shop' });
+  it('Namespace can belong to SoftwareSystem', () => {
+    const sys = new SoftwareSystem({ name: 'Shop' });
     const ns = new Namespace({ name: 'orders', belongsTo: sys });
     expect(() => validateBelongsTo([ns])).not.toThrow();
   });
@@ -811,7 +811,7 @@ describe('validateBelongsTo', () => {
   it('Elements without belongsTo pass validation', () => {
     const entities = [
       new User({ name: 'Alice' }),
-      new System({ name: 'Shop' }),
+      new SoftwareSystem({ name: 'Shop' }),
       new Container({ name: 'Web' }),
       new Database({ name: 'DB' }),
     ];
@@ -980,7 +980,7 @@ describe('Style functions', () => {
 describe('buildSnapshot', () => {
   it('builds a complete snapshot with entities, relationships, and scenarios', () => {
     const runtime = new FlowRuntime();
-    const sys = new System({ name: 'Shop' });
+    const sys = new SoftwareSystem({ name: 'Shop' });
     const api = new RestApi({ name: 'API', belongsTo: sys });
     const db = new Postgres({ name: 'DB', belongsTo: sys });
     const broker = new Kafka({ name: 'Bus', belongsTo: sys });

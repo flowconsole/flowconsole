@@ -1,7 +1,7 @@
 export const ENTITY_TYPE_NAMES = [
   // Base elements (13)
   'User',
-  'System',
+  'SoftwareSystem',
   'Namespace',
   'Container',
   'Module',
@@ -155,7 +155,7 @@ type ExposeOptions = {
 const TYPE_TO_KIND: Record<EntityTypeName, string> = {
   // Base elements
   User: 'External',
-  System: 'Service',
+  SoftwareSystem: 'Service',
   Namespace: 'Namespace',
   Container: 'Application',
   Module: 'Module',

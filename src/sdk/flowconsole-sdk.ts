@@ -490,7 +490,7 @@ export interface UserArgs extends ComponentArgs {
   readonly role?: string;
 }
 
-export interface SystemArgs extends ComponentArgs {
+export interface SoftwareSystemArgs extends ComponentArgs {
   readonly domain?: string;
 }
 
@@ -574,10 +574,10 @@ export class User extends Component {
   }
 }
 
-export class System extends Component {
+export class SoftwareSystem extends Component {
   public readonly domain?: string;
 
-  constructor(args: SystemArgs) {
+  constructor(args: SoftwareSystemArgs) {
     super(ElementKind.SERVICE, args);
     this.domain = args.domain;
   }
@@ -1066,12 +1066,12 @@ export function validateBelongsTo(entities: Component[]): void {
       continue;
     }
 
-    // User and System (Service) are top-level — belongsTo must be undefined
+    // User and SoftwareSystem (Service) are top-level — belongsTo must be undefined
     if (kind === ElementKind.SERVICE) {
       if (entity.belongsTo) {
         const name = entity.name ?? entity.id ?? 'unnamed';
         throw new Error(
-          `System "${name}" cannot have a parent (must be top-level)`,
+          `SoftwareSystem "${name}" cannot have a parent (must be top-level)`,
         );
       }
       continue;

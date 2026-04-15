@@ -13,7 +13,7 @@ describe('DiagramRuntime', () => {
     });
 
     it('includes all 13 base elements', () => {
-      const base = ['User', 'System', 'Namespace', 'Container', 'Module', 'External', 'Gateway', 'Worker', 'Database', 'Cache', 'Queue', 'Broker', 'Topic'];
+      const base = ['User', 'SoftwareSystem', 'Namespace', 'Container', 'Module', 'External', 'Gateway', 'Worker', 'Database', 'Cache', 'Queue', 'Broker', 'Topic'];
       for (const name of base) {
         expect(ENTITY_TYPE_NAMES).toContain(name);
       }
@@ -56,9 +56,9 @@ describe('DiagramRuntime', () => {
       expect(snapshot.entities[0].kind).toBe('External');
     });
 
-    it('creates System with kind Service', () => {
+    it('creates SoftwareSystem with kind Service', () => {
       const runtime = new DiagramRuntime();
-      createEntity(runtime, 'System', { name: 'eShop' });
+      createEntity(runtime, 'SoftwareSystem', { name: 'eShop' });
       const snapshot = runtime.snapshot();
       expect(snapshot.entities[0].kind).toBe('Service');
     });
@@ -230,7 +230,7 @@ describe('DiagramRuntime', () => {
   describe('base flow methods', () => {
     it('registers entities, parents, and relationships', () => {
       const runtime = new DiagramRuntime();
-      const system = createEntity(runtime, 'System', { name: 'Core Platform' });
+      const system = createEntity(runtime, 'SoftwareSystem', { name: 'Core Platform' });
       const backend = createEntity(runtime, 'Container', { name: 'Services', system });
       createEntity(runtime, 'Container', { name: 'Services', system });
       const api = createEntity(runtime, 'RestApi', { name: 'Accounts API', belongsTo: backend });
@@ -255,7 +255,7 @@ describe('DiagramRuntime', () => {
 
     it('supports chained flows with executesRequest and parallel branches', () => {
       const runtime = new DiagramRuntime();
-      const system = createEntity(runtime, 'System', { name: 'Workflow' });
+      const system = createEntity(runtime, 'SoftwareSystem', { name: 'Workflow' });
       const worker = createEntity(runtime, 'Worker', { name: 'Worker', belongsTo: system });
       const queue = createEntity(runtime, 'Queue', { name: 'Queue', belongsTo: system });
 
@@ -600,7 +600,7 @@ describe('DiagramRuntime', () => {
     it('eShop example with all layers', () => {
       const runtime = new DiagramRuntime();
       const customer = createEntity(runtime, 'User', { name: 'Customer', role: 'Buyer' });
-      const shop = createEntity(runtime, 'System', { name: 'eShop', domain: 'e-commerce' });
+      const shop = createEntity(runtime, 'SoftwareSystem', { name: 'eShop', domain: 'e-commerce' });
       const web = createEntity(runtime, 'ReactApp', { name: 'Web App', belongsTo: shop });
       const api = createEntity(runtime, 'RestApi', { name: 'Orders API', belongsTo: shop });
       const db = createEntity(runtime, 'Postgres', { name: 'Ledger', belongsTo: shop });

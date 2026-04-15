@@ -59,7 +59,7 @@ export const codeSamplesOld: CodeSample[] = [
 
 const user = new User({ name: "Customer", description: "Retail banking customer" });
 
-const system = new System({ name: "Cloud Banking" });
+const system = new SoftwareSystem({ name: "Cloud Banking" });
 const storage = new Container({ name: "Data Store", belongsTo: system });
 const backend = new Container({ name: "Core Services", belongsTo: system });
 
@@ -150,7 +150,7 @@ publicIngress.routesTo(frontApp);
 const employee = new User({ name: "Regional Planner", description: "Creates purchase orders" });
 const supplier = new External({ name: "Supplier API", description: "Partner integration", vendor: "SupplyCo" });
 
-const atlas = new System({ name: "Atlas ERP" });
+const atlas = new SoftwareSystem({ name: "Atlas ERP" });
 const portal = new NextApp({
   name: "Planner Portal",
   description: "Next.js dashboard for procurement team",
@@ -224,7 +224,7 @@ reportingJob.reads(erpDb, "load data")
 const contributor = new User({ name: "Contributor", description: "Sends pull requests" });
 const maintainer = new User({ name: "Maintainer", description: "Reviews and deploys" });
 
-const helios = new System({ name: "Helios OSS" });
+const helios = new SoftwareSystem({ name: "Helios OSS" });
 const gitGateway = new Container({ name: "Git Gateway", belongsTo: helios });
 const ciCluster = new Container({ name: "CI Cluster", belongsTo: helios });
 const observability = new Container({ name: "Observability", belongsTo: helios });
@@ -310,7 +310,7 @@ maintainer.opens(webApp, "review & deploy")
 const viewer = new User({ name: "Subscriber", description: "Streams movies" });
 const operator = new User({ name: "Ops Engineer", description: "Monitors health" });
 
-const streamly = new System({ name: "Streamly" });
+const streamly = new SoftwareSystem({ name: "Streamly" });
 const deviceApps = new Container({ name: "Device Apps", belongsTo: streamly });
 const controlPlane = new Container({ name: "Control Plane", belongsTo: streamly });
 const dataPlane = new Container({ name: "Data Plane", belongsTo: streamly });
@@ -439,7 +439,7 @@ publicIngress.routesTo(tvApp);
 const platformEngineer = new User({ name: "Platform Engineer", description: "Owns monitoring" });
 const contributor = new User({ name: "Community Dev", description: "Extends plugins" });
 
-const skyline = new System({ name: "Skyline Observability" });
+const skyline = new SoftwareSystem({ name: "Skyline Observability" });
 const controlPlane = new Container({ name: "Control Plane", belongsTo: skyline });
 const dataLake = new Container({ name: "Data Lake", belongsTo: skyline });
 const dashboards = new Container({ name: "Dashboards", belongsTo: skyline });
