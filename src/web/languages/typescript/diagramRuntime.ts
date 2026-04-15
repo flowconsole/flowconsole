@@ -300,8 +300,9 @@ function inferRelationKind(method: string, connectionKind: ConnectionKind | unde
   if (method === 'executesRequest') return undefined;
 
   if (method === 'sendsRequest') {
-    if (connectionKind === 'event') return 'Produces';
+    if (connectionKind === 'event' && targetKind && MESSAGING_KINDS.has(targetKind)) return 'Produces';
     if (connectionKind === 'dependency') return 'DependsOn';
+    if (connectionKind === 'async') return 'Calls';
     if (targetKind && DATA_STORE_KINDS.has(targetKind)) return 'Uses';
     return 'Calls';
   }

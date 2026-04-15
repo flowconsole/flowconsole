@@ -8,7 +8,7 @@ const goSamples = [
     description: 'Sample from core parser tests.',
     code: `package main
 
-import "github.com/slackmaster9999/flowconsole"
+import "github.com/slackmaster9999/go-flowconsole/flowconsole/v2"
 
 user := flowconsole.NewUser(&flowconsole.UserArgs{
     Name:        "user",
@@ -17,7 +17,7 @@ user := flowconsole.NewUser(&flowconsole.UserArgs{
     Badge:       "gold",
 })
 
-app := flowconsole.NewReactApp(&flowconsole.ReactAppArgs{
+app := flowconsole.NewReactApp(&flowconsole.ComponentArgs{
     Name: "app",
 })
 

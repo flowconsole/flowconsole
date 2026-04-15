@@ -59,6 +59,17 @@ export enum RelationKind {
   ROUTES_TO = 'RoutesTo',
 }
 
+// ── Auto-ID generation (per-slug counters, matches web runtime's slugCounts) ──
+
+const _slugCounters = new Map<string, number>();
+function generateAutoId(kind: ElementKind, name?: string): string {
+  const slug = name ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : '';
+  const base = slug || kind.toLowerCase();
+  const count = _slugCounters.get(base) ?? 0;
+  _slugCounters.set(base, count + 1);
+  return count === 0 ? base : `${base}-${count + 1}`;
+}
+
 // ── Style types ──
 
 export enum StylePreset {
@@ -310,6 +321,9 @@ export class FlowRuntime {
    * @internal
    */
   public _registerScenario(name: string, steps: FlowStep[]): void {
+    if (this._scenarios[name]) {
+      throw new Error(`Scenario "${name}" is already registered. Use a unique name for each scenario.`);
+    }
     this._scenarios[name] = steps;
     // Remove from unnamed flows
     const idx = this._unnamedFlows.indexOf(steps);
@@ -377,6 +391,7 @@ export function getRuntime(): FlowRuntime {
  */
 export function resetRuntime(): void {
   _globalRuntime.reset();
+  _slugCounters.clear();
 }
 
 /**
@@ -384,7 +399,7 @@ export function resetRuntime(): void {
  */
 export class Component {
 
-  public readonly id?: string;
+  public readonly id: string;
   public readonly name?: string;
   public readonly description?: string;
   public readonly technology?: string;
@@ -398,7 +413,7 @@ export class Component {
 
   constructor(kind: ElementKind, args: ComponentArgs) {
     this.kind = kind;
-    this.id = args.id;
+    this.id = args.id ?? generateAutoId(kind, args.name);
     this.name = args.name;
     this.description = args.description;
     this.technology = args.technology;
@@ -968,12 +983,18 @@ function inferRelationKindForStep(step: FlowStep): RelationKind | undefined {
 
   if (step.method === 'sendsRequest') {
     if (connectionKind === 'event') {
-      return RelationKind.PRODUCES;
+      if (targetKind && MESSAGING_KINDS.has(targetKind)) {
+        return RelationKind.PRODUCES;
+      }
+      // Non-messaging target: fall through to default logic
     }
     if (connectionKind === 'dependency') {
       return RelationKind.DEPENDS_ON;
     }
-    // sync or async or default
+    if (connectionKind === 'async') {
+      return RelationKind.CALLS;
+    }
+    // sync or default
     if (targetKind && DATA_STORE_KINDS.has(targetKind)) {
       return RelationKind.USES;
     }

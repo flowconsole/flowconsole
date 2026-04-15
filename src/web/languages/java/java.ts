@@ -20,10 +20,10 @@ ReactApp app = new ReactApp(ComponentArgs.builder()
   .name("app")
   .build());
 
-RestApi api = new RestApi(ComponentArgs.builder()
+RestApi api = new RestApi(RestApiArgs.builder()
   .name("api")
   .belongsTo(app)
-  .icon("api-icon")
+  .technology("ASP.NET Core")
   .build());
 
 user.sendsRequest(app, "Load App");

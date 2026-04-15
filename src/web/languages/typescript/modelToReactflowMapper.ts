@@ -1,5 +1,5 @@
 import type { ElementShape, ElementTone, ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, FlowDefinition } from '../../diagram/types';
-import type { ConnectionRecord, DiagramIntermediateModel, EntityRecord, EntityTypeName, ShapeKind } from './diagramRuntime';
+import type { ConnectionRecord, DeploymentRecord, DiagramIntermediateModel, EntityRecord, EntityTypeName, ShapeKind } from './diagramRuntime';
 
 type NodeRenderConfig = {
   nodeType: 'element' | 'container';
@@ -44,6 +44,16 @@ export function buildReactFlowModel(intermediate: DiagramIntermediateModel): Arc
   });
 
   const edges: ArchitectureEdge[] = intermediate.relationships.map((rel) => buildEdge(rel));
+
+  // Append deployment edges so they are rendered in diagrams
+  const deploymentEdges: ArchitectureEdge[] = (intermediate.deployments ?? []).map((dep: DeploymentRecord) => ({
+    id: dep.id,
+    type: 'relationship' as const,
+    source: dep.sourceId,
+    target: dep.targetId,
+    data: { label: dep.relationKind, kind: 'sync' as const },
+  }));
+  edges.push(...deploymentEdges);
 
   const flows: FlowDefinition[] = (intermediate.flows ?? []).map((flow, idx) => ({
     id: flow.id,

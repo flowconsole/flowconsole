@@ -19,10 +19,10 @@ var app = new ReactApp(new ComponentArgs {
   Name = "app",
 });
 
-var api = new RestApi(new ComponentArgs {
+var api = new RestApi(new RestApiArgs {
   Name = "api",
   BelongsTo = app,
-  Icon = "api-icon",
+  Technology = "ASP.NET Core",
 });
 
 user.SendsRequest(app, "Load App");

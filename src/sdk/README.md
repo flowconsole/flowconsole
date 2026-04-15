@@ -12,12 +12,12 @@ Built with [jsii](https://github.com/aws/jsii), so the same API is available in 
 - **Java (Maven)**:
   ```xml
   <dependency>
-    <groupId>flowconsole</groupId>
-    <artifactId>sdk</artifactId>
+    <groupId>io.github.slackmaster9999</groupId>
+    <artifactId>flowconsole-sdk</artifactId>
     <version>2.0.0</version>
   </dependency>
   ```
-- **Go**: `go get github.com/slackmaster9999/flowconsole`
+- **Go**: `go get github.com/slackmaster9999/go-flowconsole/flowconsole/v2`
 
 ## Quick Start (TypeScript)
 
@@ -73,14 +73,17 @@ publicIngress.routesTo(gateway);
 gateway.exposes(ordersApi, { path: "/api/orders" });
 
 // Build snapshot (validates and infers relationships)
-const entities = [customer, shop, gateway, web, ordersApi, db, cache, kafka, orderEvents, stripe];
+const entities = [
+  customer, shop, gateway, web, ordersApi, db, cache, kafka, orderEvents, stripe,
+  prodCluster, rdsMain, publicIngress,
+];
 const snapshot = buildSnapshot(entities);
 ```
 
 ## Quick Start (C#)
 
 ```csharp
-using FlowConsole.Sdk;
+using FlowConsole;
 
 var customer = new User(new UserArgs { Name = "Customer", Role = "Buyer" });
 var shop = new SoftwareSystem(new SoftwareSystemArgs { Name = "eShop", Domain = "e-commerce" });
@@ -90,8 +93,9 @@ var ordersApi = new RestApi(new RestApiArgs {
     BaseUrl = "/api/v1/orders",
     BelongsTo = shop
 });
-var db = new Postgres(new PostgresArgs { Name = "Ledger", BelongsTo = shop });
-var kafka = new Kafka(new KafkaArgs { Name = "Event Bus", BelongsTo = shop });
+var web = new Container(new ComponentArgs { Name = "Web App", Technology = "Blazor", BelongsTo = shop });
+var db = new Postgres(new DatabaseArgs { Name = "Ledger", BelongsTo = shop });
+var kafka = new Kafka(new BrokerArgs { Name = "Event Bus", BelongsTo = shop });
 var orderEvents = new Topic(new TopicArgs {
     Name = "order.events", Partitions = 12, BelongsTo = kafka
 });
