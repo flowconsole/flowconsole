@@ -19,7 +19,8 @@ type BaseNodeData = {
   ghost?: boolean;
   ghostParentId?: string;
   /**
-   * Custom text/icon color from SDK style.
+   * Custom accent color from SDK style — applied to icon, badge, and
+   * CSS variable `--diagram-accent`. Does NOT override root text color.
    * Priority: customColor > preset > tone > theme default.
    */
   customColor?: string;

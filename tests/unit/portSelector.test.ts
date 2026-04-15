@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { computePortPosition } from '../../src/web/diagram/layout/portSelector';
-// Ensure builtins are registered
-import '../../src/web/diagram/layout/shapes/builtins';
 
 describe('portSelector', () => {
   const rect = { x: 0, y: 0, width: 200, height: 200 };

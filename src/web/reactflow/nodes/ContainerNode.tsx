@@ -16,6 +16,8 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
   const accent = toneToColor(data.tone ?? 'muted');
   const isCollapsed = data.expanded === false;
   const hasPresetClass = data.preset && data.preset !== 'default';
+  // Containers are openable unless explicitly marked as having zero children.
+  const canOpen = typeof data.childCount !== 'number' || data.childCount > 0;
 
   // Track mouse-down position to distinguish click from drag (pan/zoom).
   const downPos = useRef<{ x: number; y: number } | null>(null);
@@ -47,10 +49,13 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
         downPos.current = null;
       }
 
+      // Don't drill into containers with no children — it would blank the diagram.
+      if (!canOpen) return;
+
       event.stopPropagation();
       window.dispatchEvent(new CustomEvent('container:open', { detail: { id } }));
     },
-    [id]
+    [id, canOpen]
   );
 
   return (
@@ -62,12 +67,11 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
         boxShadow: selected ? `0 0 0 2px ${resolved.borderColor}22, var(--diagram-card-shadow)` : undefined,
         opacity: resolved.opacity,
         position: 'relative',
-        cursor: 'pointer',
+        cursor: canOpen ? 'pointer' : 'default',
       }}
       onClick={handleClick}
       onMouseDown={handleMouseDown}
-      role="button"
-      aria-label={`Open container ${data.title}`}
+      {...(canOpen ? { role: 'button', 'aria-label': `Open container ${data.title}` } : {})}
     >
       {isCollapsed ? (
         <div

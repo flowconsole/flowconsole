@@ -1,8 +1,6 @@
 import type { ArchitectureDiagramModel } from '../types';
 import type { LayoutConfig } from './types';
 import { getShapeDefinitionOrDefault } from './shapes/shapeRegistry';
-// Ensure built-in shapes are registered
-import './shapes/builtins';
 
 type NodeSize = { width: number; height: number };
 
@@ -46,6 +44,12 @@ export function estimateShapeAwareSize(
   if (shapeDef.squareAspect) {
     const side = Math.max(baseWidth, baseHeight);
     return { width: side, height: side };
+  }
+
+  // Enforce fixed aspect ratio (e.g. hexagon CSS aspect-ratio: 1.15)
+  if (shapeDef.aspectRatio) {
+    const derivedHeight = Math.max(baseHeight, baseWidth / shapeDef.aspectRatio);
+    return { width: baseWidth, height: derivedHeight };
   }
 
   return { width: baseWidth, height: baseHeight };

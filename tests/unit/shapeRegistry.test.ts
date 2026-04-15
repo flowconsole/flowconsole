@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { getShapeDefinition, getShapeDefinitionOrDefault, DEFAULT_SHAPE } from '../../src/web/diagram/layout/shapes/shapeRegistry';
-// Ensure builtins are registered
-import '../../src/web/diagram/layout/shapes/builtins';
 
 describe('shapeRegistry', () => {
   describe('getShapeDefinition', () => {

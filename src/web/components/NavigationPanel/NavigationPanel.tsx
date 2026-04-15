@@ -76,7 +76,7 @@ function buildNavigationTree(model: ArchitectureDiagramModel) {
   const roots: NavigationItem[] = [];
 
   model.nodes.forEach((node) => {
-    if (!shouldIncludeInTree(node)) return;
+    if (!shouldIncludeInTree()) return;
     const entry: NavigationItem = {
       id: node.id,
       title: node.data.title,

@@ -68,9 +68,11 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
   const customIcon = data.icon?.trim();
   const isGhost = data.ghost === true;
   const hasPresetClass = data.preset && data.preset !== 'default';
+  // For SVG-backed shapes, keep root background transparent — the SVG handles fill.
+  const hasSvgBackground = !!renderShapeBackground;
   const cardStyle = {
     borderColor: resolved.borderColor,
-    backgroundColor: resolved.backgroundColor,
+    backgroundColor: hasSvgBackground ? 'transparent' : resolved.backgroundColor,
     boxShadow: selected ? `0 0 0 2px ${resolved.borderColor}33, var(--diagram-card-shadow)` : undefined,
     '--diagram-accent': resolved.color ?? accent,
     opacity: resolved.opacity,

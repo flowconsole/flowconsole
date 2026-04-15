@@ -9,6 +9,7 @@ import {
 } from '@xyflow/react';
 import { curveCatmullRomOpen, line } from 'd3-shape';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { computePortPosition } from '../../diagram/layout/portSelector';
 import { relationshipStroke } from '../../diagram/theme';
 import type { RelationshipEdgeType } from '../../diagram/types';
 
@@ -73,6 +74,12 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
+function getNodeStyleDimension(node: InternalNodeInstance, dim: 'width' | 'height'): number | undefined {
+  const style = (node as unknown as { style?: Record<string, unknown> }).style;
+  if (style && typeof style[dim] === 'number') return style[dim] as number;
+  return undefined;
+}
+
 function resolveAnchorPoint(
   node: InternalNodeInstance | undefined,
   anchor: NonNullable<RelationshipEdgeType['data']>['sourceAnchor'] | undefined
@@ -81,12 +88,12 @@ function resolveAnchorPoint(
   const width =
     (typeof node.measured?.width === 'number' && node.measured.width) ||
     (typeof node.width === 'number' ? node.width : undefined) ||
-    (typeof (node as any).style?.width === 'number' ? (node as any).style.width : undefined) ||
+    getNodeStyleDimension(node, 'width') ||
     (typeof node.initialWidth === 'number' ? node.initialWidth : undefined);
   const height =
     (typeof node.measured?.height === 'number' && node.measured.height) ||
     (typeof node.height === 'number' ? node.height : undefined) ||
-    (typeof (node as any).style?.height === 'number' ? (node as any).style.height : undefined) ||
+    getNodeStyleDimension(node, 'height') ||
     (typeof node.initialHeight === 'number' ? node.initialHeight : undefined);
   if (!width || !height) return undefined;
   const { x, y } = node.internals.positionAbsolute;
@@ -106,7 +113,7 @@ function resolveAnchorPoint(
 }
 
 // Returns the intersection point of a ray from node center toward a target point
-// with the node's bounding rectangle.
+// with the node's visual contour (circle, hexagon, cloud, or rectangle bbox).
 function getNodeIntersectionToward(
   node: InternalNodeInstance,
   toward: Point
@@ -115,103 +122,11 @@ function getNodeIntersectionToward(
   const h = node.measured?.height;
   if (!w || !h) return undefined;
   const pos = node.internals.positionAbsolute;
-  const cx = pos.x + w / 2;
-  const cy = pos.y + h / 2;
-  const dx = toward.x - cx;
-  const dy = toward.y - cy;
-  if (dx === 0 && dy === 0) return { x: cx, y: pos.y + h }; // fallback: bottom center
-  const hw = w / 2;
-  const hh = h / 2;
-  // Scale factor to reach rectangle boundary
-  const sx = dx !== 0 ? hw / Math.abs(dx) : Infinity;
-  const sy = dy !== 0 ? hh / Math.abs(dy) : Infinity;
-  const s = Math.min(sx, sy);
-  return { x: cx + dx * s, y: cy + dy * s };
-}
-
-// this helper function returns the intersection point
-// of the line between the center of the intersectionNode and the target node
-function getNodeIntersection(
-  intersectionNode: InternalNodeInstance,
-  targetNode: InternalNodeInstance
-) {
-  // https://math.stackexchange.com/questions/1724792/an-algorithm-for-finding-the-intersection-point-between-a-center-of-vision-and-a
-  const intersectionNodeWidth = intersectionNode.measured?.width;
-  const intersectionNodeHeight = intersectionNode.measured?.height;
-  const intersectionNodePosition = intersectionNode.internals.positionAbsolute;
-  const targetPosition = targetNode.internals.positionAbsolute;
-  const targetWidth = targetNode.measured?.width;
-  const targetHeight = targetNode.measured?.height;
-
-  if (!intersectionNodeWidth || !intersectionNodeHeight || !targetWidth || !targetHeight) {
-    return targetPosition;
-  }
-
-  const w = intersectionNodeWidth / 2;
-  const h = intersectionNodeHeight / 2;
-
-  const x2 = intersectionNodePosition.x + w;
-  const y2 = intersectionNodePosition.y + h;
-  const x1 = targetPosition.x + targetWidth / 2;
-  const y1 = targetPosition.y + targetHeight / 2;
-
-  const xx1 = (x1 - x2) / (2 * w) - (y1 - y2) / (2 * h);
-  const yy1 = (x1 - x2) / (2 * w) + (y1 - y2) / (2 * h);
-  const a = 1 / (Math.abs(xx1) + Math.abs(yy1));
-  const xx3 = a * xx1;
-  const yy3 = a * yy1;
-  const x = w * (xx3 + yy3) + x2;
-  const y = h * (-xx3 + yy3) + y2;
-
-  return { x, y };
-}
-
-// returns the position (top,right,bottom or right) passed node compared to the intersection point
-function getEdgePosition(node: InternalNodeInstance, intersectionPoint: Point) {
-  const measured = node.measured;
-  if (!measured?.width || !measured?.height) {
-    return Position.Top;
-  }
-  const width = measured.width;
-  const height = measured.height;
-  const n = { ...node.internals.positionAbsolute };
-  const nx = Math.round(n.x);
-  const ny = Math.round(n.y);
-  const px = Math.round(intersectionPoint.x);
-  const py = Math.round(intersectionPoint.y);
-
-  if (px <= nx + 1) {
-    return Position.Left;
-  }
-  if (px >= nx + width - 1) {
-    return Position.Right;
-  }
-  if (py <= ny + 1) {
-    return Position.Top;
-  }
-  if (py >= ny + height - 1) {
-    return Position.Bottom;
-  }
- 
-  return Position.Top;
-}
-
-// returns the parameters (sx, sy, tx, ty, sourcePos, targetPos) you need to create an edge
-export function getEdgeParams(source: InternalNodeInstance, target: InternalNodeInstance) {
-  const sourceIntersectionPoint = getNodeIntersection(source, target);
-  const targetIntersectionPoint = getNodeIntersection(target, source);
- 
-  const sourcePos = getEdgePosition(source, sourceIntersectionPoint);
-  const targetPos = getEdgePosition(target, targetIntersectionPoint);
- 
-  return {
-    sx: sourceIntersectionPoint.x,
-    sy: sourceIntersectionPoint.y,
-    tx: targetIntersectionPoint.x,
-    ty: targetIntersectionPoint.y,
-    sourcePos,
-    targetPos,
-  };
+  return computePortPosition(
+    { x: pos.x, y: pos.y, width: w, height: h },
+    toward,
+    node.type ?? 'element',
+  );
 }
 
 function bezierPathFromGraphviz(points: Point[] | undefined) {

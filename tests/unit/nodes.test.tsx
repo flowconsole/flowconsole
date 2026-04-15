@@ -43,12 +43,28 @@ describe('Diagram nodes', () => {
     });
 
     it('renders collapsed layout with centered content and cursor pointer', () => {
-      const { container } = renderContainer({ description: 'Short desc', expanded: false });
+      const { container } = renderContainer({ description: 'Short desc', expanded: false, childCount: 2 });
       expect(screen.getByText('Module')).toBeInTheDocument();
       expect(screen.getByText('Short desc')).toBeInTheDocument();
       const containerEl = container.querySelector('.diagram-container') as HTMLElement;
       expect(containerEl.style.cursor).toBe('pointer');
       expect(screen.getByTestId('handles')).toBeInTheDocument();
+    });
+
+    it('renders default cursor on container with no children', () => {
+      const { container } = renderContainer({ expanded: false, childCount: 0 });
+      const containerEl = container.querySelector('.diagram-container') as HTMLElement;
+      expect(containerEl.style.cursor).toBe('default');
+    });
+
+    it('does not dispatch container:open when clicking container with no children', () => {
+      const listener = vi.fn();
+      window.addEventListener('container:open', listener as EventListener);
+      const { container } = renderContainer({ expanded: false, childCount: 0 });
+      const containerEl = container.querySelector('.diagram-container') as HTMLElement;
+      fireEvent.click(containerEl);
+      expect(listener).not.toHaveBeenCalled();
+      window.removeEventListener('container:open', listener as EventListener);
     });
 
     it('shows child count footer when collapsed and childCount > 0', () => {
