@@ -100,8 +100,8 @@ describe('Diagram nodes', () => {
   });
 
   describe('ElementNode', () => {
-    const renderElement = (data: Partial<ElementNodeType['data']> = {}, selected = false) =>
-      render(<ElementNode id="element-1" data={{ title: 'Service', ...data }} selected={selected} />);
+    const renderElement = (data: Partial<ElementNodeType['data']> = {}, selected = false, type = 'element') =>
+      render(<ElementNode id="element-1" data={{ title: 'Service', ...data }} selected={selected} type={type} dragging={false} zIndex={0} selectable={false} deletable={false} draggable={false} isConnectable={false} positionAbsoluteX={0} positionAbsoluteY={0} />);
 
     it.each<ElementNodeType['data']['status'][]>(['operational', 'degraded', 'down'])(
       'applies status color for %s',
@@ -189,6 +189,21 @@ describe('Diagram nodes', () => {
       expect(card.getAttribute('role')).toBeNull();
       expect(card.getAttribute('tabindex')).toBeNull();
       expect(card.getAttribute('onclick')).toBeNull();
+    });
+
+    it.each([
+      ['person', 'person'],
+      ['database', 'database'],
+      ['queue', 'queue'],
+      ['storage', 'storage'],
+      ['boundary', 'boundary'],
+      ['element', 'service'],
+    ])('renders correct CSS class for nodeType=%s → shapeClassName=%s', (nodeType, expectedShape) => {
+      const { container } = renderElement({}, false, nodeType);
+      const card = container.querySelector('.diagram-card') as HTMLElement;
+      expect(card).toHaveClass(`diagram-card--${expectedShape}`);
+      const icon = container.querySelector('.diagram-icon') as HTMLElement;
+      expect(icon).toHaveClass(`diagram-icon--${expectedShape}`);
     });
   });
 
