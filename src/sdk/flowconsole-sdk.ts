@@ -164,10 +164,6 @@ export interface ComponentArgs {
   readonly style?: ComponentStyle;
 }
 
-export interface UserArgs extends ComponentArgs {
-  readonly role?: string;
-}
-
 export interface DeploymentOptions {
   readonly replicas?: number;
   readonly cpu?: string;
@@ -488,7 +484,86 @@ export class Component {
   }
 }
 
-// ── User class ──
+// ── Args interfaces for element classes ──
+
+export interface UserArgs extends ComponentArgs {
+  readonly role?: string;
+}
+
+export interface SystemArgs extends ComponentArgs {
+  readonly domain?: string;
+}
+
+export interface ExternalArgs extends ComponentArgs {
+  readonly vendor?: string;
+}
+
+export interface DatabaseArgs extends ComponentArgs {
+  readonly engine?: string;
+}
+
+export interface CacheArgs extends ComponentArgs {
+  readonly engine?: string;
+}
+
+export interface QueueArgs extends ComponentArgs {
+  readonly engine?: string;
+}
+
+export interface BrokerArgs extends ComponentArgs {
+}
+
+export interface TopicArgs extends ComponentArgs {
+  readonly partitions?: number;
+}
+
+// ── Deployment args ──
+
+export interface K8sClusterArgs extends ComponentArgs {
+  readonly region?: string;
+  readonly version?: string;
+}
+
+export interface ManagedDatabaseArgs extends ComponentArgs {
+  readonly provider?: string;
+  readonly engine?: string;
+}
+
+export interface ServerlessArgs extends ComponentArgs {
+  readonly runtime?: string;
+  readonly provider?: string;
+}
+
+export interface VmArgs extends ComponentArgs {
+  readonly os?: string;
+  readonly provider?: string;
+}
+
+export interface CdnArgs extends ComponentArgs {
+  readonly provider?: string;
+}
+
+export interface IngressArgs extends ComponentArgs {
+  readonly host?: string;
+  readonly tls?: boolean;
+}
+
+// ── Convenience args ──
+
+export interface RestApiArgs extends ComponentArgs {
+  readonly baseUrl?: string;
+  readonly openapi?: string;
+}
+
+export interface GrpcApiArgs extends ComponentArgs {
+  readonly proto?: string;
+}
+
+export interface GraphqlApiArgs extends ComponentArgs {
+  readonly schema?: string;
+}
+
+// ── Base element classes (13) ──
 
 export class User extends Component {
   public readonly role?: string;
@@ -497,4 +572,559 @@ export class User extends Component {
     super(ElementKind.EXTERNAL, args);
     this.role = args.role;
   }
+}
+
+export class System extends Component {
+  public readonly domain?: string;
+
+  constructor(args: SystemArgs) {
+    super(ElementKind.SERVICE, args);
+    this.domain = args.domain;
+  }
+}
+
+export class Namespace extends Component {
+  constructor(args: ComponentArgs) {
+    super(ElementKind.NAMESPACE, args);
+  }
+}
+
+export class Container extends Component {
+  constructor(args: ComponentArgs) {
+    super(ElementKind.APPLICATION, args);
+  }
+}
+
+export class Module extends Component {
+  constructor(args: ComponentArgs) {
+    super(ElementKind.MODULE, args);
+  }
+}
+
+export class External extends Component {
+  public readonly vendor?: string;
+
+  constructor(args: ExternalArgs) {
+    super(ElementKind.EXTERNAL, args);
+    this.vendor = args.vendor;
+  }
+}
+
+export class Gateway extends Component {
+  constructor(args: ComponentArgs) {
+    super(ElementKind.GATEWAY, args);
+  }
+}
+
+export class Worker extends Component {
+  constructor(args: ComponentArgs) {
+    super(ElementKind.WORKER, args);
+  }
+}
+
+export class Database extends Component {
+  public readonly engine?: string;
+
+  constructor(args: DatabaseArgs) {
+    super(ElementKind.DATABASE, args);
+    this.engine = args.engine;
+  }
+}
+
+export class Cache extends Component {
+  public readonly engine?: string;
+
+  constructor(args: CacheArgs) {
+    super(ElementKind.CACHE, args);
+    this.engine = args.engine;
+  }
+}
+
+export class Queue extends Component {
+  public readonly engine?: string;
+
+  constructor(args: QueueArgs) {
+    super(ElementKind.QUEUE, args);
+    this.engine = args.engine;
+  }
+}
+
+export class Broker extends Component {
+  constructor(args: BrokerArgs) {
+    super(ElementKind.BROKER, args);
+  }
+}
+
+export class Topic extends Component {
+  public readonly partitions?: number;
+
+  constructor(args: TopicArgs) {
+    super(ElementKind.TOPIC, args);
+    this.partitions = args.partitions;
+  }
+}
+
+// ── Deployment classes (6) ──
+
+export class K8sCluster extends Component {
+  public readonly region?: string;
+  public readonly version?: string;
+
+  constructor(args: K8sClusterArgs) {
+    super(ElementKind.DEPLOYMENT, args);
+    this.region = args.region;
+    this.version = args.version;
+  }
+}
+
+export class ManagedDatabase extends Component {
+  public readonly provider?: string;
+  public readonly engine?: string;
+
+  constructor(args: ManagedDatabaseArgs) {
+    super(ElementKind.DEPLOYMENT, args);
+    this.provider = args.provider;
+    this.engine = args.engine;
+  }
+}
+
+export class Serverless extends Component {
+  public readonly runtime?: string;
+  public readonly provider?: string;
+
+  constructor(args: ServerlessArgs) {
+    super(ElementKind.DEPLOYMENT, args);
+    this.runtime = args.runtime;
+    this.provider = args.provider;
+  }
+}
+
+export class Vm extends Component {
+  public readonly os?: string;
+  public readonly provider?: string;
+
+  constructor(args: VmArgs) {
+    super(ElementKind.DEPLOYMENT, args);
+    this.os = args.os;
+    this.provider = args.provider;
+  }
+}
+
+export class Cdn extends Component {
+  public readonly provider?: string;
+
+  constructor(args: CdnArgs) {
+    super(ElementKind.DEPLOYMENT, args);
+    this.provider = args.provider;
+  }
+}
+
+export class Ingress extends Component {
+  public readonly host?: string;
+  public readonly tls?: boolean;
+
+  constructor(args: IngressArgs) {
+    super(ElementKind.INGRESS, args);
+    this.host = args.host;
+    this.tls = args.tls;
+  }
+}
+
+// ── Convenience classes (23) ──
+
+// API patterns (extend Container → kind=Application)
+
+export class RestApi extends Container {
+  public readonly baseUrl?: string;
+  public readonly openapi?: string;
+
+  constructor(args: RestApiArgs) {
+    super({ technology: 'REST API', ...args });
+    this.baseUrl = args.baseUrl;
+    this.openapi = args.openapi;
+  }
+}
+
+export class GrpcApi extends Container {
+  public readonly proto?: string;
+
+  constructor(args: GrpcApiArgs) {
+    super({ technology: 'gRPC', ...args });
+    this.proto = args.proto;
+  }
+}
+
+export class GraphqlApi extends Container {
+  public readonly schema?: string;
+
+  constructor(args: GraphqlApiArgs) {
+    super({ technology: 'GraphQL', ...args });
+    this.schema = args.schema;
+  }
+}
+
+// Web/Mobile/Desktop frameworks (extend Container → kind=Application)
+
+export class ReactApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'React', ...args });
+  }
+}
+
+export class NextApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Next.js', ...args });
+  }
+}
+
+export class VueApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Vue.js', ...args });
+  }
+}
+
+export class AngularApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Angular', ...args });
+  }
+}
+
+export class SvelteApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Svelte', ...args });
+  }
+}
+
+export class BlazorApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Blazor', ...args });
+  }
+}
+
+export class IosApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'iOS', ...args });
+  }
+}
+
+export class AndroidApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Android', ...args });
+  }
+}
+
+export class DesktopApp extends Container {
+  constructor(args: ComponentArgs) {
+    super({ technology: 'Desktop', ...args });
+  }
+}
+
+// Database convenience classes (extend Database)
+
+export class Postgres extends Database {
+  constructor(args: DatabaseArgs) {
+    super({ engine: 'PostgreSQL', ...args });
+  }
+}
+
+export class Mysql extends Database {
+  constructor(args: DatabaseArgs) {
+    super({ engine: 'MySQL', ...args });
+  }
+}
+
+export class Mongo extends Database {
+  constructor(args: DatabaseArgs) {
+    super({ engine: 'MongoDB', ...args });
+  }
+}
+
+export class Clickhouse extends Database {
+  constructor(args: DatabaseArgs) {
+    super({ engine: 'ClickHouse', ...args });
+  }
+}
+
+// Cache convenience classes (extend Cache)
+
+export class Redis extends Cache {
+  constructor(args: CacheArgs) {
+    super({ engine: 'Redis', ...args });
+  }
+}
+
+export class Memcached extends Cache {
+  constructor(args: CacheArgs) {
+    super({ engine: 'Memcached', ...args });
+  }
+}
+
+// Queue convenience classes (extend Queue)
+
+export class Rabbit extends Queue {
+  constructor(args: QueueArgs) {
+    super({ engine: 'RabbitMQ', ...args });
+  }
+}
+
+export class Sqs extends Queue {
+  constructor(args: QueueArgs) {
+    super({ engine: 'AWS SQS', ...args });
+  }
+}
+
+// Broker convenience classes (extend Broker)
+
+export class Kafka extends Broker {
+  constructor(args: BrokerArgs) {
+    super({ technology: 'Kafka', ...args });
+  }
+}
+
+export class Nats extends Broker {
+  constructor(args: BrokerArgs) {
+    super({ technology: 'NATS', ...args });
+  }
+}
+
+export class Pulsar extends Broker {
+  constructor(args: BrokerArgs) {
+    super({ technology: 'Apache Pulsar', ...args });
+  }
+}
+
+// ── Inference and validation ──
+
+/**
+ * Represents a single inferred relationship between two components.
+ */
+export interface InferredRelationship {
+  readonly source: Component;
+  readonly target: Component;
+  readonly relationKind: RelationKind;
+  readonly labels: string[];
+  readonly options?: ConnectionOptions;
+}
+
+/**
+ * Allowed parent kinds for each element kind.
+ * Topic has a special rule: belongsTo must be a Broker.
+ */
+const ALLOWED_PARENTS: { [key: string]: ElementKind[] | undefined } = {
+  [ElementKind.EXTERNAL]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.SERVICE]: [],
+  [ElementKind.NAMESPACE]: [ElementKind.SERVICE],
+  [ElementKind.APPLICATION]: [ElementKind.SERVICE, ElementKind.NAMESPACE],
+  [ElementKind.MODULE]: [ElementKind.APPLICATION, ElementKind.SERVICE],
+  [ElementKind.GATEWAY]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.WORKER]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.DATABASE]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.CACHE]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.QUEUE]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.BROKER]: [ElementKind.SERVICE, ElementKind.APPLICATION],
+  [ElementKind.TOPIC]: [ElementKind.BROKER],
+};
+
+/** Set of ElementKinds considered as Database or Cache for inference */
+const DATA_STORE_KINDS = new Set([ElementKind.DATABASE, ElementKind.CACHE]);
+/** Set of ElementKinds considered as Topic or Queue for inference */
+const MESSAGING_KINDS = new Set([ElementKind.TOPIC, ElementKind.QUEUE]);
+
+/**
+ * Infer the RelationKind for a flow step based on method name, options, and target kind.
+ */
+function inferRelationKindForStep(step: FlowStep): RelationKind | undefined {
+  if (step.method === 'executesRequest') {
+    return undefined; // Internal action, no relationship created
+  }
+
+  const targetKind = step.target?.kind;
+  const connectionKind = step.options?.kind;
+
+  if (step.method === 'sendsRequest') {
+    if (connectionKind === 'event') {
+      return RelationKind.PRODUCES;
+    }
+    if (connectionKind === 'dependency') {
+      return RelationKind.DEPENDS_ON;
+    }
+    // sync or async or default
+    if (targetKind && DATA_STORE_KINDS.has(targetKind)) {
+      return RelationKind.USES;
+    }
+    return RelationKind.CALLS;
+  }
+
+  if (step.method === 'getDataFrom') {
+    if (targetKind && MESSAGING_KINDS.has(targetKind)) {
+      return RelationKind.CONSUMES;
+    }
+    if (targetKind && DATA_STORE_KINDS.has(targetKind)) {
+      return RelationKind.USES;
+    }
+    return RelationKind.CALLS;
+  }
+
+  return RelationKind.CALLS;
+}
+
+/**
+ * Build a deduplication key for relationships.
+ */
+function relationKey(source: Component, target: Component, kind: RelationKind): string {
+  const srcId = source.id ?? source.name ?? '';
+  const tgtId = target.id ?? target.name ?? '';
+  return `${srcId}::${tgtId}::${kind}`;
+}
+
+/**
+ * Infer relationships from flow steps and deployment records.
+ * Deduplicates: one (source, target, relationKind) pair produces one relationship with merged labels.
+ */
+export function inferRelationships(
+  entities: Component[],
+  flows: FlowStep[][],
+  deployments: DeploymentRecord[],
+): InferredRelationship[] {
+  const map = new Map<string, InferredRelationship>();
+
+  // Contains relationships from belongsTo
+  for (const entity of entities) {
+    if (entity.belongsTo) {
+      const key = relationKey(entity.belongsTo, entity, RelationKind.CONTAINS);
+      if (!map.has(key)) {
+        map.set(key, {
+          source: entity.belongsTo,
+          target: entity,
+          relationKind: RelationKind.CONTAINS,
+          labels: [],
+        });
+      }
+    }
+  }
+
+  // Flow-inferred relationships
+  for (const steps of flows) {
+    for (const step of steps) {
+      if (!step.target) {
+        continue;
+      }
+      const kind = inferRelationKindForStep(step);
+      if (!kind) {
+        continue;
+      }
+      const key = relationKey(step.source, step.target, kind);
+      const existing = map.get(key);
+      if (existing) {
+        if (step.label) {
+          (existing.labels as string[]).push(step.label);
+        }
+      } else {
+        map.set(key, {
+          source: step.source,
+          target: step.target,
+          relationKind: kind,
+          labels: step.label ? [step.label] : [],
+          options: step.options,
+        });
+      }
+    }
+  }
+
+  // Deployment relationships
+  for (const dep of deployments) {
+    const key = relationKey(dep.source, dep.target, dep.relationKind);
+    if (!map.has(key)) {
+      map.set(key, {
+        source: dep.source,
+        target: dep.target,
+        relationKind: dep.relationKind,
+        labels: [],
+      });
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+/**
+ * Validate belongsTo rules for all entities.
+ * Throws Error if any entity violates the allowed parent rules.
+ */
+export function validateBelongsTo(entities: Component[]): void {
+  for (const entity of entities) {
+    const kind = entity.kind;
+
+    // Topic must have a Broker parent
+    if (kind === ElementKind.TOPIC) {
+      if (!entity.belongsTo || entity.belongsTo.kind !== ElementKind.BROKER) {
+        const name = entity.name ?? entity.id ?? 'unnamed';
+        throw new Error(
+          `Topic "${name}" must have a Broker as belongsTo parent`,
+        );
+      }
+      continue;
+    }
+
+    // User and System (Service) are top-level — belongsTo must be undefined
+    if (kind === ElementKind.SERVICE) {
+      if (entity.belongsTo) {
+        const name = entity.name ?? entity.id ?? 'unnamed';
+        throw new Error(
+          `System "${name}" cannot have a parent (must be top-level)`,
+        );
+      }
+      continue;
+    }
+
+    // Check allowed parents
+    if (entity.belongsTo) {
+      const allowed = ALLOWED_PARENTS[kind];
+      if (allowed && allowed.length > 0 && !allowed.includes(entity.belongsTo.kind)) {
+        const name = entity.name ?? entity.id ?? 'unnamed';
+        const parentName = entity.belongsTo.name ?? entity.belongsTo.id ?? 'unnamed';
+        throw new Error(
+          `Element "${name}" (${kind}) cannot belong to "${parentName}" (${entity.belongsTo.kind}). Allowed parent kinds: ${allowed.join(', ')}`,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * ModelSnapshot result from buildSnapshot().
+ */
+export interface ModelSnapshot {
+  readonly entities: Component[];
+  readonly relationships: InferredRelationship[];
+  readonly scenarios: { [name: string]: FlowStep[] };
+}
+
+/**
+ * Build a complete ModelSnapshot from the current runtime state.
+ * Validates belongsTo rules and infers all relationships.
+ */
+export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): ModelSnapshot {
+  const rt = runtime ?? getRuntime();
+
+  // Validate
+  validateBelongsTo(entities);
+
+  // Collect all flow steps
+  const allFlows: FlowStep[][] = [];
+  for (const name of Object.keys(rt.scenarios)) {
+    allFlows.push(rt.scenarios[name]);
+  }
+  for (const flow of rt.unnamedFlows) {
+    allFlows.push(flow);
+  }
+
+  // Infer relationships
+  const relationships = inferRelationships(entities, allFlows, rt.deployments);
+
+  return {
+    entities,
+    relationships,
+    scenarios: rt.scenarios,
+  };
 }
