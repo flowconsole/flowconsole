@@ -304,7 +304,7 @@ maintainer.opens(webApp, "review & deploy")
     code: `import {
   User, SoftwareSystem, Container, DesktopApp, IosApp,
   RestApi, Worker, External, Postgres, Kafka, Topic,
-  K8sCluster, CDN, Ingress
+  K8sCluster, Cdn, Ingress
 } from "@flowconsole/sdk";
 
 const viewer = new User({ name: "Subscriber", description: "Streams movies" });
@@ -417,7 +417,7 @@ operator.opens(metricsApi, "check SLOs")
 
 // ── Deployment ──
 const prodCluster = new K8sCluster({ name: "prod-us", region: "us-east-1" });
-const cdnEdge = new CDN({ name: "CloudFront", provider: "AWS" });
+const cdnEdge = new Cdn({ name: "CloudFront", provider: "AWS" });
 const publicIngress = new Ingress({ name: "Public", host: "streamly.tv", tls: true });
 
 playbackService.deployedOn(prodCluster, { replicas: 10 });

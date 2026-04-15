@@ -138,12 +138,12 @@ declare global {
     readonly provider?: string;
   }
 
-  interface VM extends Component {
+  interface Vm extends Component {
     readonly os?: string;
     readonly provider?: string;
   }
 
-  interface CDN extends Component {
+  interface Cdn extends Component {
     readonly provider?: string;
   }
 
@@ -213,8 +213,8 @@ declare global {
     | K8sCluster
     | ManagedDatabase
     | Serverless
-    | VM
-    | CDN
+    | Vm
+    | Cdn
     | Ingress
     | RestApi
     | GrpcApi

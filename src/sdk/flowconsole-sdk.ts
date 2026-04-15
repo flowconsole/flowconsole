@@ -342,6 +342,17 @@ export class FlowRuntime {
   public get deployments(): DeploymentRecord[] {
     return [...this._deployments];
   }
+
+  /**
+   * Clear all accumulated state (scenarios, unnamed flows, deployments).
+   */
+  public reset(): void {
+    for (const key of Object.keys(this._scenarios)) {
+      delete this._scenarios[key];
+    }
+    this._unnamedFlows.length = 0;
+    this._deployments.length = 0;
+  }
 }
 
 /**
@@ -354,6 +365,14 @@ const _globalRuntime = new FlowRuntime();
  */
 export function getRuntime(): FlowRuntime {
   return _globalRuntime;
+}
+
+/**
+ * Reset the global runtime, clearing all accumulated flows, scenarios, and deployments.
+ * Call this before building a new model in the same process.
+ */
+export function resetRuntime(): void {
+  _globalRuntime.reset();
 }
 
 /**
