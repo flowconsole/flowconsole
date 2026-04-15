@@ -125,6 +125,8 @@ export function getDefaultIconForKind(kind: ElementKind): string {
       return 'topic';
     case ElementKind.DEPLOYMENT:
       return 'deployment';
+    default:
+      return 'system';
   }
 }
 
@@ -1039,7 +1041,7 @@ export function inferRelationships(
       const existing = map.get(key);
       if (existing) {
         if (step.label) {
-          (existing.labels as string[]).push(step.label);
+          map.set(key, { ...existing, labels: [...existing.labels, step.label] });
         }
       } else {
         map.set(key, {
