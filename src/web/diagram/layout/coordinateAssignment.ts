@@ -1,31 +1,14 @@
 import type { ArchitectureDiagramModel } from '../types';
 import type { LayoutConfig } from './types';
+import { estimateShapeAwareSize } from './shapeSizing';
 
 type NodeSize = { width: number; height: number };
-
-const CONTENT_PADDING = 20;
 
 export function estimateNodeSize(
   node: ArchitectureDiagramModel['nodes'][number],
   config: LayoutConfig
 ): NodeSize {
-  const title = node.data.title ?? '';
-  const subtitle = node.data?.subtitle ?? '';
-  const desc = node.data?.description ?? '';
-  const tags = Array.isArray(node.data?.tags) ? (node.data.tags as string[]) : [];
-  const badge = node.data?.badge ?? '';
-
-  const textWidth = Math.max(title.length * 7, subtitle.length * 6, 120);
-  const tagsWidth = tags.length ? Math.max(tags.join(',').length * 5, tags.length * 60) : 0;
-  const badgeWidth = badge ? Math.max(String(badge).length * 7 + 32, 80) : 0;
-  const width = Math.max(config.nodeWidth, textWidth, tagsWidth, badgeWidth) + CONTENT_PADDING;
-
-  const lineHeight = 18;
-  const descLines = desc ? Math.ceil(desc.length / 40) : 0;
-  const tagsLines = tags.length ? Math.ceil(tags.length / 3) : 0;
-  const height = config.nodeHeight + descLines * lineHeight + tagsLines * lineHeight;
-
-  return { width, height };
+  return estimateShapeAwareSize(node, config);
 }
 
 export type PositionMap = Map<string, { x: number; y: number; width: number; height: number }>;

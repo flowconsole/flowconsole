@@ -217,7 +217,7 @@ describe('Diagram nodes', () => {
     it('renders without errors with minimal data', () => {
       const { container } = renderCircle();
       expect(screen.getByText('Circle')).toBeInTheDocument();
-      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--generic');
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--circle');
       expect(screen.getByTestId('handles')).toBeInTheDocument();
     });
 

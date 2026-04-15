@@ -224,22 +224,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   border-radius: 50%;
+  overflow: visible;
+}
+
+.diagram-card--circle .diagram-card__content {
+  text-align: center;
+  align-items: center;
 }
 
 .diagram-card--hexagon {
   border: none;
   background: transparent;
   box-shadow: none;
-  padding: 18px 26px;
+  padding: 22px 30px;
+  aspect-ratio: 1.15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.diagram-card--hexagon .diagram-card__content {
+  text-align: center;
+  align-items: center;
 }
 
 .diagram-card--cloud {
   border: none;
   background: transparent;
   box-shadow: none;
-  padding: 20px 24px;
+  padding: 24px 28px;
+  overflow: visible;
+}
+
+.diagram-card--cloud .diagram-card__content {
+  text-align: center;
+  align-items: center;
 }
 
 .diagram-card--person .diagram-card__shell::before {

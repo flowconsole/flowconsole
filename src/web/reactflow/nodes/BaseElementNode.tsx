@@ -48,7 +48,7 @@ export type BaseElementNodeProps = {
 
 export function BaseElementNode({ data, selected, shapeClassName, shapeBackground }: BaseElementNodeProps) {
   const accent = toneToColor(data.tone);
-  const visualShape = shapeClassName in shapeIcons ? shapeClassName : 'generic';
+  const visualShape = shapeClassName;
   const Icon = shapeIcons[shapeClassName] ?? IconSquareRounded;
   const customIcon = data.icon?.trim();
   const isGhost = data.ghost === true;
