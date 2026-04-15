@@ -234,7 +234,7 @@ export class FlowBuilder {
 
   public getDataFrom(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
     this._steps.push({ source: this._current, target, label, options, method: 'getDataFrom' });
-    this._current = target;
+    // Do NOT advance _current: the reader continues as the actor, not the data source
     return this;
   }
 
