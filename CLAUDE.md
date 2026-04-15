@@ -56,6 +56,10 @@ pnpm --filter flowconsole vitest run --config ../../vitest.config.ts tests/unit/
 ### Diagram Infrastructure (`src/web/diagram/`, `src/web/reactflow/`)
 - Custom ReactFlow nodes and edges with animation support
 - `graphvizLayoutService.ts` — legacy graphviz-wasm layout (used as fallback)
+- 10 registered nodeTypes in `diagram/registry.ts`: element (rectangle), person, database, queue, storage, boundary, circle, hexagon, cloud, container
+- `BaseElementNode.tsx` — composable base for all element shapes. Accepts `shapeClassName` (CSS shapes) and optional `renderShapeBackground` (SVG layer for circle/hexagon/cloud). Style resolution priority: explicit custom colors > preset > tone > default theme
+- SVG-based shapes (circle, hexagon, cloud) render via absolutely-positioned `<svg>` under content; rectangular shapes (service, database, queue, etc.) use CSS only
+- Preset styles (`theme.ts`): highlighted, critical, deprecated, new, external — each maps to borderColor/backgroundColor/opacity overrides
 
 ### Constraint-Based Auto-Layout Pipeline (`src/web/diagram/layout/`)
 
