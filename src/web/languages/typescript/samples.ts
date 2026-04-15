@@ -52,7 +52,7 @@ export const codeSamplesOld: CodeSample[] = [
     description:
       'Customer-facing banking stack with SPA frontend, backend APIs, caches, databases, and audit streams.',
     code: `import {
-  User, System, Container, ReactApp, RestApi,
+  User, SoftwareSystem, Container, ReactApp, RestApi,
   Redis, Postgres, Kafka, Topic, External,
   K8sCluster, ManagedDatabase, Ingress
 } from "@flowconsole/sdk";
@@ -143,7 +143,7 @@ publicIngress.routesTo(frontApp);
     description:
       'Corporate ERP with employee portal, integration hub, planning services, background schedulers, and supplier APIs.',
     code: `import {
-  User, System, Container, NextApp, RestApi,
+  User, SoftwareSystem, Container, NextApp, RestApi,
   Postgres, Rabbit, Worker, External
 } from "@flowconsole/sdk";
 
@@ -217,7 +217,7 @@ reportingJob.reads(erpDb, "load data")
     description:
       'Architecture of a large open-source dev platform with contributors, Git service, CI runners, and observability.',
     code: `import {
-  User, System, Container, ReactApp, RestApi, GraphqlApi,
+  User, SoftwareSystem, Container, ReactApp, RestApi, GraphqlApi,
   Worker, Postgres, Kafka, Topic
 } from "@flowconsole/sdk";
 
@@ -302,7 +302,7 @@ maintainer.opens(webApp, "review & deploy")
     description:
       'Consumer streaming service with device apps, control plane, data plane, recommendations, and CDN edge nodes.',
     code: `import {
-  User, System, Container, DesktopApp, IosApp,
+  User, SoftwareSystem, Container, DesktopApp, IosApp,
   RestApi, Worker, External, Postgres, Kafka, Topic,
   K8sCluster, CDN, Ingress
 } from "@flowconsole/sdk";
@@ -432,7 +432,7 @@ publicIngress.routesTo(tvApp);
     description:
       'Community project similar to Kubernetes monitoring suites with control plane, agents, dashboards, storage tiers, and alerting.',
     code: `import {
-  User, System, Container, ReactApp, RestApi,
+  User, SoftwareSystem, Container, ReactApp, RestApi,
   Worker, Postgres, Clickhouse, Kafka, Topic
 } from "@flowconsole/sdk";
 

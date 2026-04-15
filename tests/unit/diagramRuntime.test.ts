@@ -20,7 +20,7 @@ describe('DiagramRuntime', () => {
     });
 
     it('includes all 6 deployment elements', () => {
-      const deploy = ['K8sCluster', 'ManagedDatabase', 'Serverless', 'VM', 'CDN', 'Ingress'];
+      const deploy = ['K8sCluster', 'ManagedDatabase', 'Serverless', 'Vm', 'Cdn', 'Ingress'];
       for (const name of deploy) {
         expect(ENTITY_TYPE_NAMES).toContain(name);
       }

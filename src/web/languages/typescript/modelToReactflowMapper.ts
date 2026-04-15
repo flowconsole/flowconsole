@@ -9,7 +9,7 @@ type NodeRenderConfig = {
 };
 
 /** Container-like types render as containers (grouping nodes). */
-const CONTAINER_TYPES = new Set<EntityTypeName>(['System', 'Namespace']);
+const CONTAINER_TYPES = new Set<EntityTypeName>(['SoftwareSystem', 'Namespace']);
 
 /** Map ShapeKind from runtime style to ElementShape used in rendering. */
 const SHAPE_MAP: Record<ShapeKind, ElementShape | undefined> = {

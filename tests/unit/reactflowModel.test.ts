@@ -8,7 +8,7 @@ describe('buildReactFlowModel', () => {
       entities: [
         {
           id: 'sys',
-          type: 'System',
+          type: 'SoftwareSystem',
           name: 'System',
           description: 'Root domain',
           parentId: undefined,

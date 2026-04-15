@@ -2995,7 +2995,7 @@ declare global {
     readonly role?: string;
   }
 
-  interface System extends Component {
+  interface SoftwareSystem extends Component {
     readonly domain?: string;
   }
 
@@ -3107,7 +3107,7 @@ declare global {
 
   type DslEntity =
     | User
-    | System
+    | SoftwareSystem
     | Namespace
     | Container
     | Module
@@ -3249,8 +3249,8 @@ declare module '@flowconsole/sdk' {
   export interface UserArgs extends ComponentArgs { role?: string; }
   export class User extends Component { role?: string; constructor(args: UserArgs); }
 
-  export interface SystemArgs extends ComponentArgs { domain?: string; }
-  export class System extends Component { domain?: string; constructor(args: SystemArgs); }
+  export interface SoftwareSystemArgs extends ComponentArgs { domain?: string; }
+  export class SoftwareSystem extends Component { domain?: string; constructor(args: SoftwareSystemArgs); }
 
   export class Namespace extends Component { constructor(args: ComponentArgs); }
   export class Container extends Component { constructor(args: ComponentArgs); }
@@ -163594,7 +163594,7 @@ var ah = Mgt();
 const Rgt = [
   // Base elements (13)
   "User",
-  "System",
+  "SoftwareSystem",
   "Namespace",
   "Container",
   "Module",
@@ -163610,8 +163610,8 @@ const Rgt = [
   "K8sCluster",
   "ManagedDatabase",
   "Serverless",
-  "VM",
-  "CDN",
+  "Vm",
+  "Cdn",
   "Ingress",
   // Convenience: API patterns (3)
   "RestApi",
@@ -163645,7 +163645,7 @@ const Rgt = [
 ], bv = Symbol("diagram-entity-meta"), jgt = {
   // Base elements
   User: "External",
-  System: "Service",
+  SoftwareSystem: "Service",
   Namespace: "Namespace",
   Container: "Application",
   Module: "Module",
@@ -163661,8 +163661,8 @@ const Rgt = [
   K8sCluster: "Deployment",
   ManagedDatabase: "Deployment",
   Serverless: "Deployment",
-  VM: "Deployment",
-  CDN: "Deployment",
+  Vm: "Deployment",
+  Cdn: "Deployment",
   Ingress: "Ingress",
   // Convenience: API (→ Application)
   RestApi: "Application",
@@ -163721,8 +163721,8 @@ const Rgt = [
   AndroidApp: "mobile",
   K8sCluster: "kubernetes",
   Serverless: "cloud",
-  VM: "cloud",
-  CDN: "cloud",
+  Vm: "cloud",
+  Cdn: "cloud",
   ManagedDatabase: "database"
 }, zgt = {
   Database: "cylinder",
@@ -164034,7 +164034,7 @@ class ohe {
 function Hgt(_e) {
   return _e.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").replace(/-{2,}/g, "-");
 }
-const $gt = /* @__PURE__ */ new Set(["System", "Namespace"]), Xgt = {
+const $gt = /* @__PURE__ */ new Set(["SoftwareSystem", "Namespace"]), Xgt = {
   rectangle: "service",
   circle: "service",
   hexagon: "service",

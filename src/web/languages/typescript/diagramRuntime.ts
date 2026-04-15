@@ -17,8 +17,8 @@ export const ENTITY_TYPE_NAMES = [
   'K8sCluster',
   'ManagedDatabase',
   'Serverless',
-  'VM',
-  'CDN',
+  'Vm',
+  'Cdn',
   'Ingress',
   // Convenience: API patterns (3)
   'RestApi',
@@ -171,8 +171,8 @@ const TYPE_TO_KIND: Record<EntityTypeName, string> = {
   K8sCluster: 'Deployment',
   ManagedDatabase: 'Deployment',
   Serverless: 'Deployment',
-  VM: 'Deployment',
-  CDN: 'Deployment',
+  Vm: 'Deployment',
+  Cdn: 'Deployment',
   Ingress: 'Ingress',
   // Convenience: API (→ Application)
   RestApi: 'Application',
@@ -241,8 +241,8 @@ const TYPE_ICON_OVERRIDE: Partial<Record<EntityTypeName, string>> = {
   AndroidApp: 'mobile',
   K8sCluster: 'kubernetes',
   Serverless: 'cloud',
-  VM: 'cloud',
-  CDN: 'cloud',
+  Vm: 'cloud',
+  Cdn: 'cloud',
   ManagedDatabase: 'database',
 };
 

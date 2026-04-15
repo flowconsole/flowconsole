@@ -37,7 +37,7 @@ pnpm --filter flowconsole vitest run --config ../../vitest.config.ts tests/unit/
 - **src/core** (`flowconsole`) - Core library with DSL, diagram rendering, and React components
 - **src/app** (`flowconsole-app`) - Playground/demo application (Vite + React)
 - **src/docs** (`flowconsole-docs`) - Documentation site (Next.js)
-- **src/sdk** (`@flowconsole/sdk`) - Multi-language SDK using jsii (targets Java, Python, .NET, Go)
+- **src/sdk** (`@flowconsole/sdk` v2.0.0) - Typed architecture-as-code SDK with jsii multi-language support (TypeScript, C#, Java, Python, Go). 13 base element classes, 6 deployment classes, 23 convenience wrappers. Three-layer API: Topology (elements + belongsTo), Flows (fluent interaction chains with automatic relationship inference), Deployment (infrastructure targets). `SoftwareSystem` (not `System`) due to C# reserved name. Key exports: `buildSnapshot()`, `getRuntime()`
 - **src/cli** (`@flowconsole/cli`) - CLI tool for architecture analysis
 
 ## Architecture
