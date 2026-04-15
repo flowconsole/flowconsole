@@ -254,9 +254,12 @@ export class FlowBuilder {
     return this;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public inParallel(...branches: FlowBuilder[]): FlowBuilder {
-    // Parallel branches are tracked by the runtime; steps already captured in each branch
+  public inParallel(...branches: Array<(() => FlowBuilder | void) | FlowBuilder>): FlowBuilder {
+    for (const branch of branches) {
+      if (typeof branch === 'function') {
+        branch();
+      }
+    }
     return this;
   }
 

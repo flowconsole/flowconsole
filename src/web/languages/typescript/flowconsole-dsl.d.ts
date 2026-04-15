@@ -178,23 +178,23 @@ declare global {
   interface DesktopApp extends Component {}
 
   // Convenience: Databases (4)
-  interface Postgres extends Component {}
-  interface Mysql extends Component {}
-  interface Mongo extends Component {}
-  interface Clickhouse extends Component {}
+  interface Postgres extends Database {}
+  interface Mysql extends Database {}
+  interface Mongo extends Database {}
+  interface Clickhouse extends Database {}
 
   // Convenience: Caches (2)
-  interface Redis extends Component {}
-  interface Memcached extends Component {}
+  interface Redis extends Cache {}
+  interface Memcached extends Cache {}
 
   // Convenience: Queues (2)
-  interface Rabbit extends Component {}
-  interface Sqs extends Component {}
+  interface Rabbit extends Queue {}
+  interface Sqs extends Queue {}
 
   // Convenience: Brokers (3)
-  interface Kafka extends Component {}
-  interface Nats extends Component {}
-  interface Pulsar extends Component {}
+  interface Kafka extends Broker {}
+  interface Nats extends Broker {}
+  interface Pulsar extends Broker {}
 
   type DslEntity =
     | User
