@@ -11,7 +11,7 @@
     "stability": "stable"
   },
   "homepage": "https://github.com/slackmaster9999/flowconsole.git",
-  "jsiiVersion": "5.9.37 (build 5176c0d)",
+  "jsiiVersion": "5.9.23 (build 29252a0)",
   "keywords": [],
   "license": "MIT",
   "metadata": {
@@ -4876,5 +4876,5 @@
     }
   },
   "version": "2.0.0",
-  "fingerprint": "XKWMExn/RIcxb8lofN2e7tAsu92ZGlB9ju8IgXNJSYo="
+  "fingerprint": "LQnnZq4pLwcBD/clJwvmGxq1GKwkjeSMqn/cVatrN9I="
 }
