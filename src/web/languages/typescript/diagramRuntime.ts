@@ -24,7 +24,7 @@ export const ENTITY_TYPE_NAMES = [
   'RestApi',
   'GrpcApi',
   'GraphqlApi',
-  // Convenience: Web/Mobile/Desktop (11)
+  // Convenience: Web/Mobile/Desktop (9)
   'ReactApp',
   'NextApp',
   'VueApp',
@@ -254,6 +254,7 @@ const DEFAULT_SHAPE: Record<string, ShapeKind> = {
   Cache: 'cylinder',
   Queue: 'pipe',
   Topic: 'pipe',
+  Broker: 'pipe',
   External: 'cloud',
   Gateway: 'hexagon',
   Ingress: 'hexagon',

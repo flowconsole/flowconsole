@@ -3,12 +3,12 @@
 export type ConnectionKind = 'sync' | 'async' | 'event' | 'dependency';
 export type ComponentTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
-export class ConnectionOptions {
-  detail?: string;
-  kind?: ConnectionKind;
-  icon?: string;
-  muted?: boolean;
-};
+export interface ConnectionOptions {
+  readonly detail?: string;
+  readonly kind?: ConnectionKind;
+  readonly icon?: string;
+  readonly muted?: boolean;
+}
 
 // ── Enums aligned with backend ──
 
@@ -140,6 +140,7 @@ export function getDefaultShapeForKind(kind: ElementKind): ShapeKind {
       return ShapeKind.CYLINDER;
     case ElementKind.QUEUE:
     case ElementKind.TOPIC:
+    case ElementKind.BROKER:
       return ShapeKind.PIPE;
     case ElementKind.EXTERNAL:
       return ShapeKind.CLOUD;

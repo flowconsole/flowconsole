@@ -166,7 +166,7 @@ declare global {
     readonly schema?: string;
   }
 
-  // Convenience: Web/Mobile/Desktop (11)
+  // Convenience: Web/Mobile/Desktop (9)
   interface ReactApp extends Component {}
   interface NextApp extends Component {}
   interface VueApp extends Component {}
@@ -306,7 +306,7 @@ declare module '@flowconsole/sdk' {
     getDataFrom(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     executesRequest(label?: string): FlowBuilder;
     then(target: Component): FlowBuilder;
-    inParallel(...branches: FlowBuilder[]): FlowBuilder;
+    inParallel(...branches: Array<() => FlowBuilder | void>): FlowBuilder;
     opens(target: Component, label?: string): FlowBuilder;
     publishes(target: Component, label?: string): FlowBuilder;
     emits(target: Component, label?: string): FlowBuilder;
@@ -325,7 +325,7 @@ declare module '@flowconsole/sdk' {
     sendsRequestTo(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     getDataFrom(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     executesRequest(label?: string): FlowBuilder;
-    inParallel(...branches: FlowBuilder[]): FlowBuilder;
+    inParallel(...branches: Array<() => FlowBuilder | void>): FlowBuilder;
     opens(target: Component, label?: string): FlowBuilder;
     publishes(target: Component, label?: string): FlowBuilder;
     emits(target: Component, label?: string): FlowBuilder;
