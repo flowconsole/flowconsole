@@ -33,7 +33,8 @@ export function estimateShapeAwareSize(
 
   const shapeDef = getShapeDefinitionOrDefault(node.type ?? 'element');
 
-  const contentWidth = Math.max(config.nodeWidth, textWidth, tagsWidth, badgeWidth) + CONTENT_PADDING;
+  const effectivePadding = CONTENT_PADDING * shapeDef.contentPaddingFactor;
+  const contentWidth = Math.max(config.nodeWidth, textWidth, tagsWidth, badgeWidth) + effectivePadding;
   const baseWidth = Math.max(contentWidth, shapeDef.minWidth);
 
   const lineHeight = 18;

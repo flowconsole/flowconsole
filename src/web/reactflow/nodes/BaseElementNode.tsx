@@ -64,7 +64,6 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
     customBorderColor: data.customBorderColor,
   });
   const accent = toneToColor(data.tone);
-  const visualShape = shapeClassName;
   const Icon = shapeIcons[shapeClassName] ?? IconSquareRounded;
   const customIcon = data.icon?.trim();
   const isGhost = data.ghost === true;
@@ -85,7 +84,7 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
 
   return (
     <div
-      className={`diagram-card diagram-card--${visualShape}${isGhost ? ' diagram-card--ghost' : ''}${presetClass}`}
+      className={`diagram-card diagram-card--${shapeClassName}${isGhost ? ' diagram-card--ghost' : ''}${presetClass}`}
       style={cardStyle}
     >
       {effectiveShapeBg ? (
@@ -93,12 +92,12 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
           {effectiveShapeBg}
         </div>
       ) : (
-        <div className={`diagram-card__shell diagram-card__shell--${visualShape}`} aria-hidden="true" />
+        <div className={`diagram-card__shell diagram-card__shell--${shapeClassName}`} aria-hidden="true" />
       )}
       <div className="diagram-card__content">
         <div className="diagram-card__header">
           <div className="diagram-card__heading">
-            <div className={`diagram-icon diagram-icon--${visualShape}`} style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
+            <div className={`diagram-icon diagram-icon--${shapeClassName}`} style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
               {customIcon ? (
                 <span className="diagram-icon__custom">{customIcon}</span>
               ) : (

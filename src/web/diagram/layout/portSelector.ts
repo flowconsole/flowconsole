@@ -137,17 +137,7 @@ function bboxIntersection(rect: Rect, target: Point): Point {
   const hw = rect.width / 2;
   const hh = rect.height / 2;
 
-  // Find the smallest positive t for each edge
-  const candidates: number[] = [];
-  if (dx !== 0) {
-    candidates.push(hw / Math.abs(dx));
-    candidates.push(-hw / Math.abs(dx)); // other direction (filtered below)
-  }
-  if (dy !== 0) {
-    candidates.push(hh / Math.abs(dy));
-  }
-
-  // t must place point on bbox boundary
+  // Find the smallest positive t that places the point on the bbox boundary
   const tX = dx !== 0 ? hw / Math.abs(dx) : Infinity;
   const tY = dy !== 0 ? hh / Math.abs(dy) : Infinity;
   const t = Math.min(tX, tY);
