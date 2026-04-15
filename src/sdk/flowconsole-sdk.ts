@@ -279,8 +279,9 @@ export class FlowBuilder {
   /**
    * Finalize the flow chain with a scenario name.
    */
-  public scenario(name: string): void {
+  public scenario(name: string): FlowBuilder {
     this._runtime._registerScenario(name, this._steps);
+    return this;
   }
 }
 
