@@ -240,6 +240,7 @@ export class FlowBuilder {
     return this;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public inParallel(...branches: FlowBuilder[]): FlowBuilder {
     // Parallel branches are tracked by the runtime; steps already captured in each branch
     return this;
@@ -510,6 +511,7 @@ export interface QueueArgs extends ComponentArgs {
   readonly engine?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface BrokerArgs extends ComponentArgs {
 }
 
