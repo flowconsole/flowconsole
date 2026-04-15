@@ -1,9 +1,8 @@
-import type { ElementShape, ElementTone, ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, FlowDefinition } from '../../diagram/types';
+import type { ElementTone, ElementNodeTypeName, ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, FlowDefinition } from '../../diagram/types';
 import type { ConnectionRecord, DeploymentRecord, DiagramIntermediateModel, EntityRecord, EntityTypeName, ShapeKind } from './diagramRuntime';
 
 type NodeRenderConfig = {
-  nodeType: 'element' | 'container';
-  shape?: ElementShape;
+  nodeType: ElementNodeTypeName | 'container';
   tone?: ElementTone;
   icon?: string;
 };
@@ -11,15 +10,15 @@ type NodeRenderConfig = {
 /** Container-like types render as containers (grouping nodes). */
 const CONTAINER_TYPES = new Set<EntityTypeName>(['SoftwareSystem', 'Namespace']);
 
-/** Map ShapeKind from runtime style to ElementShape used in rendering. */
-const SHAPE_MAP: Record<ShapeKind, ElementShape | undefined> = {
-  rectangle: 'service',
-  circle: 'service',
-  hexagon: 'service',
+/** Map ShapeKind from runtime style to ReactFlow nodeType name. */
+const SHAPE_MAP: Record<ShapeKind, ElementNodeTypeName> = {
+  rectangle: 'element',
+  circle: 'circle',
+  hexagon: 'hexagon',
   cylinder: 'database',
   pipe: 'queue',
   person: 'person',
-  cloud: 'service',
+  cloud: 'cloud',
 };
 
 function resolveRenderConfig(entity: EntityRecord): NodeRenderConfig {
@@ -28,10 +27,10 @@ function resolveRenderConfig(entity: EntityRecord): NodeRenderConfig {
   }
 
   const style = entity.style;
-  const shape: ElementShape = style?.shape ? (SHAPE_MAP[style.shape] ?? 'service') : 'service';
+  const nodeType: ElementNodeTypeName = style?.shape ? (SHAPE_MAP[style.shape] ?? 'element') : 'element';
   const icon = style?.icon;
 
-  return { nodeType: 'element', shape, icon };
+  return { nodeType, icon };
 }
 
 export function buildReactFlowModel(intermediate: DiagramIntermediateModel): ArchitectureDiagramModel {
@@ -104,7 +103,7 @@ function buildNode(entity: EntityRecord): ArchitectureNode {
 
   return {
     ...base,
-    type: 'element',
+    type: renderConfig.nodeType,
     data: {
       title: entity.name,
       subtitle,
@@ -112,7 +111,6 @@ function buildNode(entity: EntityRecord): ArchitectureNode {
       tags: entity.tags,
       badge: entity.badge,
       tone: (entity.tone as ElementTone | undefined) ?? renderConfig.tone,
-      shape: renderConfig.shape,
       icon: renderConfig.icon,
     },
   } as ArchitectureNode;

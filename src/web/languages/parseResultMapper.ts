@@ -1,9 +1,8 @@
-import type { ArchitectureDiagramModel, ArchitectureEdge, ArchitectureNode } from '../diagram/types';
-import type { ElementShape, ElementTone, RelationshipKind } from '../diagram/types';
+import type { ArchitectureDiagramModel, ArchitectureEdge, ArchitectureNode, ElementNodeTypeName } from '../diagram/types';
+import type { ElementTone, RelationshipKind } from '../diagram/types';
 
 type NodeRenderConfig = {
-  nodeType: 'element' | 'container';
-  shape?: ElementShape;
+  nodeType: ElementNodeTypeName | 'container';
   tone?: ElementTone;
   icon?: string;
 };
@@ -35,17 +34,17 @@ export type ParseResult = {
 };
 
 const CLASS_NODE_STYLES: Record<string, NodeRenderConfig> = {
-  User: { nodeType: 'element', shape: 'person', tone: 'primary' },
+  User: { nodeType: 'person', tone: 'primary' },
   ComputerSystem: { nodeType: 'container' },
   Container: { nodeType: 'container' },
-  ReactApp: { nodeType: 'element', shape: 'service' },
-  RestApi: { nodeType: 'element', shape: 'service' },
-  Redis: { nodeType: 'element', shape: 'database', tone: 'muted' },
-  Postgres: { nodeType: 'element', shape: 'database', tone: 'muted' },
-  KafkaTopic: { nodeType: 'element', shape: 'queue', tone: 'warning' },
-  MessageQueue: { nodeType: 'element', shape: 'queue', tone: 'primary' },
-  ExternalService: { nodeType: 'element', shape: 'service', tone: 'muted' },
-  BackgroundJob: { nodeType: 'element', shape: 'service', tone: 'primary' },
+  ReactApp: { nodeType: 'element' },
+  RestApi: { nodeType: 'element' },
+  Redis: { nodeType: 'database', tone: 'muted' },
+  Postgres: { nodeType: 'database', tone: 'muted' },
+  KafkaTopic: { nodeType: 'queue', tone: 'warning' },
+  MessageQueue: { nodeType: 'queue', tone: 'primary' },
+  ExternalService: { nodeType: 'element', tone: 'muted' },
+  BackgroundJob: { nodeType: 'element', tone: 'primary' },
 };
 
 export function mapParseResultToDiagramModel(result: ParseResult): ArchitectureDiagramModel {
@@ -83,14 +82,13 @@ function buildNode(node: ParseNode): ArchitectureNode {
 
   return {
     ...base,
-    type: 'element',
+    type: renderConfig.nodeType,
     data: {
       title: node.name,
       description: node.description,
       tags: node.tags,
       badge: node.badge,
       tone: renderConfig.tone,
-      shape: renderConfig.shape,
       icon: node.icon ?? renderConfig.icon,
     },
   } as ArchitectureNode;

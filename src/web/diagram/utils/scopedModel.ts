@@ -81,18 +81,19 @@ function createGhostNode(
   const parentNode = parentId ? byId.get(parentId) : undefined;
   const subtitle = parentNode ? `← ${parentNode.data.title}` : undefined;
 
+  const ghostType = originalNode.type === 'container' ? 'boundary' : originalNode.type;
+
   const data: ElementNodeData = {
     title: originalNode.data.title,
     subtitle,
     tone: 'muted',
-    shape: originalNode.type === 'container' ? 'boundary' : (originalNode.data as ElementNodeData).shape,
     ghost: true,
     ghostParentId: parentId,
   };
 
   return {
     id: `ghost:${originalNode.id}`,
-    type: 'element' as const,
+    type: ghostType as ArchitectureNode['type'],
     position: { x: 0, y: 0 },
     data,
   } as ArchitectureNode;

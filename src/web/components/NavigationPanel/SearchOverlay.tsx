@@ -1,5 +1,5 @@
 import { Badge, Group, Input, Modal, ScrollArea, Text } from '../ui';
-import { IconChevronDown, IconChevronRight, IconDatabase, IconLayoutGrid, IconSearch, IconServer, IconSquareRounded, IconUser } from '@tabler/icons-react';
+import { IconChevronDown, IconChevronRight, IconCloud, IconDatabase, IconHexagon, IconCircle, IconLayoutGrid, IconPackage, IconSearch, IconServer, IconSquareRounded, IconStack2, IconUser } from '@tabler/icons-react';
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import type { NavigationItem } from './NavigationPanel';
 
@@ -13,9 +13,15 @@ type Props = {
 };
 
 const iconByShape: Record<string, JSX.Element> = {
+  element: <IconServer size={16} />,
   person: <IconUser size={16} />,
-  service: <IconServer size={16} />,
   database: <IconDatabase size={16} />,
+  queue: <IconStack2 size={16} />,
+  storage: <IconPackage size={16} />,
+  boundary: <IconSquareRounded size={16} />,
+  circle: <IconCircle size={16} />,
+  hexagon: <IconHexagon size={16} />,
+  cloud: <IconCloud size={16} />,
   container: <IconLayoutGrid size={16} />,
 };
 
@@ -56,6 +62,7 @@ function filterTree(items: NavigationItem[], query: string) {
   return walk(items);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function SearchOverlay({ opened, onClose, items: _items, tree, activeId, onSelect }: Props) {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -163,7 +170,7 @@ type ItemProps = {
 };
 
 function SearchItem({ item, level, activeId, onSelect, query, expanded, onToggleExpand }: ItemProps) {
-  const icon = iconByShape[item.shape ?? item.type] ?? <IconSquareRounded size={16} />;
+  const icon = iconByShape[item.type] ?? <IconSquareRounded size={16} />;
   const hasChildren = item.children.length > 0;
   const isExpanded = expanded.has(item.id);
   const [hovered, setHovered] = useState(false);

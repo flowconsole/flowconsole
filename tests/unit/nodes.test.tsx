@@ -129,28 +129,16 @@ describe('Diagram nodes', () => {
       expect(container.querySelector('.diagram-icon svg')).not.toBeNull();
     });
 
-    it('renders database shape styling for provided shape', () => {
-      const { container } = renderElement({ shape: 'database' });
-      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--database');
-      expect(container.querySelector('.diagram-icon')).toHaveClass('diagram-icon--database');
-    });
-
-    it('falls back to generic icon styling when shape is unknown', () => {
-      const { container } = renderElement({ shape: 'unknown' as unknown as ElementNodeType['data']['shape'] });
-      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--generic');
-      expect(container.querySelector('.diagram-icon svg')).not.toBeNull();
+    it('renders service shape styling by default (shape determined by nodeType, not data)', () => {
+      const { container } = renderElement();
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--service');
+      expect(container.querySelector('.diagram-icon')).toHaveClass('diagram-icon--service');
     });
 
     it('prefers custom icon over default svg icon', () => {
-      const { container } = renderElement({ shape: 'database', icon: '✨' });
+      const { container } = renderElement({ icon: '✨' });
       expect((container.querySelector('.diagram-icon') as HTMLElement).textContent).toBe('✨');
       expect(container.querySelector('.diagram-icon svg')).toBeNull();
-    });
-
-    it('renders queue shape with layered queue styling class', () => {
-      const { container } = renderElement({ shape: 'queue' });
-      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--queue');
-      expect(container.querySelector('.diagram-icon')).toHaveClass('diagram-icon--queue');
     });
 
     it('renders badge and description when provided', () => {

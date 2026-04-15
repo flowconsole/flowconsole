@@ -1,7 +1,5 @@
 import type { Edge, EdgeTypes, Node, NodeTypes, Position } from '@xyflow/react';
 
-export type ElementShape = 'person' | 'service' | 'database' | 'queue' | 'storage' | 'boundary';
-
 export type ElementTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
 export type ElementStatus = 'operational' | 'degraded' | 'down';
@@ -21,7 +19,6 @@ type BaseNodeData = {
 };
 
 export type ElementNodeData = BaseNodeData & {
-  shape?: ElementShape;
   icon?: string;
   clickable?: boolean;
 };
@@ -69,14 +66,27 @@ export type RelationshipEdgeData = {
 };
 
 export type ElementNodeType = Node<ElementNodeData, 'element'>;
+export type PersonNodeType = Node<ElementNodeData, 'person'>;
+export type DatabaseNodeType = Node<ElementNodeData, 'database'>;
+export type QueueNodeType = Node<ElementNodeData, 'queue'>;
+export type StorageNodeType = Node<ElementNodeData, 'storage'>;
+export type BoundaryNodeType = Node<ElementNodeData, 'boundary'>;
 export type CircleNodeType = Node<ElementNodeData, 'circle'>;
 export type HexagonNodeType = Node<ElementNodeData, 'hexagon'>;
 export type CloudNodeType = Node<ElementNodeData, 'cloud'>;
 export type ContainerNodeType = Node<ContainerNodeData, 'container'>;
 export type RelationshipEdgeType = Edge<RelationshipEdgeData, 'relationship'>;
 
+/** All element (non-container) node type names. */
+export type ElementNodeTypeName = 'element' | 'person' | 'database' | 'queue' | 'storage' | 'boundary' | 'circle' | 'hexagon' | 'cloud';
+
 export type ArchitectureNode =
   | ElementNodeType
+  | PersonNodeType
+  | DatabaseNodeType
+  | QueueNodeType
+  | StorageNodeType
+  | BoundaryNodeType
   | CircleNodeType
   | HexagonNodeType
   | CloudNodeType

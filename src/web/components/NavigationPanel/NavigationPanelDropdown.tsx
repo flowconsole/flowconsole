@@ -3,10 +3,15 @@ import { ActionIcon, Badge, Group, ScrollArea, TextInput, Tooltip } from '../ui'
 import {
   IconChevronDown,
   IconChevronRight,
+  IconCircle,
+  IconCloud,
   IconDatabase,
+  IconHexagon,
   IconLayoutGrid,
+  IconPackage,
   IconServer,
   IconSquareRounded,
+  IconStack2,
   IconUser,
 } from '@tabler/icons-react';
 import type { NavigationItem } from './NavigationPanel';
@@ -24,9 +29,15 @@ type Props = {
 };
 
 const iconByShape: Record<string, JSX.Element> = {
+  element: <IconServer size={14} />,
   person: <IconUser size={14} />,
-  service: <IconServer size={14} />,
   database: <IconDatabase size={14} />,
+  queue: <IconStack2 size={14} />,
+  storage: <IconPackage size={14} />,
+  boundary: <IconSquareRounded size={14} />,
+  circle: <IconCircle size={14} />,
+  hexagon: <IconHexagon size={14} />,
+  cloud: <IconCloud size={14} />,
   container: <IconLayoutGrid size={14} />,
 };
 
@@ -122,7 +133,7 @@ function NavigationItemRow({
 }: RowProps) {
   const hasChildren = item.children.length > 0;
   const isExpanded = expanded.has(item.id);
-  const icon = iconByShape[item.shape ?? item.type] ?? <IconSquareRounded size={14} />;
+  const icon = iconByShape[item.type] ?? <IconSquareRounded size={14} />;
 
   return (
     <div

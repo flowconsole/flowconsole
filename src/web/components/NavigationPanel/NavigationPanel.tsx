@@ -14,7 +14,6 @@ export type NavigationItem = {
   description?: string;
   badge?: string;
   type: ArchitectureNode['type'];
-  shape?: string;
   parentId?: string;
   children: NavigationItem[];
 };
@@ -40,8 +39,8 @@ type Props = {
   onGoToScope?: (id: string) => void;
 };
 
-function shouldIncludeInTree(node: ArchitectureNode) {
-  return node.type === 'container' || node.type === 'element';
+function shouldIncludeInTree() {
+  return true;
 }
 
 function buildSearchTree(model: ArchitectureDiagramModel) {
@@ -55,7 +54,6 @@ function buildSearchTree(model: ArchitectureDiagramModel) {
       description: 'description' in node.data ? node.data.description : undefined,
       badge: 'badge' in node.data ? node.data.badge : undefined,
       type: node.type,
-      shape: 'shape' in node.data ? node.data.shape : undefined,
       parentId: node.parentId,
       children: [],
     };
@@ -85,7 +83,6 @@ function buildNavigationTree(model: ArchitectureDiagramModel) {
       description: node.data.description ?? node.data.subtitle,
       badge: node.data.badge,
       type: node.type,
-      shape: 'shape' in node.data ? node.data.shape : undefined,
       parentId: node.parentId,
       children: [],
     };
