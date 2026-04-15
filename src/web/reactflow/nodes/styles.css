@@ -505,6 +505,60 @@
   border: none;
 }
 
+/* ── Preset styles ── */
+
+/* Deprecated: reduced opacity, dashed border for rectangular shapes */
+.diagram-card--deprecated {
+  border-style: dashed;
+}
+
+.diagram-card--deprecated .diagram-shape-svg circle,
+.diagram-card--deprecated .diagram-shape-svg polygon,
+.diagram-card--deprecated .diagram-shape-svg path {
+  stroke-dasharray: 6 4;
+}
+
+/* Highlighted: warm glow via drop-shadow (works for both CSS borders and SVG contours) */
+.diagram-card--highlighted {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45));
+}
+
+/* Critical: subtle red glow */
+.diagram-card--critical {
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.35));
+}
+
+/* New: subtle green glow */
+.diagram-card--new {
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.3));
+}
+
+/* External: subtle purple glow */
+.diagram-card--external {
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.3));
+}
+
+/* Container preset variants */
+.diagram-container--deprecated {
+  border-style: dashed;
+}
+
+.diagram-container--highlighted {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45));
+}
+
+.diagram-container--critical {
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.35));
+}
+
+.diagram-container--new {
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.3));
+}
+
+.diagram-container--external {
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.3));
+}
+
 /* Ghost nodes — external references in scoped view */
 .diagram-card--ghost {
   opacity: 0.55;

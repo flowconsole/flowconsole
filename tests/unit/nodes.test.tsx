@@ -7,6 +7,7 @@ import { CircleNode } from '../../src/web/reactflow/nodes/CircleNode';
 import { HexagonNode } from '../../src/web/reactflow/nodes/HexagonNode';
 import { CloudNode } from '../../src/web/reactflow/nodes/CloudNode';
 import { BaseElementNode } from '../../src/web/reactflow/nodes/BaseElementNode';
+import { resolvePresetStyle, presetStyles, resolveNodeStyles } from '../../src/web/diagram/theme';
 import { fireEvent } from '@testing-library/react';
 
 vi.mock('../../src/web/reactflow/nodes/HiddenHandles', () => ({
@@ -286,6 +287,208 @@ describe('Diagram nodes', () => {
       const { container } = renderCloud();
       expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
       expect(container.querySelector('.diagram-shape-svg')).toBeInTheDocument();
+    });
+  });
+
+  describe('resolvePresetStyle', () => {
+    it('returns empty object for undefined preset', () => {
+      expect(resolvePresetStyle(undefined)).toEqual({});
+    });
+
+    it('returns empty object for default preset', () => {
+      expect(resolvePresetStyle('default')).toEqual({});
+    });
+
+    it.each(['highlighted', 'critical', 'deprecated', 'new', 'external'] as const)(
+      'returns non-empty overrides for %s preset',
+      (preset) => {
+        const result = resolvePresetStyle(preset);
+        expect(result.borderColor).toBeDefined();
+        expect(result.backgroundColor).toBeDefined();
+      }
+    );
+
+    it('deprecated preset includes opacity', () => {
+      const result = resolvePresetStyle('deprecated');
+      expect(result.opacity).toBe(0.6);
+    });
+
+    it('highlighted preset does not include opacity', () => {
+      const result = resolvePresetStyle('highlighted');
+      expect(result.opacity).toBeUndefined();
+    });
+  });
+
+  describe('resolveNodeStyles', () => {
+    it('returns tone accent as borderColor by default', () => {
+      const result = resolveNodeStyles({ tone: 'danger' });
+      expect(result.borderColor).toBe('var(--diagram-danger)');
+      expect(result.backgroundColor).toBeUndefined();
+      expect(result.color).toBeUndefined();
+    });
+
+    it('preset overrides tone borderColor', () => {
+      const result = resolveNodeStyles({ tone: 'primary', preset: 'critical' });
+      expect(result.borderColor).toBe(presetStyles.critical.borderColor);
+    });
+
+    it('explicit customBorderColor overrides preset', () => {
+      const result = resolveNodeStyles({ preset: 'critical', customBorderColor: '#00ff00' });
+      expect(result.borderColor).toBe('#00ff00');
+    });
+
+    it('explicit customBackgroundColor overrides preset', () => {
+      const result = resolveNodeStyles({ preset: 'highlighted', customBackgroundColor: '#e74c3c' });
+      expect(result.backgroundColor).toBe('#e74c3c');
+    });
+
+    it('explicit customColor is returned', () => {
+      const result = resolveNodeStyles({ customColor: '#ff0000' });
+      expect(result.color).toBe('#ff0000');
+    });
+
+    it('full priority chain: explicit > preset > tone', () => {
+      const result = resolveNodeStyles({
+        tone: 'success',
+        preset: 'deprecated',
+        customBorderColor: '#00ff00',
+      });
+      // explicit wins
+      expect(result.borderColor).toBe('#00ff00');
+      // opacity from preset still applies
+      expect(result.opacity).toBe(0.6);
+    });
+  });
+
+  describe('BaseElementNode with presets and custom colors', () => {
+    it('applies preset CSS class when preset is set', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Test', preset: 'highlighted' }} shapeClassName="service" />
+      );
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--highlighted');
+    });
+
+    it('does not apply preset CSS class for default preset', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Test', preset: 'default' }} shapeClassName="service" />
+      );
+      expect(container.querySelector('.diagram-card')?.className).not.toContain('diagram-card--default');
+    });
+
+    it('applies custom border color to card style', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Test', customBorderColor: '#c0392b' }} shapeClassName="service" />
+      );
+      const card = container.querySelector('.diagram-card') as HTMLElement;
+      expect(card).toHaveStyle({ borderColor: '#c0392b' });
+    });
+
+    it('applies custom background color to card style', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Test', customBackgroundColor: '#e74c3c' }} shapeClassName="service" />
+      );
+      const card = container.querySelector('.diagram-card') as HTMLElement;
+      expect(card).toHaveStyle({ backgroundColor: '#e74c3c' });
+    });
+
+    it('explicit custom colors override preset on the card', () => {
+      const { container } = render(
+        <BaseElementNode
+          data={{ title: 'Test', preset: 'deprecated', customBorderColor: '#00ff00' }}
+          shapeClassName="service"
+        />
+      );
+      const card = container.querySelector('.diagram-card') as HTMLElement;
+      expect(card).toHaveStyle({ borderColor: '#00ff00' });
+      // preset class still applied for CSS effects (dashed border, etc.)
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--deprecated');
+    });
+
+    it('applies opacity from deprecated preset', () => {
+      const { container } = render(
+        <BaseElementNode data={{ title: 'Test', preset: 'deprecated' }} shapeClassName="service" />
+      );
+      const card = container.querySelector('.diagram-card') as HTMLElement;
+      expect(card.style.opacity).toBe('0.6');
+    });
+  });
+
+  describe('SVG shape nodes apply fill/stroke from resolved styles', () => {
+    it('CircleNode applies custom backgroundColor as fill and borderColor as stroke', () => {
+      const { container } = render(
+        <CircleNode
+          id="c1"
+          data={{ title: 'C', customBackgroundColor: '#e74c3c', customBorderColor: '#c0392b' }}
+          selected={false}
+        />
+      );
+      const circle = container.querySelector('circle');
+      expect(circle?.getAttribute('fill')).toBe('#e74c3c');
+      expect(circle?.getAttribute('stroke')).toBe('#c0392b');
+    });
+
+    it('HexagonNode applies preset colors as fill/stroke on polygon', () => {
+      const { container } = render(
+        <HexagonNode
+          id="h1"
+          data={{ title: 'H', preset: 'critical' }}
+          selected={false}
+        />
+      );
+      const polygon = container.querySelector('polygon');
+      expect(polygon?.getAttribute('stroke')).toBe(presetStyles.critical.borderColor);
+      expect(polygon?.getAttribute('fill')).toBe(presetStyles.critical.backgroundColor);
+    });
+
+    it('CloudNode applies explicit colors overriding preset on path', () => {
+      const { container } = render(
+        <CloudNode
+          id="cl1"
+          data={{ title: 'Cl', preset: 'highlighted', customBorderColor: '#00ff00' }}
+          selected={false}
+        />
+      );
+      const path = container.querySelector('path');
+      // explicit borderColor overrides preset
+      expect(path?.getAttribute('stroke')).toBe('#00ff00');
+      // backgroundColor from preset (no explicit override)
+      expect(path?.getAttribute('fill')).toBe(presetStyles.highlighted.backgroundColor);
+    });
+
+    it('SVG shapes use default panel fill when no custom colors or preset', () => {
+      const { container } = render(
+        <CircleNode id="c2" data={{ title: 'Default' }} selected={false} />
+      );
+      const circle = container.querySelector('circle');
+      expect(circle?.getAttribute('fill')).toBe('var(--diagram-panel)');
+    });
+  });
+
+  describe('ContainerNode with presets and custom colors', () => {
+    const renderContainer = (data: Partial<ContainerNodeType['data']> = {}, selected = false) =>
+      render(<ContainerNode id="cnt-1" data={{ title: 'Module', ...data }} selected={selected} type={'container'} dragging={false} zIndex={0} selectable={false} deletable={false} draggable={false} isConnectable={false} positionAbsoluteX={0} positionAbsoluteY={0} />);
+
+    it('applies preset CSS class', () => {
+      const { container } = renderContainer({ preset: 'critical' });
+      expect(container.querySelector('.diagram-container')).toHaveClass('diagram-container--critical');
+    });
+
+    it('applies custom border color', () => {
+      const { container } = renderContainer({ customBorderColor: '#ff0000' });
+      const el = container.querySelector('.diagram-container') as HTMLElement;
+      expect(el).toHaveStyle({ borderColor: '#ff0000' });
+    });
+
+    it('applies preset border color when no explicit override', () => {
+      const { container } = renderContainer({ preset: 'new' });
+      const el = container.querySelector('.diagram-container') as HTMLElement;
+      expect(el).toHaveStyle({ borderColor: presetStyles.new.borderColor });
+    });
+
+    it('explicit custom borderColor overrides preset on container', () => {
+      const { container } = renderContainer({ preset: 'deprecated', customBorderColor: '#00ff00' });
+      const el = container.querySelector('.diagram-container') as HTMLElement;
+      expect(el).toHaveStyle({ borderColor: '#00ff00' });
     });
   });
 });

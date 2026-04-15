@@ -1,7 +1,7 @@
 import { IconDatabase, IconPackage, IconServer2, IconSquareRounded, IconStack2, IconUser } from '@tabler/icons-react';
 import { type CSSProperties, type ReactNode } from 'react';
-import type { ElementTone, ElementStatus } from '../../diagram/types';
-import { toneToColor } from '../../diagram/theme';
+import type { ElementTone, ElementStatus, StylePreset } from '../../diagram/types';
+import { toneToColor, resolveNodeStyles } from '../../diagram/theme';
 import { HiddenHandles } from './HiddenHandles';
 import './styles.css';
 
@@ -38,34 +38,59 @@ export type BaseElementNodeProps = {
     status?: ElementStatus;
     icon?: string;
     ghost?: boolean;
+    customColor?: string;
+    customBackgroundColor?: string;
+    customBorderColor?: string;
+    preset?: StylePreset;
   };
   selected?: boolean;
   /** CSS class name for the shape variant, e.g. 'service', 'database'. */
   shapeClassName: string;
   /** Optional SVG layer rendered behind the content for non-rectangular shapes. */
   shapeBackground?: ReactNode;
+  /**
+   * Callback that receives the resolved border/background colors.
+   * Used by SVG shape nodes to apply fill/stroke to their SVG elements.
+   */
+  renderShapeBackground?: (resolved: { borderColor: string; backgroundColor?: string }) => ReactNode;
 };
 
-export function BaseElementNode({ data, selected, shapeClassName, shapeBackground }: BaseElementNodeProps) {
+export function BaseElementNode({ data, selected, shapeClassName, shapeBackground, renderShapeBackground }: BaseElementNodeProps) {
+  const resolved = resolveNodeStyles({
+    tone: data.tone,
+    preset: data.preset,
+    customColor: data.customColor,
+    customBackgroundColor: data.customBackgroundColor,
+    customBorderColor: data.customBorderColor,
+  });
   const accent = toneToColor(data.tone);
   const visualShape = shapeClassName;
   const Icon = shapeIcons[shapeClassName] ?? IconSquareRounded;
   const customIcon = data.icon?.trim();
   const isGhost = data.ghost === true;
+  const hasPresetClass = data.preset && data.preset !== 'default';
   const cardStyle = {
-    borderColor: accent,
-    boxShadow: selected ? `0 0 0 2px ${accent}33, var(--diagram-card-shadow)` : undefined,
-    '--diagram-accent': accent,
+    borderColor: resolved.borderColor,
+    backgroundColor: resolved.backgroundColor,
+    boxShadow: selected ? `0 0 0 2px ${resolved.borderColor}33, var(--diagram-card-shadow)` : undefined,
+    '--diagram-accent': resolved.color ?? accent,
+    opacity: resolved.opacity,
   } as CSSProperties;
+
+  const effectiveShapeBg = renderShapeBackground
+    ? renderShapeBackground({ borderColor: resolved.borderColor, backgroundColor: resolved.backgroundColor })
+    : shapeBackground;
+
+  const presetClass = hasPresetClass ? ` diagram-card--${data.preset}` : '';
 
   return (
     <div
-      className={`diagram-card diagram-card--${visualShape}${isGhost ? ' diagram-card--ghost' : ''}`}
+      className={`diagram-card diagram-card--${visualShape}${isGhost ? ' diagram-card--ghost' : ''}${presetClass}`}
       style={cardStyle}
     >
-      {shapeBackground ? (
+      {effectiveShapeBg ? (
         <div className="diagram-card__shape-bg" aria-hidden="true">
-          {shapeBackground}
+          {effectiveShapeBg}
         </div>
       ) : (
         <div className={`diagram-card__shell diagram-card__shell--${visualShape}`} aria-hidden="true" />
@@ -73,7 +98,7 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
       <div className="diagram-card__content">
         <div className="diagram-card__header">
           <div className="diagram-card__heading">
-            <div className={`diagram-icon diagram-icon--${visualShape}`} style={{ borderColor: accent, color: accent }}>
+            <div className={`diagram-icon diagram-icon--${visualShape}`} style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
               {customIcon ? (
                 <span className="diagram-icon__custom">{customIcon}</span>
               ) : (
@@ -87,7 +112,7 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {data.badge ? (
-              <span className="diagram-badge" style={{ borderColor: accent, color: accent }}>
+              <span className="diagram-badge" style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
                 {data.badge}
               </span>
             ) : null}

@@ -1,6 +1,5 @@
 import { type NodeProps } from '@xyflow/react';
 import type { ElementNodeType } from '../../diagram/types';
-import { toneToColor } from '../../diagram/theme';
 import { BaseElementNode } from './BaseElementNode';
 
 /**
@@ -23,30 +22,26 @@ const CLOUD_PATH = [
 ].join(' ');
 
 export function CloudNode({ data, selected }: NodeProps<ElementNodeType>) {
-  const accent = toneToColor(data.tone);
-
-  const svgBackground = (
-    <svg
-      viewBox="0 0 200 120"
-      preserveAspectRatio="none"
-      className="diagram-shape-svg"
-    >
-      <path
-        d={CLOUD_PATH}
-        fill="var(--diagram-panel)"
-        stroke={accent}
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
   return (
     <BaseElementNode
       data={data}
       selected={selected}
       shapeClassName="cloud"
-      shapeBackground={svgBackground}
+      renderShapeBackground={({ borderColor, backgroundColor }) => (
+        <svg
+          viewBox="0 0 200 120"
+          preserveAspectRatio="none"
+          className="diagram-shape-svg"
+        >
+          <path
+            d={CLOUD_PATH}
+            fill={backgroundColor ?? 'var(--diagram-panel)'}
+            stroke={borderColor}
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
     />
   );
 }

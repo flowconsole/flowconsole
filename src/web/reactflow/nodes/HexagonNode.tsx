@@ -1,6 +1,5 @@
 import { type NodeProps } from '@xyflow/react';
 import type { ElementNodeType } from '../../diagram/types';
-import { toneToColor } from '../../diagram/theme';
 import { BaseElementNode } from './BaseElementNode';
 
 /**
@@ -17,30 +16,26 @@ const HEXAGON_POINTS = [
 ].join(' ');
 
 export function HexagonNode({ data, selected }: NodeProps<ElementNodeType>) {
-  const accent = toneToColor(data.tone);
-
-  const svgBackground = (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      className="diagram-shape-svg"
-    >
-      <polygon
-        points={HEXAGON_POINTS}
-        fill="var(--diagram-panel)"
-        stroke={accent}
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-
   return (
     <BaseElementNode
       data={data}
       selected={selected}
       shapeClassName="hexagon"
-      shapeBackground={svgBackground}
+      renderShapeBackground={({ borderColor, backgroundColor }) => (
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="diagram-shape-svg"
+        >
+          <polygon
+            points={HEXAGON_POINTS}
+            fill={backgroundColor ?? 'var(--diagram-panel)'}
+            stroke={borderColor}
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
     />
   );
 }
