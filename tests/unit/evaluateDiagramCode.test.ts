@@ -3,7 +3,7 @@ import { evaluateDiagramCode } from '../../src/web/languages/typescript/evaluate
 
 
 const validProgram = `const user: User = { name: "Analyst" };
-const system: ComputerSystem = { name: "Insight" };
+const system: System = { name: "Insight" };
 const api: RestApi = { name: "Reporting API", belongsTo: system };
 user.sendsRequestTo(api, "fetch");`;
 

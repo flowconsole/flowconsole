@@ -8,13 +8,15 @@ describe('buildReactFlowModel', () => {
       entities: [
         {
           id: 'sys',
-          type: 'ComputerSystem',
+          type: 'System',
           name: 'System',
           description: 'Root domain',
           parentId: undefined,
           tags: undefined,
           badge: undefined,
           tone: undefined,
+          kind: 'Service',
+          style: { icon: 'system', shape: 'rectangle' },
           metadata: {},
         },
         {
@@ -26,6 +28,8 @@ describe('buildReactFlowModel', () => {
           tags: ['rest'],
           badge: 'beta',
           tone: undefined,
+          kind: 'Application',
+          style: { icon: 'api', shape: 'rectangle' },
           metadata: { framework: 'Express' },
         },
         {
@@ -37,6 +41,8 @@ describe('buildReactFlowModel', () => {
           tags: undefined,
           badge: undefined,
           tone: undefined,
+          kind: 'External',
+          style: { icon: 'user', shape: 'person' },
           metadata: {},
         },
       ],
@@ -52,7 +58,8 @@ describe('buildReactFlowModel', () => {
           muted: false,
         },
       ],
-      flows: []
+      flows: [],
+      deployments: [],
     };
 
     const model = buildReactFlowModel(intermediate);

@@ -1,5 +1,5 @@
 import type { ElementShape, ElementTone, ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, FlowDefinition } from '../../diagram/types';
-import type { ConnectionRecord, DiagramIntermediateModel, EntityRecord, EntityTypeName } from './diagramRuntime';
+import type { ConnectionRecord, DiagramIntermediateModel, EntityRecord, EntityTypeName, ShapeKind } from './diagramRuntime';
 
 type NodeRenderConfig = {
   nodeType: 'element' | 'container';
@@ -8,19 +8,31 @@ type NodeRenderConfig = {
   icon?: string;
 };
 
-const ENTITY_NODE_STYLES: Record<EntityTypeName, NodeRenderConfig> = {
-  User: { nodeType: 'element', shape: 'person', tone: 'primary' },
-  ComputerSystem: { nodeType: 'container' },
-  Container: { nodeType: 'container' },
-  ReactApp: { nodeType: 'element', shape: 'service' },
-  RestApi: { nodeType: 'element', shape: 'service' },
-  Redis: { nodeType: 'element', shape: 'database', tone: 'muted' },
-  Postgres: { nodeType: 'element', shape: 'database', tone: 'muted' },
-  KafkaTopic: { nodeType: 'element', shape: 'queue', tone: 'warning' },
-  MessageQueue: { nodeType: 'element', shape: 'queue', tone: 'primary' },
-  ExternalService: { nodeType: 'element', shape: 'service', tone: 'muted' },
-  BackgroundJob: { nodeType: 'element', shape: 'service', tone: 'primary' },
+/** Container-like types render as containers (grouping nodes). */
+const CONTAINER_TYPES = new Set<EntityTypeName>(['System', 'Namespace']);
+
+/** Map ShapeKind from runtime style to ElementShape used in rendering. */
+const SHAPE_MAP: Record<ShapeKind, ElementShape | undefined> = {
+  rectangle: 'service',
+  circle: 'service',
+  hexagon: 'service',
+  cylinder: 'database',
+  pipe: 'queue',
+  person: 'person',
+  cloud: 'service',
 };
+
+function resolveRenderConfig(entity: EntityRecord): NodeRenderConfig {
+  if (CONTAINER_TYPES.has(entity.type)) {
+    return { nodeType: 'container' };
+  }
+
+  const style = entity.style;
+  const shape: ElementShape = style?.shape ? (SHAPE_MAP[style.shape] ?? 'service') : 'service';
+  const icon = style?.icon;
+
+  return { nodeType: 'element', shape, icon };
+}
 
 export function buildReactFlowModel(intermediate: DiagramIntermediateModel): ArchitectureDiagramModel {
   const nodes: ArchitectureNode[] = intermediate.entities.map((entity) => buildNode(entity));
@@ -49,7 +61,7 @@ export function buildReactFlowModel(intermediate: DiagramIntermediateModel): Arc
 }
 
 function buildNode(entity: EntityRecord): ArchitectureNode {
-  const renderConfig = ENTITY_NODE_STYLES[entity.type];
+  const renderConfig = resolveRenderConfig(entity);
   const base = {
     id: entity.id,
     position: { x: 0, y: 0 },
@@ -77,6 +89,7 @@ function buildNode(entity: EntityRecord): ArchitectureNode {
     pickString(metadata, 'framework') ??
     pickString(metadata, 'vendor') ??
     pickString(metadata, 'schedule') ??
+    pickString(metadata, 'engine') ??
     undefined;
 
   return {
