@@ -4,6 +4,8 @@ export type ElementTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger'
 
 export type ElementStatus = 'operational' | 'degraded' | 'down';
 
+export type StylePreset = 'default' | 'highlighted' | 'critical' | 'deprecated' | 'new' | 'external';
+
 type BaseNodeData = {
   title: string;
   subtitle?: string;
@@ -16,6 +18,26 @@ type BaseNodeData = {
   flowCurrent?: 'source' | 'target';
   ghost?: boolean;
   ghostParentId?: string;
+  /**
+   * Custom text/icon color from SDK style.
+   * Priority: customColor > preset > tone > theme default.
+   */
+  customColor?: string;
+  /**
+   * Custom background color from SDK style.
+   * Priority: customBackgroundColor > preset > tone > theme default.
+   */
+  customBackgroundColor?: string;
+  /**
+   * Custom border color from SDK style.
+   * Priority: customBorderColor > preset > tone > theme default.
+   */
+  customBorderColor?: string;
+  /**
+   * Visual preset from SDK style. Defines a base palette (border, background, opacity).
+   * Explicit custom colors override individual preset fields.
+   */
+  preset?: StylePreset;
 };
 
 export type ElementNodeData = BaseNodeData & {

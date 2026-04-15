@@ -1,10 +1,14 @@
-import type { ElementTone, ElementNodeTypeName, ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, FlowDefinition } from '../../diagram/types';
+import type { ElementTone, StylePreset, ElementNodeTypeName, ArchitectureDiagramModel, ArchitectureNode, ArchitectureEdge, FlowDefinition } from '../../diagram/types';
 import type { ConnectionRecord, DeploymentRecord, DiagramIntermediateModel, EntityRecord, EntityTypeName, ShapeKind } from './diagramRuntime';
 
 type NodeRenderConfig = {
   nodeType: ElementNodeTypeName | 'container';
   tone?: ElementTone;
   icon?: string;
+  customColor?: string;
+  customBackgroundColor?: string;
+  customBorderColor?: string;
+  preset?: StylePreset;
 };
 
 /** Container-like types render as containers (grouping nodes). */
@@ -22,15 +26,29 @@ const SHAPE_MAP: Record<ShapeKind, ElementNodeTypeName> = {
 };
 
 function resolveRenderConfig(entity: EntityRecord): NodeRenderConfig {
+  const style = entity.style;
+
   if (CONTAINER_TYPES.has(entity.type)) {
-    return { nodeType: 'container' };
+    return {
+      nodeType: 'container',
+      customColor: style?.color,
+      customBackgroundColor: style?.backgroundColor,
+      customBorderColor: style?.borderColor,
+      preset: style?.preset as StylePreset | undefined,
+    };
   }
 
-  const style = entity.style;
   const nodeType: ElementNodeTypeName = style?.shape ? (SHAPE_MAP[style.shape] ?? 'element') : 'element';
   const icon = style?.icon;
 
-  return { nodeType, icon };
+  return {
+    nodeType,
+    icon,
+    customColor: style?.color,
+    customBackgroundColor: style?.backgroundColor,
+    customBorderColor: style?.borderColor,
+    preset: style?.preset as StylePreset | undefined,
+  };
 }
 
 export function buildReactFlowModel(intermediate: DiagramIntermediateModel): ArchitectureDiagramModel {
@@ -88,6 +106,10 @@ function buildNode(entity: EntityRecord): ArchitectureNode {
         badge: entity.badge,
         tone: (entity.tone as ElementTone | undefined),
         expanded: true,
+        ...(renderConfig.customColor ? { customColor: renderConfig.customColor } : {}),
+        ...(renderConfig.customBackgroundColor ? { customBackgroundColor: renderConfig.customBackgroundColor } : {}),
+        ...(renderConfig.customBorderColor ? { customBorderColor: renderConfig.customBorderColor } : {}),
+        ...(renderConfig.preset && renderConfig.preset !== 'default' ? { preset: renderConfig.preset } : {}),
       },
     } as ArchitectureNode;
   }
@@ -112,6 +134,10 @@ function buildNode(entity: EntityRecord): ArchitectureNode {
       badge: entity.badge,
       tone: (entity.tone as ElementTone | undefined) ?? renderConfig.tone,
       icon: renderConfig.icon,
+      ...(renderConfig.customColor ? { customColor: renderConfig.customColor } : {}),
+      ...(renderConfig.customBackgroundColor ? { customBackgroundColor: renderConfig.customBackgroundColor } : {}),
+      ...(renderConfig.customBorderColor ? { customBorderColor: renderConfig.customBorderColor } : {}),
+      ...(renderConfig.preset && renderConfig.preset !== 'default' ? { preset: renderConfig.preset } : {}),
     },
   } as ArchitectureNode;
 }
