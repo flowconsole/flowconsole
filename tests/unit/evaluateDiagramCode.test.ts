@@ -56,6 +56,32 @@ describe('evaluateDiagramCode', () => {
     }
   }, 15000);
 
+  it('supports explicit SDK relation methods', async () => {
+    const result = await evaluateDiagramCode(
+      `import { Container, RestApi, Topic } from "@flowconsole/sdk";
+       const cart = new Container({ name: "Cart" });
+       const orders = new Container({ name: "Orders" });
+       const catalog = new RestApi({ name: "Catalog" });
+       const events = new Topic({ name: "orders.events" });
+       cart.uses(catalog, "product data");
+       cart.dependsOn(catalog, "catalog dependency");
+       cart.calls(orders, "submit order");
+       orders.produces(events, "OrderPlaced");
+       orders.consumes(events, "OrderAccepted");`
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const labels = result.model.edges.map((edge) => edge.data?.label);
+      expect(labels).toEqual(expect.arrayContaining([
+        'product data',
+        'catalog dependency',
+        'submit order',
+        'OrderPlaced',
+        'OrderAccepted',
+      ]));
+    }
+  }, 15000);
+
   it('returns runtime errors from evaluated code', async () => {
     const result = await evaluateDiagramCode(`throw new Error("boom")`);
     expect(result.ok).toBe(false);

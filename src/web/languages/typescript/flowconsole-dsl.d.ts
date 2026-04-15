@@ -36,9 +36,14 @@ declare global {
     then(target: DslEntity): FlowBuilder;
     sendsRequest(target: DslEntity, label: string, options?: ConnectionOptions): FlowBuilder;
     sendsRequestTo(target: DslEntity, label: string, options?: ConnectionOptions): FlowBuilder;
+    calls(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
     getDataFrom(target: DslEntity, label: string, options?: ConnectionOptions): FlowBuilder;
+    uses(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
+    dependsOn(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
+    produces(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
+    consumes(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
     executesRequest(action: string, options?: ConnectionOptions): FlowBuilder;
-    inParallel(...branches: Array<() => FlowBuilder | void>): FlowBuilder;
+    inParallel(...branches: FlowBuilder[]): FlowBuilder;
     opens(target: DslEntity, label?: string): FlowBuilder;
     publishes(target: DslEntity, label?: string): FlowBuilder;
     emits(target: DslEntity, label?: string): FlowBuilder;
@@ -52,7 +57,12 @@ declare global {
   interface Object {
     sendsRequest(target: DslEntity, label: string, options?: ConnectionOptions): FlowBuilder;
     sendsRequestTo(target: DslEntity, label: string, options?: ConnectionOptions): FlowBuilder;
+    calls(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
     getDataFrom(target: DslEntity, label: string, options?: ConnectionOptions): FlowBuilder;
+    uses(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
+    dependsOn(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
+    produces(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
+    consumes(target: DslEntity, label?: string, options?: ConnectionOptions): FlowBuilder;
     executesRequest(action: string, options?: ConnectionOptions): FlowBuilder;
     opens(target: DslEntity, label?: string): FlowBuilder;
     publishes(target: DslEntity, label?: string): FlowBuilder;
@@ -303,10 +313,15 @@ declare module '@flowconsole/sdk' {
 
     sendsRequest(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     sendsRequestTo(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    calls(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     getDataFrom(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    uses(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    dependsOn(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    produces(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    consumes(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     executesRequest(label?: string): FlowBuilder;
     then(target: Component): FlowBuilder;
-    inParallel(...branches: Array<() => FlowBuilder | void>): FlowBuilder;
+    inParallel(...branches: FlowBuilder[]): FlowBuilder;
     opens(target: Component, label?: string): FlowBuilder;
     publishes(target: Component, label?: string): FlowBuilder;
     emits(target: Component, label?: string): FlowBuilder;
@@ -323,9 +338,14 @@ declare module '@flowconsole/sdk' {
     then(target: Component): FlowBuilder;
     sendsRequest(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     sendsRequestTo(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    calls(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     getDataFrom(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    uses(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    dependsOn(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    produces(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
+    consumes(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder;
     executesRequest(label?: string): FlowBuilder;
-    inParallel(...branches: Array<() => FlowBuilder | void>): FlowBuilder;
+    inParallel(...branches: FlowBuilder[]): FlowBuilder;
     opens(target: Component, label?: string): FlowBuilder;
     publishes(target: Component, label?: string): FlowBuilder;
     emits(target: Component, label?: string): FlowBuilder;

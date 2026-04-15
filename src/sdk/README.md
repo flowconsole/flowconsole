@@ -177,6 +177,11 @@ Flows describe runtime interactions between components using a fluent chain API.
 | `sendsRequest(target, label?, options?)` | Generic request | FlowBuilder |
 | `sendsRequestTo(target, label?, options?)` | Alias for sendsRequest | FlowBuilder |
 | `getDataFrom(target, label?, options?)` | Read data | FlowBuilder |
+| `calls(target, label?, options?)` | Explicit Calls relationship | FlowBuilder |
+| `uses(target, label?, options?)` | Explicit Uses relationship | FlowBuilder |
+| `dependsOn(target, label?, options?)` | Explicit DependsOn relationship | FlowBuilder |
+| `produces(target, label?, options?)` | Explicit Produces relationship | FlowBuilder |
+| `consumes(target, label?, options?)` | Explicit Consumes relationship | FlowBuilder |
 | `executesRequest(label?)` | Internal action (no relationship) | FlowBuilder |
 | `then(next)` | Switch source in chain | FlowBuilder |
 | `inParallel(...branches)` | Parallel branches | FlowBuilder |
@@ -239,6 +244,11 @@ The SDK does not require explicit relationship declarations. Relationships are i
 | `getDataFrom` | — | Database/Cache | **Uses** |
 | `getDataFrom` | — | Topic/Queue | **Consumes** |
 | `getDataFrom` | — | Container/External | **Calls** (read flag) |
+| `calls` | sync (default) | any | **Calls** |
+| `uses` | dependency (default) | any | **Uses** |
+| `dependsOn` | dependency (default) | any | **DependsOn** |
+| `produces` | event (default) | any | **Produces** |
+| `consumes` | dependency (default) | any | **Consumes** |
 | `executesRequest` | — | — | (no relationship) |
 | (implicit `belongsTo`) | — | — | **Contains** |
 

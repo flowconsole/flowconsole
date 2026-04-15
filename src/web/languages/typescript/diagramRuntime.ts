@@ -313,6 +313,26 @@ function inferRelationKind(method: string, connectionKind: ConnectionKind | unde
     return 'Calls';
   }
 
+  if (method === 'uses') {
+    return 'Uses';
+  }
+
+  if (method === 'dependsOn') {
+    return 'DependsOn';
+  }
+
+  if (method === 'produces') {
+    return 'Produces';
+  }
+
+  if (method === 'consumes') {
+    return 'Consumes';
+  }
+
+  if (method === 'calls') {
+    return 'Calls';
+  }
+
   return 'Calls';
 }
 
@@ -442,9 +462,34 @@ export class DiagramRuntime {
           flowFrom().sendsRequestTo(target, label, options),
         enumerable: false,
       },
+      calls: {
+        value: (target: EntityHandle, label?: string, options?: ConnectionOptions) =>
+          flowFrom().calls(target, label, options),
+        enumerable: false,
+      },
       getDataFrom: {
         value: (target: EntityHandle, label: string, options?: ConnectionOptions) =>
           flowFrom().getDataFrom(target, label, options),
+        enumerable: false,
+      },
+      uses: {
+        value: (target: EntityHandle, label?: string, options?: ConnectionOptions) =>
+          flowFrom().uses(target, label, options),
+        enumerable: false,
+      },
+      dependsOn: {
+        value: (target: EntityHandle, label?: string, options?: ConnectionOptions) =>
+          flowFrom().dependsOn(target, label, options),
+        enumerable: false,
+      },
+      produces: {
+        value: (target: EntityHandle, label?: string, options?: ConnectionOptions) =>
+          flowFrom().produces(target, label, options),
+        enumerable: false,
+      },
+      consumes: {
+        value: (target: EntityHandle, label?: string, options?: ConnectionOptions) =>
+          flowFrom().consumes(target, label, options),
         enumerable: false,
       },
       executesRequest: {
@@ -633,6 +678,27 @@ class FlowBuilder {
     return this;
   }
 
+  calls(target: EntityHandle, label?: string, options?: ConnectionOptions) {
+    const finalLabel = label ?? 'calls';
+    const edgeId = this.runtime.addConnection(
+      this.current,
+      target,
+      finalLabel,
+      options?.kind ?? 'sync',
+      options?.detail,
+      options,
+      'calls'
+    );
+    this.runtime.addFlowStep(this.flowId, {
+      edgeId,
+      sourceId: this.current[ENTITY_META]?.id ?? '',
+      targetId: target[ENTITY_META]?.id ?? '',
+      label: finalLabel,
+    });
+    this.current = target;
+    return this;
+  }
+
   getDataFrom(target: EntityHandle, label: string, options?: ConnectionOptions) {
     const finalLabel = label ?? 'data';
     const edgeId = this.runtime.addConnection(
@@ -643,6 +709,86 @@ class FlowBuilder {
       options?.detail,
       options,
       'getDataFrom'
+    );
+    this.runtime.addFlowStep(this.flowId, {
+      edgeId,
+      sourceId: this.current[ENTITY_META]?.id ?? '',
+      targetId: target[ENTITY_META]?.id ?? '',
+      label: finalLabel,
+    });
+    return this;
+  }
+
+  uses(target: EntityHandle, label?: string, options?: ConnectionOptions) {
+    const finalLabel = label ?? 'uses';
+    const edgeId = this.runtime.addConnection(
+      this.current,
+      target,
+      finalLabel,
+      options?.kind ?? 'dependency',
+      options?.detail,
+      options,
+      'uses'
+    );
+    this.runtime.addFlowStep(this.flowId, {
+      edgeId,
+      sourceId: this.current[ENTITY_META]?.id ?? '',
+      targetId: target[ENTITY_META]?.id ?? '',
+      label: finalLabel,
+    });
+    return this;
+  }
+
+  dependsOn(target: EntityHandle, label?: string, options?: ConnectionOptions) {
+    const finalLabel = label ?? 'depends on';
+    const edgeId = this.runtime.addConnection(
+      this.current,
+      target,
+      finalLabel,
+      options?.kind ?? 'dependency',
+      options?.detail,
+      options,
+      'dependsOn'
+    );
+    this.runtime.addFlowStep(this.flowId, {
+      edgeId,
+      sourceId: this.current[ENTITY_META]?.id ?? '',
+      targetId: target[ENTITY_META]?.id ?? '',
+      label: finalLabel,
+    });
+    return this;
+  }
+
+  produces(target: EntityHandle, label?: string, options?: ConnectionOptions) {
+    const finalLabel = label ?? 'produces';
+    const edgeId = this.runtime.addConnection(
+      this.current,
+      target,
+      finalLabel,
+      options?.kind ?? 'event',
+      options?.detail,
+      options,
+      'produces'
+    );
+    this.runtime.addFlowStep(this.flowId, {
+      edgeId,
+      sourceId: this.current[ENTITY_META]?.id ?? '',
+      targetId: target[ENTITY_META]?.id ?? '',
+      label: finalLabel,
+    });
+    return this;
+  }
+
+  consumes(target: EntityHandle, label?: string, options?: ConnectionOptions) {
+    const finalLabel = label ?? 'consumes';
+    const edgeId = this.runtime.addConnection(
+      this.current,
+      target,
+      finalLabel,
+      options?.kind ?? 'dependency',
+      options?.detail,
+      options,
+      'consumes'
     );
     this.runtime.addFlowStep(this.flowId, {
       edgeId,
@@ -673,19 +819,9 @@ class FlowBuilder {
     return this;
   }
 
-  inParallel(...branches: Array<() => FlowBuilder | void>) {
-    this.runtime.withActiveFlow(this.flowId, () => {
-      branches.forEach((branch) => {
-        try {
-          const result = branch();
-          if (result instanceof FlowBuilder) {
-            // nothing special right now, but allows chaining for user
-          }
-        } catch (error) {
-          console.warn('Parallel branch failed', error);
-        }
-      });
-    });
+  inParallel(..._branches: FlowBuilder[]) {
+    // Steps inside each branch are already captured when the branch
+    // expression is evaluated; this method only serves as a visual marker.
     return this;
   }
 

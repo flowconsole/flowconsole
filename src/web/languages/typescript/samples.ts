@@ -114,14 +114,14 @@ user.opens(frontApp, "launch app")
   .then(frontApp).sendsRequest(authApi, "login")
   .then(frontApp).sendsRequest(accountsApi, "load dashboard")
   .inParallel(
-    () => accountsApi.reads(cache, "session context"),
-    () => accountsApi.reads(db, "account snapshot")
+    accountsApi.reads(cache, "session context"),
+    accountsApi.reads(db, "account snapshot")
   )
   .sendsRequest(authApi, "validate token")
   .then(accountsApi)
   .inParallel(
-    () => accountsApi.publishes(auditTopic, "emit audit"),
-    () => accountsApi.sendsRequest(fraudService, "score transaction", { kind: 'async' })
+    accountsApi.publishes(auditTopic, "emit audit"),
+    accountsApi.sendsRequest(fraudService, "score transaction", { kind: 'async' })
   )
   .scenario("Customer login and dashboard");
 
@@ -198,8 +198,8 @@ employee.opens(portal, "create purchase order")
   .then(portal).sendsRequest(planningApi, "submit plan")
   .then(planningApi).sendsRequest(inventoryApi, "reserve stock")
   .inParallel(
-    () => planningApi.reads(erpDb, "fetch demand"),
-    () => inventoryApi.reads(erpDb, "current stock")
+    planningApi.reads(erpDb, "fetch demand"),
+    inventoryApi.reads(erpDb, "current stock")
   )
   .then(planningApi).publishes(workflowQueue, "publish workflow")
   .then(planningApi).sendsRequest(supplier, "send order")
@@ -394,16 +394,16 @@ viewer.opens(tvApp, "open app")
   .then(catalogService).sendsRequest(recommendationService, "personal picks")
   .then(tvApp).sendsRequest(playbackService, "start playback")
   .inParallel(
-    () => playbackService.reads(profilesStore, "profile rights"),
-    () => playbackService.sendsRequest(edgeCache, "issue token")
+    playbackService.reads(profilesStore, "profile rights"),
+    playbackService.sendsRequest(edgeCache, "issue token")
   )
   .then(playbackService).publishes(watchEvents, "emit play")
   .scenario("Viewer watches content");
 
 mobileApp.sendsRequest(playbackService, "resume session")
   .inParallel(
-    () => playbackService.reads(profilesStore, "device list"),
-    () => playbackService.sendsRequest(edgeCache, "refresh CDN token", { kind: 'async' })
+    playbackService.reads(profilesStore, "device list"),
+    playbackService.sendsRequest(edgeCache, "refresh CDN token", { kind: 'async' })
   )
   .scenario("Mobile resume");
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { DiagramRuntime, ENTITY_TYPE_NAMES } from '../../src/web/languages/typescript/diagramRuntime';
 
 function createEntity(runtime: DiagramRuntime, type: Parameters<DiagramRuntime['createEntityInvoker']>[0], value: Record<string, unknown>) {
@@ -263,8 +263,8 @@ describe('DiagramRuntime', () => {
         .sendsRequestTo?.(queue, 'enqueue', { kind: 'event' })
         ?.executesRequest?.('process')
         ?.inParallel?.(
-          () => worker.getDataFrom?.(queue, 'poll'),
-          () => worker.sendsRequestTo?.(queue, 'ack')
+          worker.getDataFrom?.(queue, 'poll'),
+          worker.sendsRequestTo?.(queue, 'ack')
         );
 
       const snapshot = runtime.snapshot();
@@ -307,21 +307,20 @@ describe('DiagramRuntime', () => {
       expect(flow?.steps).toHaveLength(2);
     });
 
-    it('handles errors inside parallel branches without breaking flow', () => {
-      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('accepts pre-evaluated parallel branch builders', () => {
       const runtime = new DiagramRuntime();
       const worker = createEntity(runtime, 'Worker', { name: 'Worker' });
-      worker
-        .executesRequest?.('start')
-        ?.inParallel?.(
-          () => {
-            throw new Error('boom');
-          },
-          () => worker.executesRequest?.('noop')
-        );
-      expect(warn).toHaveBeenCalled();
-      expect(runtime.snapshot().flows.length).toBeGreaterThanOrEqual(1);
-      warn.mockRestore();
+      const mainFlow = worker.executesRequest?.('start');
+      const branchFlow = worker.executesRequest?.('noop');
+
+      mainFlow?.inParallel?.(branchFlow);
+
+      const snapshot = runtime.snapshot();
+      expect(snapshot.relationships.map((relationship) => relationship.label)).toEqual([
+        'start',
+        'noop',
+      ]);
+      expect(snapshot.flows).toHaveLength(2);
     });
   });
 
@@ -382,6 +381,42 @@ describe('DiagramRuntime', () => {
       const snapshot = runtime.snapshot();
       expect(snapshot.relationships).toHaveLength(1);
       expect(snapshot.relationships[0].label).toBe('Query users');
+    });
+
+    it('uses creates a dependency-style Uses relationship', () => {
+      const runtime = new DiagramRuntime();
+      const cart = createEntity(runtime, 'Container', { name: 'Cart' });
+      const catalog = createEntity(runtime, 'RestApi', { name: 'Catalog' });
+      cart.uses?.(catalog, 'lookup products');
+      const snapshot = runtime.snapshot();
+      expect(snapshot.relationships).toHaveLength(1);
+      expect(snapshot.relationships[0].kind).toBe('dependency');
+      expect(snapshot.relationships[0].relationKind).toBe('Uses');
+      expect(snapshot.relationships[0].label).toBe('lookup products');
+    });
+
+    it('explicit relation methods create their matching relationship kinds', () => {
+      const runtime = new DiagramRuntime();
+      const orders = createEntity(runtime, 'Container', { name: 'Orders' });
+      const payments = createEntity(runtime, 'RestApi', { name: 'Payments' });
+      const topic = createEntity(runtime, 'Topic', { name: 'orders.events' });
+      orders.calls?.(payments, 'charge card');
+      orders.dependsOn?.(payments, 'requires payments');
+      orders.produces?.(topic, 'OrderPlaced');
+      orders.consumes?.(topic, 'OrderAccepted');
+      const snapshot = runtime.snapshot();
+      expect(snapshot.relationships.map((relationship) => relationship.relationKind)).toEqual([
+        'Calls',
+        'DependsOn',
+        'Produces',
+        'Consumes',
+      ]);
+      expect(snapshot.relationships.map((relationship) => relationship.kind)).toEqual([
+        'sync',
+        'dependency',
+        'event',
+        'dependency',
+      ]);
     });
 
     it('writes delegates to sendsRequest with kind sync', () => {
@@ -502,6 +537,46 @@ describe('DiagramRuntime', () => {
       const b = createEntity(runtime, 'Container', { name: 'B' });
       a.getDataFrom?.(b, 'fetch');
       expect(runtime.snapshot().relationships[0].relationKind).toBe('Calls');
+    });
+
+    it('uses infers Uses for non-data-store targets', () => {
+      const runtime = new DiagramRuntime();
+      const cart = createEntity(runtime, 'Container', { name: 'Cart' });
+      const catalog = createEntity(runtime, 'RestApi', { name: 'Catalog' });
+      cart.uses?.(catalog, 'product data');
+      expect(runtime.snapshot().relationships[0].relationKind).toBe('Uses');
+    });
+
+    it('calls infers Calls even for data-store targets', () => {
+      const runtime = new DiagramRuntime();
+      const api = createEntity(runtime, 'RestApi', { name: 'API' });
+      const db = createEntity(runtime, 'Postgres', { name: 'DB' });
+      api.calls?.(db, 'explicit call');
+      expect(runtime.snapshot().relationships[0].relationKind).toBe('Calls');
+    });
+
+    it('dependsOn infers DependsOn for non-data-store targets', () => {
+      const runtime = new DiagramRuntime();
+      const cart = createEntity(runtime, 'Container', { name: 'Cart' });
+      const catalog = createEntity(runtime, 'RestApi', { name: 'Catalog' });
+      cart.dependsOn?.(catalog, 'catalog dependency');
+      expect(runtime.snapshot().relationships[0].relationKind).toBe('DependsOn');
+    });
+
+    it('produces infers Produces for non-messaging targets', () => {
+      const runtime = new DiagramRuntime();
+      const orders = createEntity(runtime, 'Container', { name: 'Orders' });
+      const api = createEntity(runtime, 'RestApi', { name: 'API' });
+      orders.produces?.(api, 'result');
+      expect(runtime.snapshot().relationships[0].relationKind).toBe('Produces');
+    });
+
+    it('consumes infers Consumes for non-messaging targets', () => {
+      const runtime = new DiagramRuntime();
+      const worker = createEntity(runtime, 'Worker', { name: 'Worker' });
+      const api = createEntity(runtime, 'RestApi', { name: 'API' });
+      worker.consumes?.(api, 'input');
+      expect(runtime.snapshot().relationships[0].relationKind).toBe('Consumes');
     });
 
     it('publishes infers Produces', () => {

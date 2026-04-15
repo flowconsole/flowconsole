@@ -390,6 +390,36 @@ describe('Flow API', () => {
     expect(runtime.unnamedFlows[0][0].target).toBe(db);
   });
 
+  it('uses creates a flow step without advancing the current source', () => {
+    const a = new Container({ name: 'A' });
+    const b = new Container({ name: 'B' });
+    const c = new Container({ name: 'C' });
+    const builder = runtime.startFlow(a);
+    builder.uses(b, 'depends on B').uses(c, 'depends on C');
+    const steps = runtime.unnamedFlows[0];
+    expect(steps).toHaveLength(2);
+    expect(steps[0].method).toBe('uses');
+    expect(steps[0].source).toBe(a);
+    expect(steps[0].target).toBe(b);
+    expect(steps[0].options?.kind).toBe('dependency');
+    expect(steps[1].source).toBe(a);
+    expect(steps[1].target).toBe(c);
+  });
+
+  it('explicit relation methods create typed flow steps', () => {
+    const a = new Container({ name: 'A' });
+    const b = new Container({ name: 'B' });
+    const topic = new Topic({ name: 'events', belongsTo: new Kafka({ name: 'Bus' }) });
+    const builder = runtime.startFlow(a);
+    builder.calls(b, 'call B').dependsOn(topic, 'needs events').produces(topic, 'OrderPlaced').consumes(topic, 'OrderAccepted');
+    const steps = runtime.unnamedFlows[0];
+    expect(steps.map((step) => step.method)).toEqual(['calls', 'dependsOn', 'produces', 'consumes']);
+    expect(steps.map((step) => step.options?.kind)).toEqual(['sync', 'dependency', 'event', 'dependency']);
+    expect(steps[1].source).toBe(b);
+    expect(steps[2].source).toBe(b);
+    expect(steps[3].source).toBe(b);
+  });
+
   it('executesRequest creates a step with no target', () => {
     const a = new Container({ name: 'A' });
     const builder = runtime.startFlow(a);
@@ -469,6 +499,26 @@ describe('Flow API', () => {
       builder.reads(db, 'query');
       const step = runtime.unnamedFlows[0][0];
       expect(step.method).toBe('getDataFrom');
+    });
+
+    it('uses creates a Uses flow method', () => {
+      const a = new Container({ name: 'A' });
+      const b = new Container({ name: 'B' });
+      const builder = runtime.startFlow(a);
+      builder.uses(b, 'uses B');
+      const step = runtime.unnamedFlows[0][0];
+      expect(step.method).toBe('uses');
+      expect(step.options?.kind).toBe('dependency');
+    });
+
+    it('produces and consumes create explicit event flow methods', () => {
+      const a = new Container({ name: 'A' });
+      const topic = new Topic({ name: 'events', belongsTo: new Kafka({ name: 'Bus' }) });
+      const builder = runtime.startFlow(a);
+      builder.produces(topic, 'emit').consumes(topic, 'listen');
+      const steps = runtime.unnamedFlows[0];
+      expect(steps.map((step) => step.method)).toEqual(['produces', 'consumes']);
+      expect(steps.map((step) => step.options?.kind)).toEqual(['event', 'dependency']);
     });
 
     it('writes delegates to sendsRequest with sync kind', () => {
@@ -688,6 +738,56 @@ describe('inferRelationships', () => {
     ];
     const rels = inferRelationships([], [steps], []);
     expect(rels[0].relationKind).toBe(RelationKind.CALLS);
+  });
+
+  it('uses → Uses for any target kind', () => {
+    const a = new Container({ name: 'A' });
+    const b = new Container({ name: 'B' });
+    const steps: FlowStep[] = [
+      { source: a, target: b, label: 'uses', method: 'uses' },
+    ];
+    const rels = inferRelationships([], [steps], []);
+    expect(rels[0].relationKind).toBe(RelationKind.USES);
+  });
+
+  it('calls → Calls for any target kind', () => {
+    const a = new Container({ name: 'A' });
+    const db = new Postgres({ name: 'DB' });
+    const steps: FlowStep[] = [
+      { source: a, target: db, label: 'calls', method: 'calls' },
+    ];
+    const rels = inferRelationships([], [steps], []);
+    expect(rels[0].relationKind).toBe(RelationKind.CALLS);
+  });
+
+  it('dependsOn → DependsOn for any target kind', () => {
+    const a = new Container({ name: 'A' });
+    const b = new Container({ name: 'B' });
+    const steps: FlowStep[] = [
+      { source: a, target: b, label: 'depends', method: 'dependsOn' },
+    ];
+    const rels = inferRelationships([], [steps], []);
+    expect(rels[0].relationKind).toBe(RelationKind.DEPENDS_ON);
+  });
+
+  it('produces → Produces for any target kind', () => {
+    const a = new Container({ name: 'A' });
+    const b = new Container({ name: 'B' });
+    const steps: FlowStep[] = [
+      { source: a, target: b, label: 'produces', method: 'produces' },
+    ];
+    const rels = inferRelationships([], [steps], []);
+    expect(rels[0].relationKind).toBe(RelationKind.PRODUCES);
+  });
+
+  it('consumes → Consumes for any target kind', () => {
+    const a = new Container({ name: 'A' });
+    const b = new Container({ name: 'B' });
+    const steps: FlowStep[] = [
+      { source: a, target: b, label: 'consumes', method: 'consumes' },
+    ];
+    const rels = inferRelationships([], [steps], []);
+    expect(rels[0].relationKind).toBe(RelationKind.CONSUMES);
   });
 
   it('executesRequest creates no relationship', () => {

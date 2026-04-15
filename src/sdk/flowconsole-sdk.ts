@@ -243,9 +243,69 @@ export class FlowBuilder {
     return this.sendsRequest(target, label, options);
   }
 
+  public calls(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    this._steps.push({
+      source: this._current,
+      target,
+      label,
+      options: { kind: 'sync', ...options },
+      method: 'calls',
+    });
+    this._current = target;
+    return this;
+  }
+
   public getDataFrom(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
     this._steps.push({ source: this._current, target, label, options, method: 'getDataFrom' });
     // Do NOT advance _current: the reader continues as the actor, not the data source
+    return this;
+  }
+
+  public uses(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    this._steps.push({
+      source: this._current,
+      target,
+      label,
+      options: { kind: 'dependency', ...options },
+      method: 'uses',
+    });
+    // Do NOT advance _current: uses/dependency edges describe a supporting dependency.
+    return this;
+  }
+
+  public dependsOn(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    this._steps.push({
+      source: this._current,
+      target,
+      label,
+      options: { kind: 'dependency', ...options },
+      method: 'dependsOn',
+    });
+    // Do NOT advance _current: dependency edges describe a supporting dependency.
+    return this;
+  }
+
+  public produces(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    this._steps.push({
+      source: this._current,
+      target,
+      label,
+      options: { kind: 'event', ...options },
+      method: 'produces',
+    });
+    // Do NOT advance _current: produce edges describe an output from the current actor.
+    return this;
+  }
+
+  public consumes(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    this._steps.push({
+      source: this._current,
+      target,
+      label,
+      options: { kind: 'dependency', ...options },
+      method: 'consumes',
+    });
+    // Do NOT advance _current: consume edges describe an input to the current actor.
     return this;
   }
 
@@ -254,12 +314,13 @@ export class FlowBuilder {
     return this;
   }
 
-  public inParallel(...branches: Array<(() => FlowBuilder | void) | FlowBuilder>): FlowBuilder {
-    for (const branch of branches) {
-      if (typeof branch === 'function') {
-        branch();
-      }
-    }
+  /**
+   * Execute branches in parallel for visualization on diagrams.
+   * Steps inside each branch are already captured when the branch expression
+   * is evaluated; this method only serves as a visual grouping marker.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public inParallel(...branches: FlowBuilder[]): FlowBuilder {
     return this;
   }
 
@@ -440,6 +501,12 @@ export class Component {
     return this.sendsRequest(target, label, options);
   }
 
+  public calls(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    const runtime = getRuntime();
+    const builder = runtime.startFlow(this);
+    return builder.calls(target, label, options);
+  }
+
   public then(target: Component): FlowBuilder {
     const runtime = getRuntime();
     const builder = runtime.startFlow(this);
@@ -452,12 +519,41 @@ export class Component {
     return builder.getDataFrom(target, label, options);
   }
 
+  public uses(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    const runtime = getRuntime();
+    const builder = runtime.startFlow(this);
+    return builder.uses(target, label, options);
+  }
+
+  public dependsOn(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    const runtime = getRuntime();
+    const builder = runtime.startFlow(this);
+    return builder.dependsOn(target, label, options);
+  }
+
+  public produces(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    const runtime = getRuntime();
+    const builder = runtime.startFlow(this);
+    return builder.produces(target, label, options);
+  }
+
+  public consumes(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
+    const runtime = getRuntime();
+    const builder = runtime.startFlow(this);
+    return builder.consumes(target, label, options);
+  }
+
   public executesRequest(label?: string): FlowBuilder {
     const runtime = getRuntime();
     const builder = runtime.startFlow(this);
     return builder.executesRequest(label);
   }
 
+  /**
+   * Execute branches in parallel starting from this component.
+   * Steps inside each branch are already captured at expression evaluation;
+   * this method only serves as a visual grouping marker.
+   */
   public inParallel(...branches: FlowBuilder[]): FlowBuilder {
     const runtime = getRuntime();
     const builder = runtime.startFlow(this);
@@ -1011,6 +1107,26 @@ function inferRelationKindForStep(step: FlowStep): RelationKind | undefined {
     if (targetKind && DATA_STORE_KINDS.has(targetKind)) {
       return RelationKind.USES;
     }
+    return RelationKind.CALLS;
+  }
+
+  if (step.method === 'uses') {
+    return RelationKind.USES;
+  }
+
+  if (step.method === 'dependsOn') {
+    return RelationKind.DEPENDS_ON;
+  }
+
+  if (step.method === 'produces') {
+    return RelationKind.PRODUCES;
+  }
+
+  if (step.method === 'consumes') {
+    return RelationKind.CONSUMES;
+  }
+
+  if (step.method === 'calls') {
     return RelationKind.CALLS;
   }
 
