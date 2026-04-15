@@ -1,6 +1,5 @@
-import { IconZoomScan } from '@tabler/icons-react';
 import { type NodeProps } from '@xyflow/react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { ContainerNodeType } from '../../diagram/types';
 import { toneToColor, resolveNodeStyles } from '../../diagram/theme';
 import { HiddenHandles } from './HiddenHandles';
@@ -17,8 +16,37 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
   const accent = toneToColor(data.tone ?? 'muted');
   const isCollapsed = data.expanded === false;
   const hasPresetClass = data.preset && data.preset !== 'default';
-  const handleOpen = useCallback(
+
+  // Track mouse-down position to distinguish click from drag (pan/zoom).
+  const downPos = useRef<{ x: number; y: number } | null>(null);
+  const DRAG_THRESHOLD = 4; // px
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    downPos.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleClick = useCallback(
     (event: React.MouseEvent) => {
+      // Only fire if the click target is the container itself (not a child node).
+      // ReactFlow child nodes are rendered as separate overlays, so clicks on them
+      // won't hit this handler. But for safety, check currentTarget.
+      if (event.target !== event.currentTarget) {
+        // Allow clicks on container's own children (title, description, etc.)
+        // by checking if the target is inside the container's DOM subtree.
+        // Child *nodes* in ReactFlow are separate DOM trees and won't reach here.
+      }
+
+      // Ignore drags — only fire on genuine clicks (no movement).
+      if (downPos.current) {
+        const dx = Math.abs(event.clientX - downPos.current.x);
+        const dy = Math.abs(event.clientY - downPos.current.y);
+        if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+          downPos.current = null;
+          return;
+        }
+        downPos.current = null;
+      }
+
       event.stopPropagation();
       window.dispatchEvent(new CustomEvent('container:open', { detail: { id } }));
     },
@@ -34,7 +62,12 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
         boxShadow: selected ? `0 0 0 2px ${resolved.borderColor}22, var(--diagram-card-shadow)` : undefined,
         opacity: resolved.opacity,
         position: 'relative',
+        cursor: 'pointer',
       }}
+      onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      role="button"
+      aria-label={`Open container ${data.title}`}
     >
       {isCollapsed ? (
         <div
@@ -48,19 +81,6 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
             height: '100%',
           }}
         >
-          {data.showOpenButton !== false ? (
-            <button
-              onClick={handleOpen}
-              aria-label="Open container"
-              className="diagram-container__open-button"
-              style={{
-                border: `1px solid ${resolved.borderColor}`,
-                color: resolved.borderColor,
-              }}
-            >
-              <IconZoomScan size={16} stroke={1.85} aria-hidden="true" />
-            </button>
-          ) : null}
           <div
             style={{
               display: 'flex',

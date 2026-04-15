@@ -25,33 +25,6 @@
   line-height: 1.4;
 }
 
-.diagram-container__open-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  padding: 0;
-  background: rgba(255, 255, 255, 0.02);
-  cursor: pointer;
-  flex-shrink: 0;
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
-}
-
-.diagram-container__open-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
-}
-
-.diagram-container__open-button svg {
-  width: 16px;
-  height: 16px;
-}
 
 .diagram-note {
   position: relative;

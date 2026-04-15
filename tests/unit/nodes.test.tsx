@@ -19,21 +19,35 @@ describe('Diagram nodes', () => {
     const renderContainer = (data: Partial<ContainerNodeType['data']> = {}, selected = false) =>
       render(<ContainerNode id="container-1" data={{ title: 'Module', ...data }} selected={selected} type={'container'} dragging={false} zIndex={0} selectable={false} deletable={false} draggable={false} isConnectable={false} positionAbsoluteX={0} positionAbsoluteY={0} />);
 
-    it('dispatches container:open when clicking the container open button (expanded layout)', () => {
+    it('dispatches container:open when clicking collapsed container', () => {
       const listener = vi.fn();
       window.addEventListener('container:open', listener as EventListener);
-      renderContainer({ description: 'desc', childCount: 2, expanded: false });
-      fireEvent.click(screen.getByRole('button', { name: /open container/i }));
+      const { container } = renderContainer({ description: 'desc', childCount: 2, expanded: false });
+      const containerEl = container.querySelector('.diagram-container') as HTMLElement;
+      fireEvent.click(containerEl);
       expect(listener).toHaveBeenCalled();
+      expect((listener.mock.calls[0][0] as CustomEvent).detail.id).toBe('container-1');
       expect(screen.getByTestId('handles')).toBeInTheDocument();
       window.removeEventListener('container:open', listener as EventListener);
     });
 
-    it('renders collapsed layout with open button and centered content', () => {
-      renderContainer({ description: 'Short desc', expanded: false });
+    it('dispatches container:open when clicking expanded container', () => {
+      const listener = vi.fn();
+      window.addEventListener('container:open', listener as EventListener);
+      const { container } = renderContainer({ expanded: true });
+      const containerEl = container.querySelector('.diagram-container') as HTMLElement;
+      fireEvent.click(containerEl);
+      expect(listener).toHaveBeenCalled();
+      expect((listener.mock.calls[0][0] as CustomEvent).detail.id).toBe('container-1');
+      window.removeEventListener('container:open', listener as EventListener);
+    });
+
+    it('renders collapsed layout with centered content and cursor pointer', () => {
+      const { container } = renderContainer({ description: 'Short desc', expanded: false });
       expect(screen.getByText('Module')).toBeInTheDocument();
       expect(screen.getByText('Short desc')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /open container/i })).toBeInTheDocument();
+      const containerEl = container.querySelector('.diagram-container') as HTMLElement;
+      expect(containerEl.style.cursor).toBe('pointer');
       expect(screen.getByTestId('handles')).toBeInTheDocument();
     });
 
@@ -43,11 +57,14 @@ describe('Diagram nodes', () => {
       expect(footer).not.toBeNull();
     });
 
-    it('hides open button when showOpenButton is false in expanded layout', () => {
+    it('does not dispatch container:open when mouse is dragged (pan/zoom)', () => {
       const listener = vi.fn();
       window.addEventListener('container:open', listener as EventListener);
-      renderContainer({ expanded: true, showOpenButton: false });
-      expect(screen.queryByRole('button', { name: /open container/i })).toBeNull();
+      const { container } = renderContainer({ expanded: false });
+      const containerEl = container.querySelector('.diagram-container') as HTMLElement;
+      // Simulate a drag: mousedown at (100,100), then click at (200, 200)
+      fireEvent.mouseDown(containerEl, { clientX: 100, clientY: 100 });
+      fireEvent.click(containerEl, { clientX: 200, clientY: 200 });
       expect(listener).not.toHaveBeenCalled();
       window.removeEventListener('container:open', listener as EventListener);
     });
