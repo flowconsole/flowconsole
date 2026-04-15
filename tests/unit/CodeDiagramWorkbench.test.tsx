@@ -113,7 +113,7 @@ describe('CodeDiagramWorkbench', () => {
     const select = screen.getByTestId('sample-select') as HTMLSelectElement;
     fireEvent.change(select, { target: { value: 'simple-arch' } });
     expect(select.value).toBe('simple-arch');
-    expect(screen.getByTestId('sample-description')).toHaveTextContent('Minimal two-service architecture example');
+    expect(screen.getByTestId('sample-description')).toHaveTextContent('Minimal REST API with database reads and writes');
   });
 
   it('debounces rapid code changes into a single evaluation', async () => {
