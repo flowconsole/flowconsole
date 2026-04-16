@@ -33,7 +33,8 @@
   "scripts": {
     "dev": "vite",
     "build": "pnpm run build:web",
-    "build:web": "tsc -b && vite build",
+    "prebuild:web": "pnpm --dir ../sdk build",
+    "build:web": "pnpm run prebuild:web && tsc -b && vite build",
     "build:wasm": "bash scripts/dotnet-wasm/build.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
