@@ -11,8 +11,11 @@ type NodeRenderConfig = {
   preset?: StylePreset;
 };
 
-/** Container-like types render as containers (grouping nodes). */
-const CONTAINER_TYPES = new Set<EntityTypeName>(['SoftwareSystem', 'Namespace']);
+/** Container-like types render as containers (grouping nodes). Subclasses of
+ * Container in the SDK (RestApi, ReactApp, Postgres, etc.) have their own
+ * entity types and are rendered as regular elements — only the explicit
+ * grouping classes belong here. */
+const CONTAINER_TYPES = new Set<EntityTypeName>(['SoftwareSystem', 'Namespace', 'Container', 'Module']);
 
 /** Map ShapeKind from runtime style to ReactFlow nodeType name. */
 const SHAPE_MAP: Record<ShapeKind, ElementNodeTypeName> = {
