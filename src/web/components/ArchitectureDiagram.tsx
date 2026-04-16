@@ -214,8 +214,14 @@ export function ArchitectureDiagram({
   }, [edges, isHighlightActive, highlight.connectedEdgeIds]);
 
   // --- Layout computation ---
+  // On model change: preserve current scope if the container still exists
+  // in the new model; otherwise fall back to the top level.
   useEffect(() => {
-    setScopeId(undefined);
+    setScopeId((prev) => {
+      if (!prev) return prev;
+      const stillExists = model.nodes.some((n) => n.id === prev && n.type === 'container');
+      return stillExists ? prev : undefined;
+    });
   }, [model]);
 
   useEffect(() => {
