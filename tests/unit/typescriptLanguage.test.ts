@@ -27,13 +27,16 @@ describe('typescriptLanguage', () => {
 
     expect(tsSetCompilerOptions).toHaveBeenCalled();
     expect(jsSetCompilerOptions).toHaveBeenCalled();
+    // ambient @flowconsole/sdk module types
     expect(tsAddExtraLib).toHaveBeenCalledTimes(1);
     expect(jsAddExtraLib).toHaveBeenCalledTimes(1);
 
-    const [source, uri] = tsAddExtraLib.mock.calls[0] as [string, string];
-    expect(uri).toContain('flowconsole-dsl');
-    expect(source).toContain('interface User');
-    expect(source).toContain("declare module '@flowconsole/sdk'");
-    expect(source).toContain('interface FlowBuilder');
+    const [sdkSource, sdkUri] = tsAddExtraLib.mock.calls[0] as [string, string];
+    expect(sdkUri).toContain('flowconsole-sdk');
+    expect(sdkSource).toContain("declare module '@flowconsole/sdk'");
+    expect(sdkSource).toContain('class User');
+    expect(sdkSource).toContain('class RestApi');
+    // enums are converted to string-literal unions for ergonomic editor usage
+    expect(sdkSource).toContain("export type ShapeKind = 'rectangle'");
   });
 });
