@@ -33,8 +33,8 @@ describe('estimateShapeAwareSize', () => {
 
   it('enforces minimum size for hexagon type', () => {
     const size = estimateShapeAwareSize(makeNode('hexagon'), config);
-    expect(size.width).toBeGreaterThanOrEqual(180);
-    expect(size.height).toBeGreaterThanOrEqual(160);
+    expect(size.width).toBeGreaterThanOrEqual(90);
+    expect(size.height).toBeGreaterThanOrEqual(80);
   });
 
   it('enforces minimum size for cloud type', () => {

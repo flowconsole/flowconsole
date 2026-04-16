@@ -32,7 +32,10 @@ export function estimateShapeAwareSize(
   const shapeDef = getShapeDefinitionOrDefault(node.type ?? 'element');
 
   const effectivePadding = CONTENT_PADDING * shapeDef.contentPaddingFactor;
-  const contentWidth = Math.max(config.nodeWidth, textWidth, tagsWidth, badgeWidth) + effectivePadding;
+  // When the shape wants to be smaller than the default nodeWidth (e.g. hexagon=90),
+  // use its own minWidth as the floor so compact shapes can actually shrink.
+  const widthFloor = shapeDef.minWidth < config.nodeWidth ? shapeDef.minWidth : config.nodeWidth;
+  const contentWidth = Math.max(widthFloor, textWidth, tagsWidth, badgeWidth) + effectivePadding;
   const baseWidth = Math.max(contentWidth, shapeDef.minWidth);
 
   const lineHeight = 18;

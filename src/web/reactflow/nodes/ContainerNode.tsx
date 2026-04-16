@@ -1,5 +1,6 @@
 import { type NodeProps } from '@xyflow/react';
 import { useCallback, useRef } from 'react';
+import { IconZoomIn } from '@tabler/icons-react';
 import type { ContainerNodeType } from '../../diagram/types';
 import { toneToColor, resolveNodeStyles } from '../../diagram/theme';
 import { HiddenHandles } from './HiddenHandles';
@@ -74,27 +75,17 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
       {...(canOpen ? { role: 'button', 'aria-label': `Open container ${data.title}` } : {})}
     >
       {isCollapsed ? (
-        <div
-          style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            width: '100%',
-            height: '100%',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              minWidth: 0,
-            }}
-          >
+        <div className="diagram-container__collapsed">
+          <div className="diagram-container__title-row">
+            {canOpen ? (
+              <span
+                className="diagram-container__drill-icon"
+                aria-hidden="true"
+                style={{ color: resolved.color ?? accent }}
+              >
+                <IconZoomIn size={32} stroke={1.8} />
+              </span>
+            ) : null}
             <span
               className="diagram-card__title"
               style={{
@@ -103,36 +94,38 @@ export function ContainerNode({ id, data, selected }: NodeProps<ContainerNodeTyp
                 textOverflow: 'ellipsis',
                 maxWidth: '100%',
                 textAlign: 'center',
-                fontSize: '20px',
-                lineHeight: 1.1,
               }}
             >
               {data.title}
             </span>
-            {data.description ? (
-              <span
-                style={{
-                  fontSize: 12,
-                  color: 'var(--diagram-text-muted)',
-                  textAlign: 'center',
-                  maxWidth: '100%',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {data.description}
-              </span>
-            ) : null}
-            {typeof data.childCount === 'number' && data.childCount > 0 ? (
-              <span style={{ fontSize: 10, opacity: 0.7 }}>{data.childCount} elements</span>
-            ) : null}
-            {data.badge ? (
-              <span className="diagram-badge" style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
-                {data.badge}
-              </span>
-            ) : null}
           </div>
+          {data.description ? (
+            <span
+              className="diagram-card__description"
+              style={{
+                textAlign: 'center',
+                maxWidth: '100%',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {data.description}
+            </span>
+          ) : null}
+          {data.badge ? (
+            <span className="diagram-badge" style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
+              {data.badge}
+            </span>
+          ) : null}
+          {typeof data.childCount === 'number' && data.childCount > 0 ? (
+            <span
+              className="diagram-container__child-count"
+              style={{ color: resolved.color ?? accent }}
+            >
+              {data.childCount} {data.childCount === 1 ? 'element' : 'elements'}
+            </span>
+          ) : null}
         </div>
       ) : (
         <>

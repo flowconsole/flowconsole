@@ -37,7 +37,7 @@ export function CloudNode({ data, selected }: NodeProps<ElementNodeType>) {
             d={CLOUD_PATH}
             fill={backgroundColor ?? 'var(--diagram-panel)'}
             stroke={borderColor}
-            strokeWidth="2.5"
+            strokeWidth="1"
             strokeLinejoin="round"
           />
         </svg>

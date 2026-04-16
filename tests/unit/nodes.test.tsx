@@ -6,6 +6,11 @@ import { ElementNode } from '../../src/web/reactflow/nodes/ElementNode';
 import { CircleNode } from '../../src/web/reactflow/nodes/CircleNode';
 import { HexagonNode } from '../../src/web/reactflow/nodes/HexagonNode';
 import { CloudNode } from '../../src/web/reactflow/nodes/CloudNode';
+import { DatabaseNode } from '../../src/web/reactflow/nodes/DatabaseNode';
+import { QueueNode } from '../../src/web/reactflow/nodes/QueueNode';
+import { PersonNode } from '../../src/web/reactflow/nodes/PersonNode';
+import { StorageNode } from '../../src/web/reactflow/nodes/StorageNode';
+import { BoundaryNode } from '../../src/web/reactflow/nodes/BoundaryNode';
 import { BaseElementNode } from '../../src/web/reactflow/nodes/BaseElementNode';
 import { resolvePresetStyle, presetStyles, resolveNodeStyles } from '../../src/web/diagram/theme';
 import { fireEvent } from '@testing-library/react';
@@ -67,10 +72,9 @@ describe('Diagram nodes', () => {
       window.removeEventListener('container:open', listener as EventListener);
     });
 
-    it('shows child count footer when collapsed and childCount > 0', () => {
-      const { container } = renderContainer({ expanded: false, childCount: 3 });
-      const footer = container.querySelector('span[style*="font-size: 10px"]');
-      expect(footer).not.toBeNull();
+    it('renders title in collapsed state regardless of childCount', () => {
+      renderContainer({ expanded: false, childCount: 3 });
+      expect(screen.getByText('Module')).toBeInTheDocument();
     });
 
     it('does not dispatch container:open when mouse is dragged (pan/zoom)', () => {
@@ -134,10 +138,9 @@ describe('Diagram nodes', () => {
       }
     );
 
-    it('falls back to muted status color when status is missing', () => {
+    it('hides status dot when status is missing', () => {
       const { container } = renderElement();
-      const statusDot = container.querySelector('.diagram-status') as HTMLElement;
-      expect(statusDot).toHaveStyle({ background: 'var(--diagram-muted)' });
+      expect(container.querySelector('.diagram-status')).toBeNull();
     });
 
     it('uses default tone without selection highlight when not selected', () => {
@@ -207,19 +210,12 @@ describe('Diagram nodes', () => {
       expect(card.getAttribute('onclick')).toBeNull();
     });
 
-    it.each([
-      ['person', 'person'],
-      ['database', 'database'],
-      ['queue', 'queue'],
-      ['storage', 'storage'],
-      ['boundary', 'boundary'],
-      ['element', 'service'],
-    ])('renders correct CSS class for nodeType=%s → shapeClassName=%s', (nodeType, expectedShape) => {
-      const { container } = renderElement({}, false, nodeType);
+    it('renders service CSS class (rectangle is the only shape handled by ElementNode)', () => {
+      const { container } = renderElement();
       const card = container.querySelector('.diagram-card') as HTMLElement;
-      expect(card).toHaveClass(`diagram-card--${expectedShape}`);
+      expect(card).toHaveClass('diagram-card--service');
       const icon = container.querySelector('.diagram-icon') as HTMLElement;
-      expect(icon).toHaveClass(`diagram-icon--${expectedShape}`);
+      expect(icon).toHaveClass('diagram-icon--service');
     });
   });
 
@@ -232,22 +228,26 @@ describe('Diagram nodes', () => {
       expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--service');
     });
 
-    it('renders shapeBackground SVG layer when provided', () => {
-      const bg = <svg data-testid="shape-svg"><circle cx="50" cy="50" r="48" /></svg>;
+    it('renders SVG shape-bg layer when renderShapeBackground is provided', () => {
       const { container } = render(
-        <BaseElementNode data={{ title: 'Circle Test' }} shapeClassName="circle" shapeBackground={bg} />
+        <BaseElementNode
+          data={{ title: 'Circle Test' }}
+          shapeClassName="circle"
+          renderShapeBackground={({ borderColor }) => (
+            <svg data-testid="shape-svg">
+              <circle cx="50" cy="50" r="48" stroke={borderColor} />
+            </svg>
+          )}
+        />
       );
       expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
       expect(screen.getByTestId('shape-svg')).toBeInTheDocument();
-      // Should NOT render the shell div when shapeBackground is provided
-      expect(container.querySelector('.diagram-card__shell')).toBeNull();
     });
 
-    it('renders shell div when no shapeBackground is provided', () => {
+    it('renders without shape-bg layer when no renderer is provided', () => {
       const { container } = render(
         <BaseElementNode data={{ title: 'Rect Test' }} shapeClassName="service" />
       );
-      expect(container.querySelector('.diagram-card__shell')).toBeInTheDocument();
       expect(container.querySelector('.diagram-card__shape-bg')).toBeNull();
     });
 
@@ -335,6 +335,77 @@ describe('Diagram nodes', () => {
       const { container } = renderCloud();
       expect(container.querySelector('.diagram-card__shape-bg')).toBeInTheDocument();
       expect(container.querySelector('.diagram-shape-svg')).toBeInTheDocument();
+    });
+  });
+
+  describe('DatabaseNode', () => {
+    it('renders cylinder SVG with rim path and applies custom colors', () => {
+      const { container } = render(
+        <DatabaseNode
+          id="db-1"
+          data={{ title: 'DB', customBorderColor: '#ff0000', customBackgroundColor: '#00ff00' }}
+          selected={false}
+        />
+      );
+      expect(screen.getByText('DB')).toBeInTheDocument();
+      const paths = container.querySelectorAll('.diagram-shape-svg path');
+      expect(paths.length).toBeGreaterThanOrEqual(2);
+      expect(paths[0].getAttribute('fill')).toBe('#00ff00');
+      expect(paths[0].getAttribute('stroke')).toBe('#ff0000');
+    });
+  });
+
+  describe('QueueNode', () => {
+    it('renders pipe SVG with right-side end-cap and applies custom colors', () => {
+      const { container } = render(
+        <QueueNode
+          id="q-1"
+          data={{ title: 'Q', customBorderColor: '#ff0000', customBackgroundColor: '#00ff00' }}
+          selected={false}
+        />
+      );
+      expect(screen.getByText('Q')).toBeInTheDocument();
+      const paths = container.querySelectorAll('.diagram-shape-svg path');
+      expect(paths.length).toBe(2);
+      expect(paths[0].getAttribute('fill')).toBe('#00ff00');
+      expect(paths[0].getAttribute('stroke')).toBe('#ff0000');
+    });
+  });
+
+  describe('PersonNode', () => {
+    it('renders as rectangular card without SVG silhouette background', () => {
+      const { container } = render(
+        <PersonNode id="p-1" data={{ title: 'User' }} selected={false} />
+      );
+      expect(screen.getByText('User')).toBeInTheDocument();
+      expect(container.querySelector('.diagram-card')).toHaveClass('diagram-card--person');
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeNull();
+      // Default icon for person shape class is IconUser (Tabler SVG).
+      expect(container.querySelector('.diagram-icon svg')).not.toBeNull();
+    });
+  });
+
+  describe('StorageNode', () => {
+    it('renders nested dashed rectangles', () => {
+      const { container } = render(
+        <StorageNode id="s-1" data={{ title: 'Vol' }} selected={false} />
+      );
+      expect(screen.getByText('Vol')).toBeInTheDocument();
+      const rects = container.querySelectorAll('.diagram-shape-svg rect');
+      expect(rects.length).toBe(2);
+      expect(rects[0].getAttribute('stroke-dasharray')).toBe('6 4');
+    });
+  });
+
+  describe('BoundaryNode', () => {
+    it('renders dashed rectangle boundary', () => {
+      const { container } = render(
+        <BoundaryNode id="b-1" data={{ title: 'Zone' }} selected={false} />
+      );
+      expect(screen.getByText('Zone')).toBeInTheDocument();
+      const rect = container.querySelector('.diagram-shape-svg rect');
+      expect(rect).not.toBeNull();
+      expect(rect?.getAttribute('stroke-dasharray')).toBe('10 5');
     });
   });
 

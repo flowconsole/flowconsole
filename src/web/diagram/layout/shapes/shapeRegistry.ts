@@ -36,17 +36,19 @@ export const DEFAULT_SHAPE: ShapeDefinition = {
  * Built-in shape definitions, initialized inline to avoid tree-shaking issues.
  * The registry is a static map — no side-effect imports needed.
  */
-const registry = new Map<ElementNodeTypeName, ShapeDefinition>([
-  // Rectangle-based shapes (CSS styling only, no SVG overlay)
+const registry = new Map<string, ShapeDefinition>([
+  // Rectangle (default service)
   ['element', { geometryKind: 'rectangle', minWidth: 200, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
-  ['person', { geometryKind: 'rectangle', minWidth: 200, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
-  ['database', { geometryKind: 'rectangle', minWidth: 200, minHeight: 100, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
-  ['queue', { geometryKind: 'rectangle', minWidth: 200, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
-  ['storage', { geometryKind: 'rectangle', minWidth: 200, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
-  ['boundary', { geometryKind: 'rectangle', minWidth: 200, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
-  // SVG-based shapes (rendered via shapeBackground prop)
+  // Container: same dimensions as default rectangle
+  ['container', { geometryKind: 'rectangle', minWidth: 200, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
+  // SVG-based shapes rendered via renderShapeBackground in BaseElementNode
+  ['person', { geometryKind: 'rectangle', minWidth: 180, minHeight: 120, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
+  ['database', { geometryKind: 'rectangle', minWidth: 92, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
+  ['queue', { geometryKind: 'rectangle', minWidth: 220, minHeight: 92, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
+  ['storage', { geometryKind: 'rectangle', minWidth: 200, minHeight: 100, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
+  ['boundary', { geometryKind: 'rectangle', minWidth: 200, minHeight: 100, portModel: 'bbox', squareAspect: false, contentPaddingFactor: 1 }],
   ['circle', { geometryKind: 'circle', minWidth: 140, minHeight: 140, portModel: 'perimeter', squareAspect: true, contentPaddingFactor: 1.4 }],
-  ['hexagon', { geometryKind: 'hexagon', minWidth: 180, minHeight: 160, portModel: 'perimeter', squareAspect: false, aspectRatio: 1.15, contentPaddingFactor: 1.3 }],
+  ['hexagon', { geometryKind: 'hexagon', minWidth: 90, minHeight: 80, portModel: 'perimeter', squareAspect: false, aspectRatio: 1.15, contentPaddingFactor: 1.3 }],
   ['cloud', { geometryKind: 'cloud', minWidth: 220, minHeight: 130, portModel: 'perimeter', squareAspect: false, contentPaddingFactor: 1.2 }],
 ]);
 

@@ -7,12 +7,12 @@ import { BaseElementNode } from './BaseElementNode';
  * Points are calculated for a viewBox of 100x100 with 2px stroke inset.
  */
 const HEXAGON_POINTS = [
-  '50,2',   // top center
-  '97,27',  // top right
-  '97,73',  // bottom right
-  '50,98',  // bottom center
-  '3,73',   // bottom left
-  '3,27',   // top left
+  '50,0',   // top center
+  '100,25', // top right
+  '100,75', // bottom right
+  '50,100', // bottom center
+  '0,75',   // bottom left
+  '0,25',   // top left
 ].join(' ');
 
 export function HexagonNode({ data, selected }: NodeProps<ElementNodeType>) {
@@ -31,8 +31,9 @@ export function HexagonNode({ data, selected }: NodeProps<ElementNodeType>) {
             points={HEXAGON_POINTS}
             fill={backgroundColor ?? 'var(--diagram-panel)'}
             stroke={borderColor}
-            strokeWidth="2"
+            strokeWidth="1"
             strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
           />
         </svg>
       )}

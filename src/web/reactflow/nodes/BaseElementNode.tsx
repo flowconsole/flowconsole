@@ -1,10 +1,29 @@
-import { IconDatabase, IconPackage, IconServer2, IconSquareRounded, IconStack2, IconUser } from '@tabler/icons-react';
+import {
+  IconApi,
+  IconBolt,
+  IconBrandAws,
+  IconCloud,
+  IconCube,
+  IconDatabase,
+  IconDeviceMobile,
+  IconPackage,
+  IconRocket,
+  IconRss,
+  IconServer2,
+  IconShieldHalf,
+  IconSquareRounded,
+  IconStack2,
+  IconTool,
+  IconUser,
+  IconWorld,
+} from '@tabler/icons-react';
 import { type CSSProperties, type ReactNode } from 'react';
 import type { ElementTone, ElementStatus, StylePreset } from '../../diagram/types';
 import { toneToColor, resolveNodeStyles } from '../../diagram/theme';
 import { HiddenHandles } from './HiddenHandles';
 import './styles.css';
 
+/** Fallback Tabler icon by shape class when the entity has no explicit icon. */
 const shapeIcons: Record<string, typeof IconUser> = {
   person: IconUser,
   service: IconServer2,
@@ -13,6 +32,42 @@ const shapeIcons: Record<string, typeof IconUser> = {
   storage: IconPackage,
   boundary: IconSquareRounded,
 };
+
+/** Map named icon identifiers (from SDK style.icon or runtime defaults) to Tabler components. */
+const namedIcons: Record<string, typeof IconUser> = {
+  system: IconServer2,
+  api: IconApi,
+  gateway: IconShieldHalf,
+  worker: IconTool,
+  database: IconDatabase,
+  cache: IconBolt,
+  queue: IconStack2,
+  topic: IconRss,
+  deployment: IconRocket,
+  cloud: IconCloud,
+  user: IconUser,
+  browser: IconWorld,
+  mobile: IconDeviceMobile,
+  kubernetes: IconCube,
+  aws: IconBrandAws,
+};
+
+/**
+ * Detects external icon references per SDK spec (plan 2026-04-15-sdk-alignment):
+ * - `data:...;base64,...` → inline data URL
+ * - `http://...` / `https://...` → external URL
+ * - `/...` or `./...` or `../...` → relative/absolute filesystem path
+ */
+function isExternalIconRef(icon: string): boolean {
+  return (
+    icon.startsWith('data:') ||
+    icon.startsWith('http://') ||
+    icon.startsWith('https://') ||
+    icon.startsWith('/') ||
+    icon.startsWith('./') ||
+    icon.startsWith('../')
+  );
+}
 
 function statusColor(status?: ElementStatus) {
   switch (status) {
@@ -46,8 +101,6 @@ export type BaseElementNodeProps = {
   selected?: boolean;
   /** CSS class name for the shape variant, e.g. 'service', 'database'. */
   shapeClassName: string;
-  /** Optional SVG layer rendered behind the content for non-rectangular shapes. */
-  shapeBackground?: ReactNode;
   /**
    * Callback that receives the resolved border/background colors.
    * Used by SVG shape nodes to apply fill/stroke to their SVG elements.
@@ -55,7 +108,7 @@ export type BaseElementNodeProps = {
   renderShapeBackground?: (resolved: { borderColor: string; backgroundColor?: string }) => ReactNode;
 };
 
-export function BaseElementNode({ data, selected, shapeClassName, shapeBackground, renderShapeBackground }: BaseElementNodeProps) {
+export function BaseElementNode({ data, selected, shapeClassName, renderShapeBackground }: BaseElementNodeProps) {
   const resolved = resolveNodeStyles({
     tone: data.tone,
     preset: data.preset,
@@ -64,8 +117,16 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
     customBorderColor: data.customBorderColor,
   });
   const accent = toneToColor(data.tone);
-  const Icon = shapeIcons[shapeClassName] ?? IconSquareRounded;
-  const customIcon = data.icon?.trim();
+  const rawIcon = data.icon?.trim();
+  // Per SDK spec, style.icon can be one of four forms:
+  //  1) external ref (data:/http(s)/path) → render as <img>
+  //  2) named icon from built-in library → render Tabler SVG
+  //  3) short literal (emoji/abbr ≤ 4 chars) → render as text
+  //  4) empty → fall back to shapeClassName icon
+  const externalIconUrl = rawIcon && isExternalIconRef(rawIcon) ? rawIcon : undefined;
+  const mappedIcon = rawIcon && !externalIconUrl ? namedIcons[rawIcon.toLowerCase()] : undefined;
+  const literalIcon = rawIcon && !externalIconUrl && !mappedIcon && rawIcon.length <= 4 ? rawIcon : undefined;
+  const Icon = mappedIcon ?? shapeIcons[shapeClassName] ?? IconSquareRounded;
   const isGhost = data.ghost === true;
   const hasPresetClass = data.preset && data.preset !== 'default';
   // For SVG-backed shapes, keep root background transparent — the SVG handles fill.
@@ -76,11 +137,12 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
     boxShadow: selected ? `0 0 0 2px ${resolved.borderColor}33, var(--diagram-card-shadow)` : undefined,
     '--diagram-accent': resolved.color ?? accent,
     opacity: resolved.opacity,
+    ...(hasSvgBackground ? { border: 'none', boxShadow: selected ? `0 0 0 2px ${resolved.borderColor}33` : 'none' } : {}),
   } as CSSProperties;
 
   const effectiveShapeBg = renderShapeBackground
     ? renderShapeBackground({ borderColor: resolved.borderColor, backgroundColor: resolved.backgroundColor })
-    : shapeBackground;
+    : null;
 
   const presetClass = hasPresetClass ? ` diagram-card--${data.preset}` : '';
 
@@ -93,15 +155,20 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
         <div className="diagram-card__shape-bg" aria-hidden="true">
           {effectiveShapeBg}
         </div>
-      ) : (
-        <div className={`diagram-card__shell diagram-card__shell--${shapeClassName}`} aria-hidden="true" />
-      )}
+      ) : null}
       <div className="diagram-card__content">
         <div className="diagram-card__header">
           <div className="diagram-card__heading">
             <div className={`diagram-icon diagram-icon--${shapeClassName}`} style={{ borderColor: resolved.borderColor, color: resolved.color ?? accent }}>
-              {customIcon ? (
-                <span className="diagram-icon__custom">{customIcon}</span>
+              {externalIconUrl ? (
+                <img
+                  src={externalIconUrl}
+                  alt=""
+                  className="diagram-icon__image"
+                  aria-hidden="true"
+                />
+              ) : literalIcon ? (
+                <span className="diagram-icon__custom">{literalIcon}</span>
               ) : (
                 <Icon size={18} stroke={1.8} aria-hidden="true" />
               )}
@@ -117,7 +184,9 @@ export function BaseElementNode({ data, selected, shapeClassName, shapeBackgroun
                 {data.badge}
               </span>
             ) : null}
-            <span className="diagram-status" style={{ background: statusColor(data.status) }} />
+            {data.status ? (
+              <span className="diagram-status" style={{ background: statusColor(data.status) }} />
+            ) : null}
           </div>
         </div>
         {data.description ? <div className="diagram-card__description">{data.description}</div> : null}

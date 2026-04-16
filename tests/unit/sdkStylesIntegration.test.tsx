@@ -252,9 +252,9 @@ describe('Visual tests: SVG shapes fill/stroke and rectangular absence', () => {
       expect(container.querySelector('.diagram-shape-svg')).toBeNull();
     });
 
-    it('ElementNode renders shell div instead of SVG background', () => {
+    it('ElementNode renders no SVG background layer (CSS only)', () => {
       const { container } = renderElement();
-      expect(container.querySelector('.diagram-card__shell')).not.toBeNull();
+      expect(container.querySelector('.diagram-card__shape-bg')).toBeNull();
     });
   });
 

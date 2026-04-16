@@ -25,8 +25,8 @@ export function computePortPosition(
     case 'hexagon':
       return hexagonIntersection(cx, cy, nodeRect.width, nodeRect.height, targetPoint);
     case 'cloud':
-      // Cloud is irregular — approximate with an ellipse at 90% of bbox
-      return ellipseIntersection(cx, cy, nodeRect.width * 0.45, nodeRect.height * 0.42, targetPoint);
+      // Cloud is irregular — approximate with an ellipse close to bbox edges
+      return ellipseIntersection(cx, cy, nodeRect.width * 0.48, nodeRect.height * 0.46, targetPoint);
     default:
       return bboxIntersection(nodeRect, targetPoint);
   }
@@ -70,15 +70,15 @@ function hexagonIntersection(
 ): Point {
   const hw = width / 2;
   const hh = height / 2;
-  // Flat-top hexagon vertices (matching the SVG polygon):
-  // top-center, top-right, bottom-right, bottom-center, bottom-left, top-left
+  // Flat-top hexagon vertices at bbox edges — matches SVG where points
+  // reach bbox corners (arrow marker tip then visually lands on the visible contour).
   const vertices: Point[] = [
-    { x: cx, y: cy - hh },         // top center
-    { x: cx + hw, y: cy - hh * 0.5 }, // top right
-    { x: cx + hw, y: cy + hh * 0.5 }, // bottom right
-    { x: cx, y: cy + hh },         // bottom center
-    { x: cx - hw, y: cy + hh * 0.5 }, // bottom left
-    { x: cx - hw, y: cy - hh * 0.5 }, // top left
+    { x: cx, y: cy - hh },
+    { x: cx + hw, y: cy - hh * 0.5 },
+    { x: cx + hw, y: cy + hh * 0.5 },
+    { x: cx, y: cy + hh },
+    { x: cx - hw, y: cy + hh * 0.5 },
+    { x: cx - hw, y: cy - hh * 0.5 },
   ];
 
   return polygonIntersection(cx, cy, vertices, target);

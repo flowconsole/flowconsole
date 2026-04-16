@@ -272,6 +272,19 @@ const DATA_STORE_KINDS = new Set(['Database', 'Cache']);
 /** Messaging kinds for inference */
 const MESSAGING_KINDS = new Set(['Topic', 'Queue']);
 
+/**
+ * Default icon by shape — used when the user explicitly sets `style.shape`
+ * but leaves `style.icon` unset. The shape carries semantic intent, so a
+ * hexagon should show a gateway icon even if the kind default was 'system'.
+ */
+const SHAPE_ICON: Partial<Record<ShapeKind, string>> = {
+  person: 'user',
+  cylinder: 'database',
+  pipe: 'queue',
+  cloud: 'cloud',
+  hexagon: 'gateway',
+};
+
 function resolveStyle(typeName: EntityTypeName, kind: string, userStyle?: Record<string, unknown>): ComponentStyleRecord {
   const defaultIcon = TYPE_ICON_OVERRIDE[typeName] ?? DEFAULT_ICON[kind] ?? 'system';
   const defaultShape = TYPE_SHAPE_OVERRIDE[typeName] ?? DEFAULT_SHAPE[kind] ?? 'rectangle';
@@ -286,8 +299,16 @@ function resolveStyle(typeName: EntityTypeName, kind: string, userStyle?: Record
     if (typeof userStyle.color === 'string') resolved.color = userStyle.color;
     if (typeof userStyle.backgroundColor === 'string') resolved.backgroundColor = userStyle.backgroundColor;
     if (typeof userStyle.borderColor === 'string') resolved.borderColor = userStyle.borderColor;
-    if (typeof userStyle.icon === 'string') resolved.icon = userStyle.icon;
-    if (typeof userStyle.shape === 'string') resolved.shape = userStyle.shape as ShapeKind;
+    const userShapeSet = typeof userStyle.shape === 'string';
+    const userIconSet = typeof userStyle.icon === 'string';
+    if (userShapeSet) resolved.shape = userStyle.shape as ShapeKind;
+    if (userIconSet) {
+      resolved.icon = userStyle.icon as string;
+    } else if (userShapeSet) {
+      // Shape-driven icon override wins over kind-based default.
+      const shapeIcon = SHAPE_ICON[resolved.shape!];
+      if (shapeIcon) resolved.icon = shapeIcon;
+    }
   }
 
   return resolved;

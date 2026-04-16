@@ -2,6 +2,344 @@ import type { CodeSample } from '../types';
 
 export const codeSamples: CodeSample[] = [
   {
+    id: 'sdk-styles-showcase',
+    title: 'SDK Styles Showcase',
+    description:
+      'All 7 ShapeKind forms + 5 presets + custom colors to verify ReactFlow rendering',
+    code: `import {
+  Module, SoftwareSystem, Namespace,
+  User, RestApi, Postgres, Redis, Kafka, Topic, Worker, External, Ingress,
+} from "@flowconsole/sdk";
+
+// ── All 7 shapes ──
+const rect = new Module({
+  name: "Rectangle",
+  description: "default shape",
+  style: { shape: "rectangle" },
+});
+const circle = new Module({
+  name: "Circle",
+  description: "SVG circle",
+  style: { shape: "circle" },
+});
+const hex = new Module({
+  name: "Hexagon",
+  description: "SVG polygon",
+  style: { shape: "hexagon" },
+});
+const cloud = new Module({
+  name: "Cloud",
+  description: "SVG path with bezier",
+  style: { shape: "cloud" },
+});
+const cyl = new Module({
+  name: "Cylinder",
+  description: "CSS database",
+  style: { shape: "cylinder" },
+});
+const pipe = new Module({
+  name: "Pipe",
+  description: "CSS queue",
+  style: { shape: "pipe" },
+});
+const person = new Module({
+  name: "Person",
+  description: "CSS person",
+  style: { shape: "person" },
+});
+
+// ── 5 presets on rectangles ──
+const highlighted = new Module({
+  name: "Highlighted",
+  description: "glow effect",
+  style: { preset: "highlighted" },
+});
+const critical = new Module({
+  name: "Critical",
+  description: "red preset",
+  style: { preset: "critical" },
+});
+const deprecated = new Module({
+  name: "Deprecated",
+  description: "dashed + faded",
+  style: { preset: "deprecated" },
+});
+const fresh = new Module({
+  name: "New",
+  description: "new preset",
+  style: { preset: "new" },
+});
+const external = new Module({
+  name: "External",
+  description: "external preset",
+  style: { preset: "external" },
+});
+
+// ── Custom colors (explicit overrides) ──
+const branded = new Module({
+  name: "Branded",
+  description: "custom bg + border",
+  style: { backgroundColor: "#e74c3c", borderColor: "#c0392b" },
+});
+const overridden = new Module({
+  name: "Preset + Override",
+  description: "deprecated preset but green border",
+  style: { preset: "deprecated", borderColor: "#2ecc71" },
+});
+
+// ── Container node (SoftwareSystem + nested Namespace) ──
+const system = new SoftwareSystem({ name: "Container Node" });
+const ns = new Namespace({ name: "Nested Namespace", belongsTo: system });
+const child = new Module({
+  name: "Child in Container",
+  description: "rendered inside container",
+  belongsTo: ns,
+});
+
+// ── Convenience classes with automatic shape inference ──
+const user = new User({ name: "Customer" });
+const api = new RestApi({ name: "API Service", baseUrl: "/v1" });
+const db = new Postgres({ name: "Main DB" });
+const cache = new Redis({ name: "Session Cache" });
+const broker = new Kafka({ name: "Event Bus" });
+const auditTopic = new Topic({ name: "Audit", belongsTo: broker });
+const reportJob = new Worker({ name: "Reporter" });
+const fraud = new External({ name: "Fraud Guard", vendor: "FraudCo" });
+const ingress = new Ingress({ name: "Public Ingress", host: "app.example.com" });
+
+// ── A few connections so the diagram renders edges too ──
+rect.sendsRequest(circle, "step 1")
+  .then(circle).sendsRequest(hex, "step 2")
+  .then(hex).sendsRequest(cloud, "step 3")
+  .scenario("Shapes chain");
+
+cyl.sendsRequest(pipe, "write")
+  .then(pipe).sendsRequest(person, "notify")
+  .scenario("Legacy shapes");
+
+highlighted.sendsRequest(critical, "alert")
+  .then(critical).sendsRequest(deprecated, "fallback")
+  .then(deprecated).sendsRequest(fresh, "replace")
+  .then(fresh).sendsRequest(external, "external link")
+  .scenario("Preset chain");
+
+branded.sendsRequest(overridden, "custom styling")
+  .scenario("Custom colors");
+
+// ── Icon formats (per SDK spec) ──
+// Built-in library name → resolves to Tabler SVG icon
+const iconNamed = new Module({
+  name: "Named Icon",
+  description: "icon: 'aws'",
+  style: { icon: "aws" },
+});
+// Short literal (≤4 chars) → rendered as text/emoji
+const iconEmoji = new Module({
+  name: "Emoji Icon",
+  description: "icon: '🔥'",
+  style: { icon: "🔥" },
+});
+const iconAbbr = new Module({
+  name: "Text Icon",
+  description: "icon: 'v2'",
+  style: { icon: "v2" },
+});
+// data: URL → inline SVG (tiny purple star)
+const iconData = new Module({
+  name: "Inline Data URL",
+  description: "icon: 'data:image/svg+xml;base64,...'",
+  style: {
+    icon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzhiNWNmNiI+PHBhdGggZD0iTTEyIDJsMyA3aDdsLTUuNSA0LjUgMiA3LTYuNS00LjUtNi41IDQuNSAyLTctNS41LTQuNWg3eiIvPjwvc3ZnPg==",
+  },
+});
+// External URL → loaded as <img>
+const iconUrl = new Module({
+  name: "External URL",
+  description: "icon: 'https://...'",
+  style: { icon: "https://api.iconify.design/logos:postgresql.svg" },
+});
+
+iconNamed.sendsRequest(iconEmoji, "named → emoji")
+  .then(iconEmoji).sendsRequest(iconAbbr, "emoji → text")
+  .then(iconAbbr).sendsRequest(iconData, "text → data url")
+  .then(iconData).sendsRequest(iconUrl, "data url → http url")
+  .scenario("Icon formats");
+
+// ── Convenience chain: automatic shape inference ──
+ingress.sendsRequest(api, "route")
+  .then(api).sendsRequest(fraud, "score")
+  .inParallel(
+    api.reads(cache, "session"),
+    api.reads(db, "account"),
+  )
+  .then(api).publishes(auditTopic, "audit event")
+  .scenario("Convenience classes");
+
+user.opens(api, "login")
+  .scenario("User flow");
+
+reportJob.reads(db, "load data")
+  .then(reportJob).publishes(auditTopic, "report ready")
+  .scenario("Worker flow");
+
+child.sendsRequest(api, "call parent")
+  .scenario("Container children");
+`,
+  },
+  {
+    id: 'eshop',
+    title: 'E-Shop Architecture',
+    description:
+      'E-commerce platform with auth, catalog, cart, checkout, payments, inventory worker',
+    code: `import {
+  User, SoftwareSystem, NextApp, ReactApp, RestApi,
+  Postgres, Redis, Kafka, Topic, Worker,
+  External, Ingress, Cdn, K8sCluster,
+} from "@flowconsole/sdk";
+
+// ── Actors ──
+const customer = new User({ name: "Customer", description: "Shops online" });
+const admin = new User({ name: "Admin", description: "Manages catalog" });
+
+// ── Top-level system grouping ──
+const shop = new SoftwareSystem({ name: "E-Shop Platform" });
+
+// ── Edge layer (hexagons via Ingress/Gateway) ──
+const publicIngress = new Ingress({
+  name: "Public Ingress",
+  host: "shop.example.com",
+  tls: true,
+});
+const edgeCdn = new Cdn({
+  name: "Edge CDN",
+  provider: "CloudFront",
+  description: "Static assets & images",
+});
+
+// ── Frontends ──
+const storefront = new NextApp({
+  name: "Storefront",
+  description: "Customer-facing web",
+  belongsTo: shop,
+});
+const adminApp = new ReactApp({
+  name: "Admin Panel",
+  description: "Product & order management",
+  belongsTo: shop,
+  style: { preset: "highlighted" },
+});
+
+// ── Core APIs ──
+const authApi = new RestApi({
+  name: "Auth API",
+  description: "Sign-in, tokens, sessions",
+  belongsTo: shop,
+});
+const catalogApi = new RestApi({
+  name: "Catalog API",
+  description: "Products, search, pricing",
+  belongsTo: shop,
+});
+const cartApi = new RestApi({
+  name: "Cart API",
+  description: "Shopping cart state",
+  belongsTo: shop,
+});
+const checkoutApi = new RestApi({
+  name: "Checkout API",
+  description: "Order placement",
+  belongsTo: shop,
+  style: { preset: "critical" },
+});
+
+// ── Data stores ──
+const productsDb = new Postgres({ name: "Products DB", belongsTo: shop });
+const ordersDb = new Postgres({ name: "Orders DB", belongsTo: shop });
+const sessionCache = new Redis({ name: "Session Cache", belongsTo: shop });
+const inventoryDb = new Postgres({ name: "Inventory DB", belongsTo: shop });
+
+// ── Messaging ──
+const eventBus = new Kafka({ name: "Event Bus", belongsTo: shop });
+const orderPlaced = new Topic({
+  name: "order.placed",
+  belongsTo: eventBus,
+});
+
+// ── Async workers ──
+const inventoryWorker = new Worker({
+  name: "Inventory Worker",
+  description: "Reserves stock on order",
+  belongsTo: shop,
+});
+
+// ── Third-party ──
+const paymentGateway = new External({
+  name: "Payment Gateway",
+  description: "Stripe / 3-DS",
+  vendor: "Stripe",
+  style: { preset: "highlighted" },
+});
+const emailProvider = new External({
+  name: "Email Provider",
+  vendor: "SendGrid",
+});
+
+// ── Deprecated legacy ──
+const legacyReports = new RestApi({
+  name: "Legacy Reports",
+  description: "Old reporting API, being sunset",
+  belongsTo: shop,
+  style: { preset: "deprecated" },
+});
+
+// ── Flows ──
+customer.opens(storefront, "browse shop")
+  .then(storefront).sendsRequest(edgeCdn, "load assets")
+  .then(storefront).sendsRequest(publicIngress, "api requests")
+  .then(publicIngress).sendsRequest(authApi, "sign in")
+  .then(authApi).writes(sessionCache, "store session")
+  .scenario("Customer sign-in");
+
+storefront.sendsRequest(catalogApi, "browse products")
+  .then(catalogApi).reads(productsDb, "products + search")
+  .then(catalogApi).reads(sessionCache, "personalize")
+  .scenario("Catalog browsing");
+
+storefront.sendsRequest(cartApi, "add to cart")
+  .then(cartApi).writes(sessionCache, "cart items")
+  .scenario("Add to cart");
+
+storefront.sendsRequest(checkoutApi, "place order")
+  .inParallel(
+    checkoutApi.reads(sessionCache, "cart snapshot"),
+    checkoutApi.writes(ordersDb, "create order"),
+  )
+  .then(checkoutApi).sendsRequest(paymentGateway, "charge card")
+  .then(checkoutApi).publishes(orderPlaced, "order.placed")
+  .scenario("Checkout + payment");
+
+inventoryWorker.subscribes(orderPlaced, "claim order")
+  .then(inventoryWorker).writes(inventoryDb, "reserve stock")
+  .then(inventoryWorker).sendsRequest(emailProvider, "send confirmation")
+  .scenario("Inventory + notification");
+
+admin.opens(adminApp, "manage shop")
+  .then(adminApp).sendsRequest(catalogApi, "edit products")
+  .then(catalogApi).writes(productsDb, "update catalog")
+  .scenario("Admin workflow");
+
+// ── Deployment ──
+const cluster = new K8sCluster({ name: "prod-eu", region: "eu-west-1" });
+storefront.deployedOn(cluster, { replicas: 4 });
+authApi.deployedOn(cluster, { replicas: 3 });
+catalogApi.deployedOn(cluster, { replicas: 4 });
+cartApi.deployedOn(cluster, { replicas: 3 });
+checkoutApi.deployedOn(cluster, { replicas: 2 });
+inventoryWorker.deployedOn(cluster, { replicas: 2 });
+publicIngress.routesTo(storefront);
+`,
+  },
+  {
     id: 'test-sample',
     title: 'SDK Test Sample',
     description:
@@ -45,489 +383,5 @@ user.opens(api, "Call API")
   }
 ];
 
-export const codeSamplesOld: CodeSample[] = [
-  {
-    id: 'retail-banking',
-    title: 'Retail Banking Platform',
-    description:
-      'Customer-facing banking stack with SPA frontend, backend APIs, caches, databases, and audit streams.',
-    code: `import {
-  User, SoftwareSystem, Container, ReactApp, RestApi,
-  Redis, Postgres, Kafka, Topic, External,
-  K8sCluster, ManagedDatabase, Ingress
-} from "@flowconsole/sdk";
-
-const user = new User({ name: "Customer", description: "Retail banking customer" });
-
-const system = new SoftwareSystem({ name: "Cloud Banking" });
-const storage = new Container({ name: "Data Store", belongsTo: system });
-const backend = new Container({ name: "Core Services", belongsTo: system });
-
-const frontApp = new ReactApp({
-  name: "Customer Dashboard",
-  description: "Browser Single-page Application",
-  belongsTo: system
-});
-const authApi = new RestApi({
-  name: "Authentication",
-  description: "Self-Hosted Authentication Service",
-  belongsTo: backend
-});
-
-const accountsApi = new RestApi({
-  name: "Accounts API",
-  description: "Java Spring service for balances and payments",
-  belongsTo: backend
-});
-
-const cache = new Redis({
-  name: "Session Cache",
-  description: "Stores customer session payloads",
-  belongsTo: storage
-});
-
-const db = new Postgres({
-  name: "Ledger DB",
-  description: "Persistent customer and transaction data",
-  belongsTo: storage
-});
-
-const eventBus = new Kafka({
-  name: "Event Bus",
-  description: "Audit event streaming",
-  belongsTo: backend
-});
-const auditTopic = new Topic({
-  name: "Audit Events",
-  description: "Every request produces an audit record",
-  belongsTo: eventBus
-});
-
-const fraudService = new External({
-  name: "Fraud Guard",
-  description: "3rd-party fraud scoring",
-  vendor: "FraudCo"
-});
-
-// ── Flows ──
-user.opens(frontApp, "launch app")
-  .then(frontApp).sendsRequest(authApi, "login")
-  .then(frontApp).sendsRequest(accountsApi, "load dashboard")
-  .inParallel(
-    accountsApi.reads(cache, "session context"),
-    accountsApi.reads(db, "account snapshot")
-  )
-  .sendsRequest(authApi, "validate token")
-  .then(accountsApi)
-  .inParallel(
-    accountsApi.publishes(auditTopic, "emit audit"),
-    accountsApi.sendsRequest(fraudService, "score transaction", { kind: 'async' })
-  )
-  .scenario("Customer login and dashboard");
-
-// ── Deployment ──
-const prodCluster = new K8sCluster({ name: "prod-eu", region: "eu-west-1" });
-const rdsMain = new ManagedDatabase({ name: "RDS prod", provider: "AWS RDS", engine: "PostgreSQL" });
-const publicIngress = new Ingress({ name: "Public", host: "bank.example.com", tls: true });
-
-frontApp.deployedOn(prodCluster, { replicas: 2 });
-authApi.deployedOn(prodCluster, { replicas: 3 });
-accountsApi.deployedOn(prodCluster, { replicas: 5 });
-db.deployedOn(rdsMain);
-publicIngress.routesTo(frontApp);
-`,
-  },
-  {
-    id: 'enterprise-erp',
-    title: 'Global ERP & Supply Chain',
-    description:
-      'Corporate ERP with employee portal, integration hub, planning services, background schedulers, and supplier APIs.',
-    code: `import {
-  User, SoftwareSystem, Container, NextApp, RestApi,
-  Postgres, Rabbit, Worker, External
-} from "@flowconsole/sdk";
-
-const employee = new User({ name: "Regional Planner", description: "Creates purchase orders" });
-const supplier = new External({ name: "Supplier API", description: "Partner integration", vendor: "SupplyCo" });
-
-const atlas = new SoftwareSystem({ name: "Atlas ERP" });
-const portal = new NextApp({
-  name: "Planner Portal",
-  description: "Next.js dashboard for procurement team",
-  belongsTo: atlas
-});
-
-const integrationHub = new Container({
-  name: "Integration Hub",
-  description: "Async orchestrations + adapters",
-  belongsTo: atlas
-});
-
-const planningApi = new RestApi({
-  name: "Planning Service",
-  description: "Handles demand & supply planning",
-  belongsTo: integrationHub
-});
-
-const inventoryApi = new RestApi({
-  name: "Inventory Service",
-  description: "Tracks warehouse stock",
-  belongsTo: integrationHub
-});
-
-const workflowQueue = new Rabbit({
-  name: "Workflow Queue",
-  description: "Commands for async processing",
-  belongsTo: integrationHub
-});
-
-const reportingJob = new Worker({
-  name: "Nightly Reconciliation",
-  description: "Produces compliance extracts",
-  belongsTo: integrationHub
-});
-
-const erpDb = new Postgres({
-  name: "ERP Database",
-  description: "Orders, forecasts, contracts",
-  belongsTo: integrationHub
-});
-
-// ── Flows ──
-employee.opens(portal, "create purchase order")
-  .then(portal).sendsRequest(planningApi, "submit plan")
-  .then(planningApi).sendsRequest(inventoryApi, "reserve stock")
-  .inParallel(
-    planningApi.reads(erpDb, "fetch demand"),
-    inventoryApi.reads(erpDb, "current stock")
-  )
-  .then(planningApi).publishes(workflowQueue, "publish workflow")
-  .then(planningApi).sendsRequest(supplier, "send order")
-  .scenario("Purchase order creation");
-
-reportingJob.reads(erpDb, "load data")
-  .then(reportingJob).runs("generate nightly reports")
-  .then(reportingJob).publishes(workflowQueue, "notify portal")
-  .scenario("Nightly reconciliation");
-`,
-  },
-  {
-    id: 'oss-collab',
-    title: 'OSS Collaboration Platform',
-    description:
-      'Architecture of a large open-source dev platform with contributors, Git service, CI runners, and observability.',
-    code: `import {
-  User, SoftwareSystem, Container, ReactApp, RestApi, GraphqlApi,
-  Worker, Postgres, Kafka, Topic
-} from "@flowconsole/sdk";
-
-const contributor = new User({ name: "Contributor", description: "Sends pull requests" });
-const maintainer = new User({ name: "Maintainer", description: "Reviews and deploys" });
-
-const helios = new SoftwareSystem({ name: "Helios OSS" });
-const gitGateway = new Container({ name: "Git Gateway", belongsTo: helios });
-const ciCluster = new Container({ name: "CI Cluster", belongsTo: helios });
-const observability = new Container({ name: "Observability", belongsTo: helios });
-
-const webApp = new ReactApp({
-  name: "Helios Web",
-  description: "Next.js UI for issues, merge requests, pipelines",
-  belongsTo: helios
-});
-
-const gitHttp = new RestApi({
-  name: "Git HTTP",
-  description: "Clone & push over HTTPS",
-  belongsTo: gitGateway
-});
-
-const apiGateway = new GraphqlApi({
-  name: "GraphQL API",
-  description: "Issues, projects, releases",
-  belongsTo: gitGateway
-});
-
-const ciRunner = new Worker({
-  name: "CI Runner",
-  description: "Executes pipelines from queue",
-  belongsTo: ciCluster
-});
-
-const eventBus = new Kafka({
-  name: "Event Bus",
-  description: "Platform-wide event streaming",
-  belongsTo: observability
-});
-const pipelineTopic = new Topic({
-  name: "Pipeline Events",
-  description: "Jobs waiting for runners",
-  belongsTo: eventBus
-});
-const activityTopic = new Topic({
-  name: "Activity Stream",
-  description: "Push events, comments, deployments",
-  belongsTo: eventBus
-});
-
-const metricsStore = new Postgres({
-  name: "Metrics Store",
-  description: "Usage, billing, analytics",
-  belongsTo: observability
-});
-
-// ── Flows ──
-contributor.opens(webApp, "open MR")
-  .then(webApp).sendsRequest(apiGateway, "create merge request")
-  .then(apiGateway).sendsRequest(gitHttp, "push commits")
-  .then(apiGateway).publishes(pipelineTopic, "enqueue pipeline")
-  .then(apiGateway).publishes(activityTopic, "publish activity")
-  .scenario("Contributor opens merge request");
-
-ciRunner.subscribes(pipelineTopic, "claim job")
-  .then(ciRunner).runs("run tests")
-  .then(ciRunner).sendsRequest(apiGateway, "update status")
-  .then(ciRunner).publishes(activityTopic, "emit pipeline events")
-  .scenario("CI pipeline execution");
-
-maintainer.opens(webApp, "review & deploy")
-  .then(webApp).sendsRequest(apiGateway, "approve merge")
-  .then(apiGateway).writes(metricsStore, "record deployment")
-  .then(apiGateway).publishes(activityTopic, "log deployment")
-  .scenario("Maintainer deploys");
-`,
-  },
-  {
-    id: 'media-streaming',
-    title: 'Global Media Streaming Platform',
-    description:
-      'Consumer streaming service with device apps, control plane, data plane, recommendations, and CDN edge nodes.',
-    code: `import {
-  User, SoftwareSystem, Container, DesktopApp, IosApp,
-  RestApi, Worker, External, Postgres, Kafka, Topic,
-  K8sCluster, Cdn, Ingress
-} from "@flowconsole/sdk";
-
-const viewer = new User({ name: "Subscriber", description: "Streams movies" });
-const operator = new User({ name: "Ops Engineer", description: "Monitors health" });
-
-const streamly = new SoftwareSystem({ name: "Streamly" });
-const deviceApps = new Container({ name: "Device Apps", belongsTo: streamly });
-const controlPlane = new Container({ name: "Control Plane", belongsTo: streamly });
-const dataPlane = new Container({ name: "Data Plane", belongsTo: streamly });
-const observability = new Container({ name: "Observability", belongsTo: streamly });
-
-const tvApp = new DesktopApp({
-  name: "TV App",
-  description: "Smart TV + set-top box UI",
-  belongsTo: deviceApps,
-});
-
-const mobileApp = new IosApp({
-  name: "Mobile App",
-  description: "iOS client",
-  belongsTo: deviceApps,
-});
-
-const authService = new RestApi({
-  name: "Identity",
-  description: "Login, entitlements",
-  belongsTo: controlPlane,
-});
-
-const catalogService = new RestApi({
-  name: "Catalog",
-  description: "Metadata, search, personalization",
-  belongsTo: controlPlane,
-});
-
-const playbackService = new RestApi({
-  name: "Playback Service",
-  description: "Session tokens, DRM",
-  belongsTo: controlPlane,
-});
-
-const ingestPipeline = new Worker({
-  name: "Content Ingest",
-  description: "Transcodes uploads",
-  belongsTo: dataPlane,
-});
-
-const edgeCache = new External({
-  name: "Global CDN",
-  description: "Edge delivery network",
-  vendor: "CloudFront"
-});
-
-const profilesStore = new Postgres({
-  name: "Profiles DB",
-  description: "Viewer profiles, settings",
-  belongsTo: controlPlane,
-});
-
-const recommendationService = new RestApi({
-  name: "Recommendations",
-  description: "ML ranking service",
-  belongsTo: controlPlane,
-});
-
-const eventBus = new Kafka({
-  name: "Telemetry Bus",
-  description: "Streaming telemetry",
-  belongsTo: observability,
-});
-const watchEvents = new Topic({
-  name: "Watch Events",
-  description: "View, pause, seek telemetry",
-  belongsTo: eventBus,
-});
-
-const metricsApi = new RestApi({
-  name: "Metrics API",
-  description: "Real-time health",
-  belongsTo: observability,
-});
-
-// ── Flows ──
-viewer.opens(tvApp, "open app")
-  .then(tvApp).sendsRequest(authService, "login")
-  .then(tvApp).sendsRequest(catalogService, "browse catalog")
-  .then(catalogService).sendsRequest(recommendationService, "personal picks")
-  .then(tvApp).sendsRequest(playbackService, "start playback")
-  .inParallel(
-    playbackService.reads(profilesStore, "profile rights"),
-    playbackService.sendsRequest(edgeCache, "issue token")
-  )
-  .then(playbackService).publishes(watchEvents, "emit play")
-  .scenario("Viewer watches content");
-
-mobileApp.sendsRequest(playbackService, "resume session")
-  .inParallel(
-    playbackService.reads(profilesStore, "device list"),
-    playbackService.sendsRequest(edgeCache, "refresh CDN token", { kind: 'async' })
-  )
-  .scenario("Mobile resume");
-
-ingestPipeline.sendsRequest(edgeCache, "push renditions", { kind: 'async' })
-  .then(ingestPipeline).publishes(watchEvents, "publish ingest status")
-  .scenario("Content ingest");
-
-operator.opens(metricsApi, "check SLOs")
-  .then(operator).subscribes(watchEvents, "trace anomalies")
-  .scenario("Ops monitoring");
-
-// ── Deployment ──
-const prodCluster = new K8sCluster({ name: "prod-us", region: "us-east-1" });
-const cdnEdge = new Cdn({ name: "CloudFront", provider: "AWS" });
-const publicIngress = new Ingress({ name: "Public", host: "streamly.tv", tls: true });
-
-playbackService.deployedOn(prodCluster, { replicas: 10 });
-catalogService.deployedOn(prodCluster, { replicas: 5 });
-authService.deployedOn(prodCluster, { replicas: 3 });
-publicIngress.routesTo(tvApp);
-`,
-  },
-  {
-    id: 'opensource-observability',
-    title: 'Open-Source Observability Stack',
-    description:
-      'Community project similar to Kubernetes monitoring suites with control plane, agents, dashboards, storage tiers, and alerting.',
-    code: `import {
-  User, SoftwareSystem, Container, ReactApp, RestApi,
-  Worker, Postgres, Clickhouse, Kafka, Topic
-} from "@flowconsole/sdk";
-
-const platformEngineer = new User({ name: "Platform Engineer", description: "Owns monitoring" });
-const contributor = new User({ name: "Community Dev", description: "Extends plugins" });
-
-const skyline = new SoftwareSystem({ name: "Skyline Observability" });
-const controlPlane = new Container({ name: "Control Plane", belongsTo: skyline });
-const dataLake = new Container({ name: "Data Lake", belongsTo: skyline });
-const dashboards = new Container({ name: "Dashboards", belongsTo: skyline });
-const edgeAgents = new Container({ name: "Cluster Agents", belongsTo: skyline });
-
-const kubeAgent = new Worker({
-  name: "Kube Agent",
-  description: "Collects metrics + logs",
-  belongsTo: edgeAgents,
-});
-
-const serviceMap = new RestApi({
-  name: "Service Map API",
-  description: "Topology + traces",
-  belongsTo: controlPlane,
-});
-
-const alertManager = new RestApi({
-  name: "Alert Manager",
-  description: "Rules, paging, webhooks",
-  belongsTo: controlPlane,
-});
-
-const ingestGateway = new RestApi({
-  name: "Ingest Gateway",
-  description: "OpenTelemetry collector",
-  belongsTo: controlPlane,
-});
-
-const timeseriesDb = new Postgres({
-  name: "TSDB",
-  description: "PromQL-compatible store",
-  belongsTo: dataLake,
-});
-
-const logStore = new Clickhouse({
-  name: "Log Store",
-  description: "Columnar logs",
-  belongsTo: dataLake,
-});
-
-const eventBus = new Kafka({
-  name: "Events Bus",
-  description: "Platform events",
-  belongsTo: controlPlane,
-});
-const alertsTopic = new Topic({
-  name: "Alerts",
-  description: "Alerts, deploy hooks",
-  belongsTo: eventBus,
-});
-
-const pluginRegistry = new RestApi({
-  name: "Plugin Registry",
-  description: "Hosts visualization plugins",
-  belongsTo: dashboards,
-});
-
-const explorerUi = new ReactApp({
-  name: "Explorer UI",
-  description: "Dashboards + alerts",
-  belongsTo: dashboards,
-});
-
-// ── Flows ──
-platformEngineer.opens(explorerUi, "inspect cluster")
-  .then(explorerUi).sendsRequest(serviceMap, "fetch topology")
-  .then(explorerUi).sendsRequest(alertManager, "list alerts")
-  .then(explorerUi).sendsRequest(pluginRegistry, "load plugin")
-  .then(explorerUi).publishes(alertsTopic, "audit view")
-  .scenario("Engineer inspects cluster");
-
-kubeAgent.sendsRequest(ingestGateway, "ship metrics", { kind: 'async' })
-  .then(ingestGateway).writes(timeseriesDb, "store metrics")
-  .then(ingestGateway).writes(logStore, "store logs")
-  .then(ingestGateway).publishes(alertsTopic, "emit anomalies")
-  .scenario("Agent telemetry ingest");
-
-serviceMap.reads(timeseriesDb, "metrics")
-  .then(serviceMap).reads(logStore, "logs")
-  .then(serviceMap).sendsRequest(alertManager, "fire alerts", { kind: 'event' })
-  .scenario("Service map analysis");
-
-contributor.sendsRequest(pluginRegistry, "publish plugin")
-  .then(contributor).publishes(alertsTopic, "announce release")
-  .scenario("Plugin contribution");
-`,
-  },
-];
 
 export const defaultSampleId = codeSamples[0]?.id ?? 'test-sample';

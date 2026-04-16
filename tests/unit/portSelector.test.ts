@@ -33,14 +33,12 @@ describe('portSelector', () => {
   describe('hexagon ports', () => {
     it('places port on hexagon edge to the right', () => {
       const port = computePortPosition(rect, { x: 300, y: 100 }, 'hexagon');
-      // Right side of hexagon should be at x=200 (or close)
       expect(port.x).toBeCloseTo(200, 0);
       expect(port.y).toBeCloseTo(100, 0);
     });
 
     it('places port on hexagon edge at the top', () => {
       const port = computePortPosition(rect, { x: 100, y: -100 }, 'hexagon');
-      // Top of hexagon
       expect(port.x).toBeCloseTo(100, 0);
       expect(port.y).toBeCloseTo(0, 0);
     });
