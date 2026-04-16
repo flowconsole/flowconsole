@@ -12,6 +12,7 @@
   color: var(--diagram-text);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .diagram-container__collapsed {
@@ -98,6 +99,7 @@
 .diagram-card {
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
   isolation: isolate;
   min-height: 92px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
