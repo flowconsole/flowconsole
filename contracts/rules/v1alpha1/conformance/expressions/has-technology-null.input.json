@@ -1,0 +1,28 @@
+{
+  "expression": "has(item.technology)",
+  "context": {
+    "family": "graph",
+    "mode": "perItem"
+  },
+  "bindings": {
+    "item": {
+      "id": "svc-1",
+      "canonicalId": "checkout.service",
+      "kind": "Service",
+      "name": "checkout",
+      "technology": null,
+      "tags": [],
+      "properties": {},
+      "source": "code_scan",
+      "sourceFamily": "code",
+      "parentId": null
+    },
+    "rule": {
+      "id": "sample",
+      "name": "Sample",
+      "severity": "info",
+      "kind": "graph",
+      "target": "observed"
+    }
+  }
+}

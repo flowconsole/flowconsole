@@ -36,6 +36,7 @@ rules:
         - Service
         - Application
         - Worker
+    viaMode: include
     maxDepth: 6
     allowCycles: false
     mode: aggregate

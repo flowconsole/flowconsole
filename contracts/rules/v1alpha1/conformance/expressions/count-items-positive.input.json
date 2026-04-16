@@ -1,0 +1,37 @@
+{
+  "expression": "count(items) > 0",
+  "context": {
+    "family": "graph",
+    "mode": "aggregate"
+  },
+  "bindings": {
+    "items": [
+      {
+        "id": "svc-1",
+        "canonicalId": "checkout.service",
+        "kind": "Service",
+        "name": "checkout",
+        "technology": null,
+        "tags": [],
+        "properties": {},
+        "source": "code_scan",
+        "sourceFamily": "code",
+        "parentId": null
+      }
+    ],
+    "stats": {
+      "count": 1,
+      "countByKind": { "Service": 1 },
+      "countByTag": {},
+      "countBySourceFamily": { "code": 1 },
+      "distinctTags": []
+    },
+    "rule": {
+      "id": "sample",
+      "name": "Sample",
+      "severity": "info",
+      "kind": "graph",
+      "target": "observed"
+    }
+  }
+}

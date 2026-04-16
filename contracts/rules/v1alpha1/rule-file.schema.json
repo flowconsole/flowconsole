@@ -252,7 +252,7 @@
         },
         "where": {
           "title": "Where",
-          "description": "CEL boolean predicate evaluated for each candidate entity matched by this selector.",
+          "description": "Rule Expression boolean predicate evaluated for each candidate entity matched by this selector.",
           "$ref": "#/$defs/nonEmptyString",
           "examples": ["hasKind(item, \"Service\") && hasTag(item, \"critical\")"]
         }
@@ -332,13 +332,13 @@
         },
         "where": {
           "title": "Where",
-          "description": "Optional CEL boolean predicate applied after the main selector for this rule kind.",
+          "description": "Optional Rule Expression boolean predicate applied after the main selector for this rule kind.",
           "$ref": "#/$defs/nonEmptyString",
           "examples": ["count(paths) >= 0"]
         },
         "let": {
           "title": "Let",
-          "description": "Map of named CEL expressions computed before assert and exposed to message interpolation.",
+          "description": "Map of named Rule Expression values computed before assert and exposed to message interpolation.",
           "type": "object",
           "minProperties": 1,
           "propertyNames": {
@@ -355,7 +355,7 @@
         },
         "assert": {
           "title": "Assert",
-          "description": "Required CEL boolean expression that defines pass or fail for the rule.",
+          "description": "Required Rule Expression boolean that defines pass or fail for the rule.",
           "$ref": "#/$defs/nonEmptyString",
           "examples": ["pathCount > 0", "count(items) == 0"]
         },
@@ -440,6 +440,7 @@
               { "required": ["from"] },
               { "required": ["to"] },
               { "required": ["via"] },
+              { "required": ["viaMode"] },
               { "required": ["maxDepth"] },
               { "required": ["allowCycles"] },
               { "required": ["changeKinds"] }
@@ -510,6 +511,14 @@
                 }
               ]
             },
+            "viaMode": {
+              "title": "Via Mode",
+              "description": "How the via selector constrains intermediate nodes. 'include' (default) requires all intermediate nodes to match; 'exclude' forbids any intermediate node from matching.",
+              "type": "string",
+              "enum": ["include", "exclude"],
+              "default": "include",
+              "examples": ["include", "exclude"]
+            },
             "mode": {
               "title": "Mode",
               "description": "Whether assertions are evaluated per path or over the full path set.",
@@ -518,7 +527,7 @@
             },
             "maxDepth": {
               "title": "Max Depth",
-              "description": "Maximum traversal depth allowed when searching for candidate paths.",
+              "description": "Maximum traversal depth in edges allowed when searching for candidate paths.",
               "type": "integer",
               "minimum": 1,
               "default": 8,
@@ -597,6 +606,7 @@
               { "required": ["from"] },
               { "required": ["to"] },
               { "required": ["via"] },
+              { "required": ["viaMode"] },
               { "required": ["maxDepth"] },
               { "required": ["allowCycles"] }
             ]

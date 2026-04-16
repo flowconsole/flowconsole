@@ -1,0 +1,26 @@
+{
+  "normalized": {
+    "apiVersion": "rules.flowconsole.io/v1alpha1",
+    "kind": "RuleFile",
+    "rules": [
+      {
+        "id": "minimal-graph",
+        "name": "Minimal graph rule",
+        "kind": "graph",
+        "target": "observed",
+        "severity": "info",
+        "blocking": false,
+        "enabled": true,
+        "subject": {
+          "entity": "elements",
+          "kinds": ["Service"]
+        },
+        "mode": "perItem",
+        "assert": {
+          "source": "count(items) >= 0"
+        },
+        "message": "Sample message"
+      }
+    ]
+  }
+}

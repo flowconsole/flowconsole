@@ -21,7 +21,7 @@ rules:
         - Service
         - Application
         - Worker
-      where: changed(item) && item.changeKind == "removed"
+      where: item.changeKind == "removed"
     changeKinds:
       - removed
     mode: aggregate

@@ -1,0 +1,23 @@
+apiVersion: rules.flowconsole.io/v1alpha1
+kind: RuleFile
+rules:
+  - id: dup
+    name: First rule
+    kind: graph
+    target: observed
+    severity: info
+    blocking: false
+    subject:
+      entity: elements
+    assert: "true"
+    message: First
+  - id: dup
+    name: Second rule
+    kind: graph
+    target: observed
+    severity: info
+    blocking: false
+    subject:
+      entity: elements
+    assert: "true"
+    message: Second

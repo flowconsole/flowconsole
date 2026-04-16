@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_DUPLICATE_RULE_ID",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/1/id",
+      "ruleId": "dup"
+    }
+  ]
+}
