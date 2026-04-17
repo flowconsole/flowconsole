@@ -1,7 +1,7 @@
 {
   "diagnostics": [
     {
-      "code": "RF_SEM_SOURCE_FAMILY_ON_DECLARED_TARGET",
+      "code": "RF_SEM_SOURCE_FAMILY_ON_MODEL_TARGET",
       "phase": "semantic",
       "level": "error",
       "path": "/rules/0/sourceFamilies",
@@ -22,7 +22,7 @@
       "ruleId": "duplicate-id"
     },
     {
-      "code": "RF_SEM_DIFF_ON_NON_DIFF_TARGET",
+      "code": "RF_SEM_CHANGEKINDS_ON_NON_DIFF_TARGET",
       "phase": "semantic",
       "level": "error",
       "path": "/rules/1/target",

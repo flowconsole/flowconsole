@@ -86,6 +86,7 @@ SourceRange:
 | `RF_SEM_CHANGEKINDS_ON_NON_DIFF_TARGET` | `changeKinds` указано при `target!=diff` |
 | `RF_SEM_SOURCE_FAMILY_ON_MODEL_TARGET` | `sourceFamilies` указаны при `target=model` |
 | `RF_SEM_FLOW_ENDPOINT_INVALID_ENTITY` | flow rule: `from` или `to` содержит `entity!=elements` |
+| `RF_SEM_FLOW_ON_DIFF_TARGET` | flow rule с `target=diff` (пути по drift-данным не поддерживаются) |
 | `RF_SEM_SELECTOR_SHAPE_INCOMPATIBLE` | selector shape несовместим с выбранным `kind` |
 | `RF_SEM_LET_SELF_REFERENCE` | `let`-переменная ссылается на саму себя |
 

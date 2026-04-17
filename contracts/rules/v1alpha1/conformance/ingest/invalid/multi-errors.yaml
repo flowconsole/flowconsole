@@ -27,7 +27,7 @@ rules:
 
   - id: bad-path-entity
     name: Bad path selector entity
-    kind: path
+    kind: flow
     target: actual
     severity: warning
     blocking: false
