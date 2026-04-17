@@ -204,7 +204,7 @@ Backend-side enum. Значения, которые ожидаются в `Eleme
 
 Значения, которые ожидаются в `RelationshipRef.kind`:
 
-`Uses`, `DependsOn`, `Calls`, `Publishes`, `Subscribes`, `Contains`, `Extends`, `Implements`, `Deploys`, `Routes`, `Scales`.
+`Contains`, `DeployedOn`, `Uses`, `Calls`, `DependsOn`, `Imports`, `Implements`, `Produces`, `Consumes`, `Exposes`, `RoutesTo`.
 
 Полный enum синхронизирован с `FlowConsole.Core/ValueObjects/RelationKind.cs`.
 
