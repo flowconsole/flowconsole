@@ -5,8 +5,8 @@
     {
       "id": "minimal-graph",
       "name": "Minimal graph rule",
-      "kind": "graph",
-      "target": "observed",
+      "kind": "element",
+      "target": "actual",
       "severity": "info",
       "blocking": false,
       "enabled": true,

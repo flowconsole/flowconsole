@@ -5,8 +5,8 @@
     {
       "id": "ingress-must-reach-checkout-db",
       "name": "Ingress must reach checkout database",
-      "kind": "path",
-      "target": "observed",
+      "kind": "flow",
+      "target": "actual",
       "severity": "warning",
       "blocking": false,
       "description": "От ingress до checkout-db должен существовать хотя бы один корректный путь.",

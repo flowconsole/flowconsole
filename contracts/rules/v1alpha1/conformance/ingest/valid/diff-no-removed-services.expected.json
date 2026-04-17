@@ -5,7 +5,7 @@
     {
       "id": "no-removed-service-components",
       "name": "Removed service components are forbidden",
-      "kind": "diff",
+      "kind": "element",
       "target": "diff",
       "severity": "error",
       "blocking": true,

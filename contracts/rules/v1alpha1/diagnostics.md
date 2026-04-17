@@ -15,7 +15,7 @@
     "end":   { "line": 5, "column": 20, "offset": 155 }
   },
   "message": "Поле target содержит недопустимое значение 'runtime'.",
-  "hint": "Используйте одно из: declared, observed, diff.",
+  "hint": "Используйте одно из: model, actual, diff.",
   "ruleId": "no-shared-db"
 }
 ```
@@ -83,9 +83,9 @@ SourceRange:
 |---|---|
 | `RF_SEM_DUPLICATE_RULE_ID` | `rule.id` не уникален в рамках файла |
 | `RF_SEM_DIFFITEMS_ON_NON_DIFF_TARGET` | `entity=diffItems` используется вне `target=diff` |
-| `RF_SEM_DIFF_ON_NON_DIFF_TARGET` | `kind=diff` с `target!=diff` |
-| `RF_SEM_SOURCE_FAMILY_ON_DECLARED_TARGET` | `sourceFamilies` указаны при `target=declared` |
-| `RF_SEM_PATH_ENDPOINT_INVALID_ENTITY` | `path.from` или `path.to` содержит `entity!=elements` |
+| `RF_SEM_CHANGEKINDS_ON_NON_DIFF_TARGET` | `changeKinds` указано при `target!=diff` |
+| `RF_SEM_SOURCE_FAMILY_ON_MODEL_TARGET` | `sourceFamilies` указаны при `target=model` |
+| `RF_SEM_FLOW_ENDPOINT_INVALID_ENTITY` | flow rule: `from` или `to` содержит `entity!=elements` |
 | `RF_SEM_SELECTOR_SHAPE_INCOMPATIBLE` | selector shape несовместим с выбранным `kind` |
 | `RF_SEM_LET_SELF_REFERENCE` | `let`-переменная ссылается на саму себя |
 
@@ -169,7 +169,7 @@ Runtime-коды возникают при исполнении правила, 
     "start": { "line": 5, "column": 13, "offset": 148 }
   },
   "message": "Поле target содержит недопустимое значение 'runtime'.",
-  "hint": "Используйте одно из: declared, observed, diff.",
+  "hint": "Используйте одно из: model, actual, diff.",
   "ruleId": "invalid-target"
 }
 ```

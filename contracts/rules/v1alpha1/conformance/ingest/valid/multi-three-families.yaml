@@ -3,8 +3,8 @@ kind: RuleFile
 rules:
   - id: critical-services-must-have-dependencies
     name: Critical services must have dependencies
-    kind: graph
-    target: observed
+    kind: element
+    target: actual
     severity: warning
     blocking: false
     description: Критичные сервисы не должны быть полностью изолированными в observed-проекции.
@@ -32,8 +32,8 @@ rules:
 
   - id: gateway-must-reach-payment-worker
     name: Gateway must reach payment worker
-    kind: path
-    target: observed
+    kind: flow
+    target: actual
     severity: error
     blocking: true
     description: Для основного платежного потока должен существовать маршрут от gateway до payment-worker.
@@ -76,7 +76,7 @@ rules:
 
   - id: no-unmatched-observed-gateways
     name: Unmatched observed gateways are forbidden
-    kind: diff
+    kind: element
     target: diff
     severity: error
     blocking: true

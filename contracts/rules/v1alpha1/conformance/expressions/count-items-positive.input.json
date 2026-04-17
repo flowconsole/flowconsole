@@ -30,8 +30,8 @@
       "id": "sample",
       "name": "Sample",
       "severity": "info",
-      "kind": "graph",
-      "target": "observed"
+      "kind": "element",
+      "target": "actual"
     }
   }
 }

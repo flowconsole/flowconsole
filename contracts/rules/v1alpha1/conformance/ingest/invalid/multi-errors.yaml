@@ -3,8 +3,8 @@ kind: RuleFile
 rules:
   - id: duplicate-id
     name: Invalid graph rule
-    kind: graph
-    target: declared
+    kind: element
+    target: model
     severity: error
     blocking: true
     sourceFamilies:
@@ -16,8 +16,8 @@ rules:
 
   - id: duplicate-id
     name: Invalid diff rule target
-    kind: diff
-    target: observed
+    kind: element
+    target: actual
     severity: error
     blocking: true
     subject:
@@ -28,7 +28,7 @@ rules:
   - id: bad-path-entity
     name: Bad path selector entity
     kind: path
-    target: observed
+    target: actual
     severity: warning
     blocking: false
     from:
@@ -40,8 +40,8 @@ rules:
 
   - id: bad-expression
     name: Bad expression
-    kind: graph
-    target: observed
+    kind: element
+    target: actual
     severity: warning
     blocking: false
     subject:

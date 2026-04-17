@@ -13,6 +13,56 @@ Rule Expressions — это безопасный, non-Turing-complete язык �
 - доступные bindings, типы и helper functions определяет FlowConsole, а не underlying runtime;
 - документ описывает authoring contract; реализация expression engine — отдельный внутренний слой.
 
+## Target views — проекции модели
+
+Каждое правило работает с одной из трёх **проекций** архитектурной модели, задаваемой полем `target`:
+
+### `model` — как должно быть
+
+Архитектурная модель, явно описанная автором в DSL/SDK файлах (TypeScript, C#, Go, Java, Python, YAML). Это **to-be intent** — целевая архитектура.
+
+- **Источник данных:** DSL-файлы в git-репозитории, парсятся при загрузке модели.
+- **sourceFamily:** `git`.
+- **Доступность в CI:** полностью offline (файлы есть в репозитории).
+- **Типичные правила:** naming conventions, layer constraints, max coupling, required tags.
+
+### `actual` — как есть на самом деле
+
+Модель, построенная автоматическими сканерами из реальных артефактов. Это **as-is reality** — что существует в коде и инфраструктуре.
+
+- **Источники данных и sourceFamily:**
+  - `code` — Tree-sitter парсинг исходного кода (классы, эндпоинты, зависимости между модулями);
+  - `infra` — сканеры инфраструктуры (K8s pods/services, OpenAPI specs, Docker Compose);
+  - `import` — импорт из внешних систем (Structurizr DSL, Backstage catalog, CMDB CSV).
+- **Доступность в CI:**
+  - `code` — полностью offline (исходники есть в репозитории, Tree-sitter работает локально);
+  - `infra` — offline, если файл импорта есть в репозитории, иначе требует runtime-доступ к инфраструктуре (K8s API, endpoint URLs);
+  - `import` — offline, если файл импорта есть в репозитории.
+- **Типичные правила:** «нет orphan-элементов в коде», «все endpoint'ы имеют документацию», «K8s service match'ится с code-сервисом».
+- **`sourceFamilies` filter:** можно ограничить правило конкретными source'ами (например, `sourceFamilies: [code]` — только результаты code-сканера).
+
+### `diff` — что расходится
+
+Результат drift-сравнения `model` vs `actual`. Содержит элементы, которые добавлены, удалены, изменены или не сматчены между двумя проекциями.
+
+- **Источник данных:** `DriftSnapshot` — результат работы `IDriftDetector`, который сравнивает элементы по `canonical_id`.
+- **Entity type:** `diffItems` (специальный тип сущностей, доступный только в diff-правилах).
+- **changeKinds:** `added` (есть в actual, нет в model), `removed` (есть в model, нет в actual), `changed` (есть в обоих, поля различаются), `unmatchedDeclared`, `unmatchedObserved`.
+- **Доступность в CI:** offline для `model` vs `code` (оба доступны локально). Для `model` vs `infra` — нужен runtime-доступ или API.
+- **Типичные правила:** «не больше N removed-элементов за релиз», «все added-элементы должны быть отражены в model», «изменение technology в actual — блокирующее нарушение».
+
+### Матрица доступности в CI (offline)
+
+| Target | sourceFamily | Offline в CI | Почему |
+|---|---|---|---|
+| `model` | `git` | **Да** | DSL-файлы в репозитории |
+| `actual` | `code` | **Да** | Исходники + Tree-sitter локально |
+| `actual` | `infra` | **Зависит** |  Если файлы есть в репо - да, иначе нужен доступ к K8s/API |
+| `actual` | `import` | **Зависит** | Если файл импорта в репозитории — да |
+| `diff` | model vs code | **Да** | Оба доступны локально |
+| `diff` | model vs infra | **Нет** | Нужен actual от infra |
+| `diff` | code vs infra | **Нет** | Нужен actual от code и infra |
+
 ## Где разрешены Rule Expressions
 
 Rule Expressions разрешены только в следующих полях rule'а:
@@ -37,29 +87,31 @@ Rule Expressions разрешены только в следующих поля�
 
 Каждая пара (family, mode) имеет фиксированный набор bindings.
 
-| Family | Mode | Binding | Тип |
-|---|---|---|---|
-| graph | perItem | `item` | `ElementRef` или `RelationshipRef` (по `subject.entity`) |
-| graph | perItem | `rule` | `Rule` |
-| graph | aggregate | `items` | `list<ElementRef \| RelationshipRef>` |
-| graph | aggregate | `stats` | `Stats` |
-| graph | aggregate | `rule` | `Rule` |
-| path | perPath | `path` | `PathRef` |
-| path | perPath | `paths` | `list<PathRef>` (sibling context) |
-| path | perPath | `from` | `ElementRef` |
-| path | perPath | `to` | `ElementRef` |
-| path | perPath | `stats` | `Stats` |
-| path | perPath | `rule` | `Rule` |
-| path | aggregate | `paths` | `list<PathRef>` |
-| path | aggregate | `from`, `to`, `stats`, `rule` | те же типы |
-| diff | perItem | `item` | `DiffItem` |
-| diff | perItem | `diff` | `DriftDiff` |
-| diff | perItem | `stats` | `Stats` |
-| diff | perItem | `rule` | `Rule` |
-| diff | aggregate | `items` | `list<DiffItem>` |
-| diff | aggregate | `diff`, `stats`, `rule` | те же типы |
-| `selector.where` | — | `item` | `ElementRef`, `RelationshipRef` или `DiffItem` (по `entity`) |
-| `rule.let` | — | все bindings текущего family/mode + ранее определённые `let`-переменные | |
+| Kind | Target | Mode | Binding | Тип |
+|---|---|---|---|---|
+| element | model / actual | perItem | `item` | `ElementRef` или `RelationshipRef` (по `subject.entity`) |
+| element | model / actual | perItem | `rule` | `Rule` |
+| element | model / actual | aggregate | `items` | `list<ElementRef \| RelationshipRef>` |
+| element | model / actual | aggregate | `stats` | `Stats` |
+| element | model / actual | aggregate | `rule` | `Rule` |
+| element | diff | perItem | `item` | `DiffItem` |
+| element | diff | perItem | `diff` | `DriftDiff` |
+| element | diff | perItem | `stats` | `Stats` |
+| element | diff | perItem | `rule` | `Rule` |
+| element | diff | aggregate | `items` | `list<DiffItem>` |
+| element | diff | aggregate | `diff`, `stats`, `rule` | те же типы |
+| flow | model / actual | perPath | `path` | `PathRef` |
+| flow | model / actual | perPath | `paths` | `list<PathRef>` (sibling context) |
+| flow | model / actual | perPath | `from` | `ElementRef` |
+| flow | model / actual | perPath | `to` | `ElementRef` |
+| flow | model / actual | perPath | `stats` | `Stats` |
+| flow | model / actual | perPath | `rule` | `Rule` |
+| flow | model / actual | aggregate | `paths` | `list<PathRef>` |
+| flow | model / actual | aggregate | `from`, `to`, `stats`, `rule` | те же типы |
+| `selector.where` | — | — | `item` | `ElementRef`, `RelationshipRef` или `DiffItem` (по `entity`) |
+| `rule.let` | — | — | все bindings текущего kind/target/mode + ранее определённые `let`-переменные | |
+
+**Замечание:** `kind: flow` не поддерживает `target: diff` (пути по drift-данным не имеют смысла). `kind: element` с `target: diff` получает diff-specific bindings (`item: DiffItem`, `diff: DriftDiff`).
 
 Полная иерархия типов — в [`types.md`](types.md).
 
@@ -233,7 +285,7 @@ item.sourceFamily == "infra" && !hasTag(item, "deprecated")
 count(items) == 0
 ```
 
-### `path` rule assert
+### flow rule assert
 
 ```
 count(paths) > 0

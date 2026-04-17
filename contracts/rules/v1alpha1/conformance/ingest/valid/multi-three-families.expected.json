@@ -5,8 +5,8 @@
     {
       "id": "critical-services-must-have-dependencies",
       "name": "Critical services must have dependencies",
-      "kind": "graph",
-      "target": "observed",
+      "kind": "element",
+      "target": "actual",
       "severity": "warning",
       "blocking": false,
       "enabled": true,
@@ -28,8 +28,8 @@
     {
       "id": "gateway-must-reach-payment-worker",
       "name": "Gateway must reach payment worker",
-      "kind": "path",
-      "target": "observed",
+      "kind": "flow",
+      "target": "actual",
       "severity": "error",
       "blocking": true,
       "enabled": true,
@@ -64,7 +64,7 @@
     {
       "id": "no-unmatched-observed-gateways",
       "name": "Unmatched observed gateways are forbidden",
-      "kind": "diff",
+      "kind": "element",
       "target": "diff",
       "severity": "error",
       "blocking": true,

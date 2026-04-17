@@ -3,8 +3,8 @@ kind: RuleFile
 rules:
   - id: no-shared-db
     name: Shared DB is forbidden
-    kind: graph
-    target: observed
+    kind: element
+    target: actual
     severity: error
     blocking: true
     description: В observed-проекции одна БД не должна использоваться несколькими сервисами.

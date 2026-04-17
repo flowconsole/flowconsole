@@ -3,8 +3,8 @@ kind: RuleFile
 rules:
   - id: dup
     name: First rule
-    kind: graph
-    target: observed
+    kind: element
+    target: actual
     severity: info
     blocking: false
     subject:
@@ -13,8 +13,8 @@ rules:
     message: First
   - id: dup
     name: Second rule
-    kind: graph
-    target: observed
+    kind: element
+    target: actual
     severity: info
     blocking: false
     subject:

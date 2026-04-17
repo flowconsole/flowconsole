@@ -180,8 +180,8 @@ Rule:
   id: string                    // rule.id из YAML
   name: string                  // rule.name
   severity: string              // "info" | "warning" | "error" | "critical"
-  kind: string                  // "graph" | "path" | "diff"
-  target: string                // "declared" | "observed" | "diff"
+  kind: string                  // "element" | "flow"
+  target: string                // "model" | "actual" | "diff"
 ```
 
 **Предназначение:** использование в `message` template и условных проверках (`rule.severity == "critical"`).

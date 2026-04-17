@@ -32,8 +32,8 @@
           {
             "id": "no-shared-db",
             "name": "Shared DB is forbidden",
-            "kind": "graph",
-            "target": "observed",
+            "kind": "element",
+            "target": "actual",
             "severity": "error",
             "blocking": true,
             "subject": {
@@ -81,42 +81,42 @@
     },
     "target": {
       "title": "Target",
-      "description": "Model view against which the rule is evaluated.",
+      "description": "Model projection against which the rule is evaluated. 'model' — architectural model from DSL/SDK source (to-be intent). 'actual' — model from code scanners, infra scanners, or imports (as-is reality). 'diff' — drift between model and actual.",
       "type": "string",
-      "enum": ["declared", "observed", "diff"],
-      "examples": ["observed", "diff"]
+      "enum": ["model", "actual", "diff"],
+      "examples": ["actual", "diff"]
     },
     "sourceFamily": {
       "title": "Source Family",
-      "description": "Source family used to narrow observed or diff projections.",
+      "description": "Source family used to narrow actual or diff projections.",
       "type": "string",
       "enum": ["code", "infra", "import"],
       "examples": ["code", "infra"]
     },
     "entityType": {
       "title": "Entity Type",
-      "description": "Type of graph projection items selected by a selector.",
+      "description": "Type of projection items selected by a selector.",
       "type": "string",
       "enum": ["elements", "relationships", "diffItems"],
       "examples": ["elements", "diffItems"]
     },
-    "graphMode": {
-      "title": "Graph Mode",
-      "description": "Evaluation mode for graph and diff rules.",
+    "elementMode": {
+      "title": "Element Mode",
+      "description": "Evaluation mode for element rules.",
       "type": "string",
       "enum": ["perItem", "aggregate"],
       "examples": ["perItem", "aggregate"]
     },
-    "pathMode": {
-      "title": "Path Mode",
-      "description": "Evaluation mode for path rules.",
+    "flowMode": {
+      "title": "Flow Mode",
+      "description": "Evaluation mode for flow rules.",
       "type": "string",
       "enum": ["perPath", "aggregate"],
       "examples": ["aggregate", "perPath"]
     },
     "changeKind": {
       "title": "Change Kind",
-      "description": "Kind of change in the diff projection that a diff rule can match.",
+      "description": "Kind of change in the diff projection that an element rule with target=diff can match.",
       "type": "string",
       "enum": ["added", "removed", "changed", "unmatchedDeclared", "unmatchedObserved"],
       "examples": ["removed", "unmatchedObserved"]
@@ -184,7 +184,7 @@
       "properties": {
         "entity": {
           "title": "Entity",
-          "description": "Kind of graph projection entities selected by this selector.",
+          "description": "Kind of projection items selected by this selector.",
           "$ref": "#/$defs/entityType"
         },
         "kinds": {
@@ -217,7 +217,7 @@
         },
         "sourceFamilies": {
           "title": "Source Families",
-          "description": "Optional source families used to narrow observed or diff entities inside the selector.",
+          "description": "Optional source families used to narrow actual or diff entities inside the selector.",
           "type": "array",
           "minItems": 1,
           "items": {
@@ -317,10 +317,10 @@
         },
         "kind": {
           "title": "Rule Kind",
-          "description": "Rule family that defines the expected shape and evaluation semantics.",
+          "description": "Rule evaluation strategy. 'element' checks properties of elements, relationships, or diff items. 'flow' checks reachability and paths between elements.",
           "type": "string",
-          "enum": ["graph", "path", "diff"],
-          "examples": ["graph", "path", "diff"]
+          "enum": ["element", "flow"],
+          "examples": ["element", "flow"]
         },
         "target": {
           "title": "Target",
@@ -359,7 +359,7 @@
         },
         "sourceFamilies": {
           "title": "Source Families",
-          "description": "Optional top-level source narrowing for observed or diff targets.",
+          "description": "Optional top-level source narrowing for actual or diff targets.",
           "$ref": "#/$defs/sourceFamiliesArray"
         },
         "where": {
@@ -415,13 +415,13 @@
       "then": {
         "type": "object",
         "properties": {
-          "target": { "enum": ["observed", "diff"] }
+          "target": { "enum": ["actual", "diff"] }
         }
       }
     },
-    "graphRule": {
-      "title": "Graph Rule",
-      "description": "Rule that evaluates structure within a set of selected graph entities.",
+    "elementRule": {
+      "title": "Element Rule",
+      "description": "Rule that checks properties of elements, relationships, or diff items within a subject set.",
       "type": "object",
       "unevaluatedProperties": false,
       "allOf": [
@@ -430,32 +430,57 @@
           "type": "object",
           "required": ["subject"],
           "properties": {
-            "kind": { "const": "graph" },
+            "kind": { "const": "element" },
             "subject": {
               "title": "Subject",
-              "description": "Selector that defines the graph entities evaluated by the rule.",
-              "$ref": "#/$defs/nonDiffSelector"
+              "description": "Selector that defines the entities evaluated by the rule."
             },
             "mode": {
               "title": "Mode",
               "description": "Whether the rule is evaluated per matched item or over the aggregate selection.",
-              "$ref": "#/$defs/graphMode",
+              "$ref": "#/$defs/elementMode",
               "default": "perItem"
+            },
+            "changeKinds": {
+              "title": "Change Kinds",
+              "description": "Optional list of diff change kinds. Only allowed when target is 'diff'.",
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/changeKind" },
+              "uniqueItems": true,
+              "examples": [["removed"], ["unmatchedObserved", "changed"]]
             },
             "from": false,
             "to": false,
             "via": false,
             "viaMode": false,
             "maxDepth": false,
-            "allowCycles": false,
-            "changeKinds": false
+            "allowCycles": false
+          },
+          "if": {
+            "type": "object",
+            "properties": { "target": { "const": "diff" } },
+            "required": ["target"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "subject": { "$ref": "#/$defs/diffOnlySelector" }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "subject": { "$ref": "#/$defs/nonDiffSelector" },
+              "changeKinds": false
+            }
           }
         }
       ]
     },
-    "pathRule": {
-      "title": "Path Rule",
-      "description": "Rule that evaluates reachability and path constraints between two element selections.",
+    "flowRule": {
+      "title": "Flow Rule",
+      "description": "Rule that checks reachability and path constraints between two element selections.",
       "type": "object",
       "unevaluatedProperties": false,
       "allOf": [
@@ -464,7 +489,11 @@
           "type": "object",
           "required": ["from", "to"],
           "properties": {
-            "kind": { "const": "path" },
+            "kind": { "const": "flow" },
+            "target": {
+              "description": "Flow rules can only target 'model' or 'actual' projections.",
+              "enum": ["model", "actual"]
+            },
             "from": {
               "title": "From",
               "description": "Selector describing source elements of the candidate paths.",
@@ -491,7 +520,7 @@
             "mode": {
               "title": "Mode",
               "description": "Whether assertions are evaluated per path or over the full path set.",
-              "$ref": "#/$defs/pathMode",
+              "$ref": "#/$defs/flowMode",
               "default": "aggregate"
             },
             "maxDepth": {
@@ -515,56 +544,12 @@
         }
       ]
     },
-    "diffRule": {
-      "title": "Diff Rule",
-      "description": "Rule that evaluates declared versus observed differences represented as diff items.",
-      "type": "object",
-      "unevaluatedProperties": false,
-      "allOf": [
-        { "$ref": "#/$defs/ruleBase" },
-        {
-          "type": "object",
-          "required": ["subject"],
-          "properties": {
-            "kind": { "const": "diff" },
-            "target": { "const": "diff" },
-            "subject": {
-              "title": "Subject",
-              "description": "Selector that defines diff items evaluated by the rule.",
-              "$ref": "#/$defs/diffOnlySelector"
-            },
-            "changeKinds": {
-              "title": "Change Kinds",
-              "description": "Optional list of diff change kinds that this rule is interested in.",
-              "type": "array",
-              "minItems": 1,
-              "items": { "$ref": "#/$defs/changeKind" },
-              "uniqueItems": true,
-              "examples": [["removed"], ["unmatchedObserved", "changed"]]
-            },
-            "mode": {
-              "title": "Mode",
-              "description": "Whether the rule is evaluated per diff item or over the aggregate diff selection.",
-              "$ref": "#/$defs/graphMode",
-              "default": "perItem"
-            },
-            "from": false,
-            "to": false,
-            "via": false,
-            "viaMode": false,
-            "maxDepth": false,
-            "allowCycles": false
-          }
-        }
-      ]
-    },
     "rule": {
       "title": "Rule",
-      "description": "Single self-contained rule. Must match exactly one supported rule family.",
+      "description": "Single self-contained rule. Must match exactly one supported rule kind.",
       "oneOf": [
-        { "$ref": "#/$defs/graphRule" },
-        { "$ref": "#/$defs/pathRule" },
-        { "$ref": "#/$defs/diffRule" }
+        { "$ref": "#/$defs/elementRule" },
+        { "$ref": "#/$defs/flowRule" }
       ]
     }
   }

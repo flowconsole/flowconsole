@@ -17,8 +17,8 @@
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
-          "kind": { "enum": ["graph", "path", "diff"] },
-          "target": { "enum": ["declared", "observed", "diff"] },
+          "kind": { "enum": ["element", "flow"] },
+          "target": { "enum": ["model", "actual", "diff"] },
           "severity": { "enum": ["info", "warning", "error", "critical"] },
           "blocking": { "type": "boolean" },
           "enabled": { "type": "boolean" },
