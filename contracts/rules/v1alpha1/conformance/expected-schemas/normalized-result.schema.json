@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://flowconsole.io/contracts/rules/v1alpha1/conformance/normalized-result.schema.json",
-  "title": "Conformance: Normalized RuleFile Result",
+  "$id": "https://flowconsole.tech/contracts/rules/v1alpha1/conformance/normalized-result.schema.json",
+  "title": "Conformance: FlowConsole RuleFile Result",
   "description": "Expected output for valid ingest conformance cases. Contains the normalized RuleFile directly.",
   "type": "object",
   "required": ["apiVersion", "kind", "rules"],

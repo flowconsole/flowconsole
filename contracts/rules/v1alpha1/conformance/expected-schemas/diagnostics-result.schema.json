@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://flowconsole.io/contracts/rules/v1alpha1/conformance/diagnostics-result.schema.json",
+  "$id": "https://flowconsole.tech/contracts/rules/v1alpha1/conformance/diagnostics-result.schema.json",
   "title": "Conformance: Diagnostics Result",
   "description": "Expected output for invalid ingest conformance cases.",
   "type": "object",

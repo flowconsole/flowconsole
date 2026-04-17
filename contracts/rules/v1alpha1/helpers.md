@@ -155,11 +155,11 @@ changed(item, "technology")
 before(item: DiffItem, field: string) -> dyn
 ```
 
-- Возвращает значение `field` в declared-версии `DiffItem`.
+- Возвращает значение `field` в model-версии `DiffItem`.
 - Для `changeKind == "changed"` — `item.fieldChanges[field].before`.
-- Для `changeKind == "removed"` / `unmatchedDeclared` — значение из `item.declared.properties` или top-level поля.
-- Для `changeKind == "added"` / `unmatchedObserved` — `null` (нет declared версии).
-- Для `changeKind == "changed"`, если `field` отсутствует в `fieldChanges` — значение из `item.declared`, если доступно; иначе `null`.
+- Для `changeKind == "removed"` / `unmatchedModel` — значение из `item.model.properties` или top-level поля.
+- Для `changeKind == "added"` / `unmatchedActual` — `null` (нет model версии).
+- Для `changeKind == "changed"`, если `field` отсутствует в `fieldChanges` — значение из `item.model`, если доступно; иначе `null`.
 
 ### `after`
 
@@ -167,9 +167,9 @@ before(item: DiffItem, field: string) -> dyn
 after(item: DiffItem, field: string) -> dyn
 ```
 
-- Зеркальное `before`: значение `field` в observed-версии `DiffItem`.
-- Для `added` / `changed` / `unmatchedObserved` — из `item.observed`.
-- Для `removed` / `unmatchedDeclared` — `null`.
+- Зеркальное `before`: значение `field` в actual-версии `DiffItem`.
+- Для `added` / `changed` / `unmatchedActual` — из `item.actual`.
+- Для `removed` / `unmatchedModel` — `null`.
 
 ## Tag и kind predicates
 

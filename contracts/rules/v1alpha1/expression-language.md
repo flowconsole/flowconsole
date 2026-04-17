@@ -47,7 +47,7 @@ Rule Expressions — это безопасный, non-Turing-complete язык �
 
 - **Источник данных:** `DriftSnapshot` — результат работы `IDriftDetector`, который сравнивает элементы по `canonical_id`.
 - **Entity type:** `diffItems` (специальный тип сущностей, доступный только в diff-правилах).
-- **changeKinds:** `added` (есть в actual, нет в model), `removed` (есть в model, нет в actual), `changed` (есть в обоих, поля различаются), `unmatchedDeclared`, `unmatchedObserved`.
+- **changeKinds:** `added` (есть в actual, нет в model), `removed` (есть в model, нет в actual), `changed` (есть в обоих, поля различаются), `unmatchedModel`, `unmatchedActual`.
 - **Доступность в CI:** offline для `model` vs `code` (оба доступны локально). Для `model` vs `infra` — нужен runtime-доступ или API.
 - **Типичные правила:** «не больше N removed-элементов за релиз», «все added-элементы должны быть отражены в model», «изменение technology в actual — блокирующее нарушение».
 

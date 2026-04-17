@@ -1,4 +1,4 @@
-apiVersion: rules.flowconsole.io/v1alpha1
+apiVersion: rules.flowconsole.tech/v1alpha1
 kind: RuleFile
 rules:
   - id: dup

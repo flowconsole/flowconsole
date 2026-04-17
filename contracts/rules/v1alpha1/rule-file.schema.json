@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://flowconsole.io/contracts/rules/v1alpha1/rule-file.schema.json",
+  "$id": "https://flowconsole.tech/contracts/rules/v1alpha1/rule-file.schema.json",
   "title": "FlowConsole RuleFile v1alpha1",
   "description": "Canonical schema for a self-contained FlowConsole rule file.",
   "type": "object",
@@ -10,8 +10,8 @@
     "apiVersion": {
       "title": "API Version",
       "description": "Version of the FlowConsole rule file contract.",
-      "const": "rules.flowconsole.io/v1alpha1",
-      "examples": ["rules.flowconsole.io/v1alpha1"]
+      "const": "rules.flowconsole.tech/v1alpha1",
+      "examples": ["rules.flowconsole.tech/v1alpha1"]
     },
     "kind": {
       "title": "Kind",
@@ -118,8 +118,8 @@
       "title": "Change Kind",
       "description": "Kind of change in the diff projection that an element rule with target=diff can match.",
       "type": "string",
-      "enum": ["added", "removed", "changed", "unmatchedDeclared", "unmatchedObserved"],
-      "examples": ["removed", "unmatchedObserved"]
+      "enum": ["added", "removed", "changed", "unmatchedModel", "unmatchedActual"],
+      "examples": ["removed", "unmatchedActual"]
     },
     "textMatcher": {
       "title": "Text Matcher",
@@ -448,7 +448,7 @@
               "minItems": 1,
               "items": { "$ref": "#/$defs/changeKind" },
               "uniqueItems": true,
-              "examples": [["removed"], ["unmatchedObserved", "changed"]]
+              "examples": [["removed"], ["unmatchedActual", "changed"]]
             },
             "from": false,
             "to": false,

@@ -1,4 +1,4 @@
-apiVersion: rules.flowconsole.io/v1alpha1
+apiVersion: rules.flowconsole.tech/v1alpha1
 kind: RuleFile
 rules:
   - id: critical-services-must-have-dependencies
@@ -7,7 +7,7 @@ rules:
     target: actual
     severity: warning
     blocking: false
-    description: Критичные сервисы не должны быть полностью изолированными в observed-проекции.
+    description: Критичные сервисы не должны быть полностью изолированными в actual-проекции.
     enabled: true
     tags:
       - governance
@@ -92,9 +92,9 @@ rules:
       entity: diffItems
       kinds:
         - Gateway
-      where: item.changeKind == "unmatchedObserved"
+      where: item.changeKind == "unmatchedActual"
     changeKinds:
-      - unmatchedObserved
+      - unmatchedActual
     mode: aggregate
     let:
       unmatchedGatewayCount: count(items)

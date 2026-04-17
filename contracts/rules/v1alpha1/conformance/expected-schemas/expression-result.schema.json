@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://flowconsole.io/contracts/rules/v1alpha1/conformance/expression-result.schema.json",
+  "$id": "https://flowconsole.tech/contracts/rules/v1alpha1/conformance/expression-result.schema.json",
   "title": "Conformance: Expression Evaluation Result",
   "description": "Expected output for expression conformance cases.",
   "oneOf": [

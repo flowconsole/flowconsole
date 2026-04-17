@@ -16,7 +16,7 @@ conformance/
 ├── ingest/                        — кейсы для ingest pipeline (parse → normalize)
 │   ├── valid/                     — ожидается успешная нормализация
 │   │   ├── <case>.yaml            — rule file
-│   │   └── <case>.expected.json   — ожидаемая NormalizedRule проекция (stable shape)
+│   │   └── <case>.expected.json   — ожидаемая FlowConsoleRule проекция (stable shape)
 │   └── invalid/                   — ожидаются diagnostics
 │       ├── <case>.yaml
 │       └── <case>.expected.json   — { diagnostics: [{ code, phase, path, ... }] }

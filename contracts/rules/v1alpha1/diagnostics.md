@@ -113,7 +113,7 @@ SourceRange:
 |---|---|
 | `RF_NORM_CANONICAL_KEY_CONFLICT` | два правила дают одинаковый canonical key (`filePath#ruleId`) |
 | `RF_NORM_DEFAULTS_CONFLICT` | implicit defaults конфликтуют с shape rules family |
-| `RF_NORM_IR_ASSEMBLY_FAILED` | NormalizedRule IR не удалось собрать из valid RuleFile |
+| `RF_NORM_ASSEMBLY_FAILED` | FlowConsoleRule compiled model не удалось собрать из valid RuleFile |
 
 ### Runtime phase
 
@@ -126,7 +126,7 @@ Runtime-коды возникают при исполнении правила, 
 | `RE_EXPRESSION_TIMEOUT` | wall-clock timeout одного evaluation выражения |
 | `RE_EXPRESSION_NULL_ORDER` | порядковое сравнение (`<`, `>`, `<=`, `>=`) с `null` |
 | `RE_EXPRESSION_NULL_ARITHMETIC` | арифметическая операция с `null` |
-| `RE_PATH_ENDPOINTS_EMPTY` | `path.from` или `path.to` матчит ноль элементов в runtime |
+| `RE_PATH_ENDPOINTS_EMPTY` | `flow rule: from` или `to` матчит ноль элементов в runtime |
 | `RE_DIFF_SNAPSHOT_MISSING` | для `diff`-rule'а не найден актуальный `DriftSnapshot` |
 
 ## Рекомендации по поведению

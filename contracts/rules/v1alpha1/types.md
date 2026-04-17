@@ -63,15 +63,15 @@ RelationshipRef:
 
 ### `DiffItem`
 
-Элемент diff между `declared` и `observed` проекциями модели.
+Элемент diff между `model` и `actual` проекциями модели.
 
 ```
 DiffItem:
   changeKind: string                 // "added" | "removed" | "changed"
-                                     //   | "unmatchedDeclared" | "unmatchedObserved"
+                                     //   | "unmatchedModel" | "unmatchedActual"
   canonicalId: string                // canonical id matcher'а
-  declared: ElementRef?              // to-be представление (null для added / unmatchedObserved)
-  observed: ElementRef?              // as-is представление (null для removed / unmatchedDeclared)
+  model: ElementRef?              // to-be представление (null для added / unmatchedActual)
+  actual: ElementRef?              // as-is представление (null для removed / unmatchedModel)
   fieldChanges: map<string, FieldChange>?  // только для changeKind="changed", null иначе
 ```
 
@@ -79,22 +79,22 @@ DiffItem:
 
 **Семантика `changeKind`:**
 
-| changeKind | declared | observed | Значение |
+| changeKind | model | actual | Значение |
 |---|---|---|---|
 | `added` | `null` | set | Элемент есть в as-is, нет в to-be |
 | `removed` | set | `null` | Элемент есть в to-be, нет в as-is |
 | `changed` | set | set | Элемент есть в обоих; поля различаются |
-| `unmatchedDeclared` | set | `null` | Элемент в to-be, не сматчен ни с одним observed |
-| `unmatchedObserved` | `null` | set | Элемент в as-is, не сматчен ни с одним declared |
+| `unmatchedModel` | set | `null` | Элемент в to-be, не сматчен ни с одним actual |
+| `unmatchedActual` | `null` | set | Элемент в as-is, не сматчен ни с одним model |
 
 ### `FieldChange`
 
-Описание изменения одного поля между declared и observed.
+Описание изменения одного поля между model и actual.
 
 ```
 FieldChange:
-  before: dyn      // значение в declared
-  after: dyn       // значение в observed
+  before: dyn      // значение в model
+  after: dyn       // значение в actual
 ```
 
 ## Path types
@@ -132,16 +132,16 @@ DriftDiff:
   added: list<ElementRef>
   removed: list<ElementRef>
   changed: list<DiffItem>
-  unmatchedDeclared: list<ElementRef>
-  unmatchedObserved: list<ElementRef>
+  unmatchedModel: list<ElementRef>
+  unmatchedActual: list<ElementRef>
   score: double                     // 0.0 - 100.0
 ```
 
 **Связь с `DiffItem.changeKind`:**
 
-- `added[]` ↔ `DiffItem{ changeKind="added" }.observed`;
-- `removed[]` ↔ `DiffItem{ changeKind="removed" }.declared`;
-- `unmatchedDeclared[]` / `unmatchedObserved[]` — аналогично;
+- `added[]` ↔ `DiffItem{ changeKind="added" }.actual`;
+- `removed[]` ↔ `DiffItem{ changeKind="removed" }.model`;
+- `unmatchedModel[]` / `unmatchedActual[]` — аналогично;
 - `changed` содержит полные `DiffItem`-ы с `fieldChanges`.
 
 ## Statistics
@@ -217,11 +217,11 @@ Backend-side enum. Значения, которые ожидаются в `Eleme
 `code` | `infra` | `import` | `git`.
 
 - `git` — source элементов, загруженных из declared (to-be) DSL. В `sourceFamilies` селектора запрещён (declared уже подразумевает git).
-- `code` / `infra` / `import` — source элементов от сканеров / импортёров (observed / diff).
+- `code` / `infra` / `import` — source элементов от сканеров / импортёров (actual / diff).
 
 ### `ChangeKind`
 
-`added` | `removed` | `changed` | `unmatchedDeclared` | `unmatchedObserved`.
+`added` | `removed` | `changed` | `unmatchedModel` | `unmatchedActual`.
 
 ## Null behavior cheat sheet
 

@@ -1,5 +1,5 @@
 {
-  "apiVersion": "rules.flowconsole.io/v1alpha1",
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
   "kind": "RuleFile",
   "rules": [
     {
@@ -74,9 +74,9 @@
       "subject": {
         "entity": "diffItems",
         "kinds": ["Gateway"],
-        "where": { "source": "item.changeKind == \"unmatchedObserved\"" }
+        "where": { "source": "item.changeKind == \"unmatchedActual\"" }
       },
-      "changeKinds": ["unmatchedObserved"],
+      "changeKinds": ["unmatchedActual"],
       "mode": "aggregate",
       "let": {
         "unmatchedGatewayCount": { "source": "count(items)" }
