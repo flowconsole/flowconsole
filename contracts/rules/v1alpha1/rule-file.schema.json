@@ -126,6 +126,7 @@
       "description": "Matcher for textual fields such as name or technology. At least one matching strategy must be provided.",
       "type": "object",
       "additionalProperties": false,
+      "minProperties": 1,
       "properties": {
         "equals": {
           "title": "Equals",
@@ -145,18 +146,14 @@
           "$ref": "#/$defs/nonEmptyString",
           "examples": ["^checkout-.*$"]
         }
-      },
-      "anyOf": [
-        { "required": ["equals"] },
-        { "required": ["contains"] },
-        { "required": ["matches"] }
-      ]
+      }
     },
     "propertyMatcher": {
       "title": "Property Matcher",
       "description": "Matcher for a property value inside selector.properties.",
       "type": "object",
       "additionalProperties": false,
+      "minProperties": 1,
       "properties": {
         "equals": {
           "title": "Equals",
@@ -176,12 +173,7 @@
           "$ref": "#/$defs/nonEmptyString",
           "examples": ["^prod-.*$"]
         }
-      },
-      "anyOf": [
-        { "required": ["equals"] },
-        { "required": ["in"] },
-        { "required": ["matches"] }
-      ]
+      }
     },
     "selector": {
       "title": "Selector",
@@ -258,6 +250,53 @@
         }
       }
     },
+    "elementOnlySelector": {
+      "title": "Element-Only Selector",
+      "description": "Selector constrained to elements entity type only.",
+      "allOf": [
+        { "$ref": "#/$defs/selector" },
+        {
+          "type": "object",
+          "properties": {
+            "entity": { "const": "elements" }
+          }
+        }
+      ]
+    },
+    "nonDiffSelector": {
+      "title": "Non-Diff Selector",
+      "description": "Selector that forbids diffItems entity type.",
+      "allOf": [
+        { "$ref": "#/$defs/selector" },
+        {
+          "type": "object",
+          "properties": {
+            "entity": { "not": { "const": "diffItems" } }
+          }
+        }
+      ]
+    },
+    "diffOnlySelector": {
+      "title": "Diff-Only Selector",
+      "description": "Selector constrained to diffItems entity type only.",
+      "allOf": [
+        { "$ref": "#/$defs/selector" },
+        {
+          "type": "object",
+          "properties": {
+            "entity": { "const": "diffItems" }
+          }
+        }
+      ]
+    },
+    "sourceFamiliesArray": {
+      "title": "Source Families Array",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/sourceFamily" },
+      "uniqueItems": true,
+      "examples": [["code", "infra"]]
+    },
     "ruleBase": {
       "title": "Rule Base",
       "description": "Common fields shared by all rule kinds.",
@@ -321,13 +360,7 @@
         "sourceFamilies": {
           "title": "Source Families",
           "description": "Optional top-level source narrowing for observed or diff targets.",
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "$ref": "#/$defs/sourceFamily"
-          },
-          "uniqueItems": true,
-          "examples": [["code", "infra"]]
+          "$ref": "#/$defs/sourceFamiliesArray"
         },
         "where": {
           "title": "Where",
@@ -363,88 +396,59 @@
           "description": "User-facing failure message. Supports interpolation of available bindings and let values.",
           "$ref": "#/$defs/nonEmptyString",
           "examples": ["Компонент '${item.name}' нарушает архитектурное правило"]
-        }
+        },
+        "subject": { "title": "Subject" },
+        "from": { "title": "From" },
+        "to": { "title": "To" },
+        "via": { "title": "Via" },
+        "viaMode": { "title": "Via Mode" },
+        "mode": { "title": "Mode" },
+        "maxDepth": { "title": "Max Depth" },
+        "allowCycles": { "title": "Allow Cycles" },
+        "changeKinds": { "title": "Change Kinds" }
       },
-      "allOf": [
-        {
-          "if": {
-            "required": ["sourceFamilies"]
-          },
-          "then": {
-            "properties": {
-              "target": {
-                "enum": ["observed", "diff"]
-              }
-            }
-          }
+      "if": {
+        "type": "object",
+        "required": ["sourceFamilies"],
+        "properties": { "sourceFamilies": true }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "target": { "enum": ["observed", "diff"] }
         }
-      ]
+      }
     },
     "graphRule": {
       "title": "Graph Rule",
       "description": "Rule that evaluates structure within a set of selected graph entities.",
+      "type": "object",
       "unevaluatedProperties": false,
       "allOf": [
-        {
-          "$ref": "#/$defs/ruleBase"
-        },
+        { "$ref": "#/$defs/ruleBase" },
         {
           "type": "object",
           "required": ["subject"],
           "properties": {
-            "kind": {
-              "const": "graph"
-            },
+            "kind": { "const": "graph" },
             "subject": {
               "title": "Subject",
               "description": "Selector that defines the graph entities evaluated by the rule.",
-              "allOf": [
-                {
-                  "$ref": "#/$defs/selector"
-                },
-                {
-                  "properties": {
-                    "entity": {
-                      "not": {
-                        "const": "diffItems"
-                      }
-                    }
-                  }
-                },
-                {
-                  "if": {
-                    "required": ["sourceFamilies"]
-                  },
-                  "then": {
-                    "properties": {
-                      "sourceFamilies": {
-                        "type": "array",
-                        "items": {
-                          "$ref": "#/$defs/sourceFamily"
-                        }
-                      }
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/$defs/nonDiffSelector"
             },
             "mode": {
               "title": "Mode",
               "description": "Whether the rule is evaluated per matched item or over the aggregate selection.",
               "$ref": "#/$defs/graphMode",
               "default": "perItem"
-            }
-          },
-          "not": {
-            "anyOf": [
-              { "required": ["from"] },
-              { "required": ["to"] },
-              { "required": ["via"] },
-              { "required": ["viaMode"] },
-              { "required": ["maxDepth"] },
-              { "required": ["allowCycles"] },
-              { "required": ["changeKinds"] }
-            ]
+            },
+            "from": false,
+            "to": false,
+            "via": false,
+            "viaMode": false,
+            "maxDepth": false,
+            "allowCycles": false,
+            "changeKinds": false
           }
         }
       ]
@@ -452,65 +456,29 @@
     "pathRule": {
       "title": "Path Rule",
       "description": "Rule that evaluates reachability and path constraints between two element selections.",
+      "type": "object",
       "unevaluatedProperties": false,
       "allOf": [
-        {
-          "$ref": "#/$defs/ruleBase"
-        },
+        { "$ref": "#/$defs/ruleBase" },
         {
           "type": "object",
           "required": ["from", "to"],
           "properties": {
-            "kind": {
-              "const": "path"
-            },
+            "kind": { "const": "path" },
             "from": {
               "title": "From",
               "description": "Selector describing source elements of the candidate paths.",
-              "allOf": [
-                {
-                  "$ref": "#/$defs/selector"
-                },
-                {
-                  "properties": {
-                    "entity": {
-                      "const": "elements"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/$defs/elementOnlySelector"
             },
             "to": {
               "title": "To",
               "description": "Selector describing destination elements of the candidate paths.",
-              "allOf": [
-                {
-                  "$ref": "#/$defs/selector"
-                },
-                {
-                  "properties": {
-                    "entity": {
-                      "const": "elements"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/$defs/elementOnlySelector"
             },
             "via": {
               "title": "Via",
               "description": "Optional selector restricting which elements may appear inside candidate paths.",
-              "allOf": [
-                {
-                  "$ref": "#/$defs/selector"
-                },
-                {
-                  "properties": {
-                    "entity": {
-                      "const": "elements"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/$defs/elementOnlySelector"
             },
             "viaMode": {
               "title": "Via Mode",
@@ -540,13 +508,9 @@
               "type": "boolean",
               "default": false,
               "examples": [false]
-            }
-          },
-          "not": {
-            "anyOf": [
-              { "required": ["subject"] },
-              { "required": ["changeKinds"] }
-            ]
+            },
+            "subject": false,
+            "changeKinds": false
           }
         }
       ]
@@ -554,45 +518,27 @@
     "diffRule": {
       "title": "Diff Rule",
       "description": "Rule that evaluates declared versus observed differences represented as diff items.",
+      "type": "object",
       "unevaluatedProperties": false,
       "allOf": [
-        {
-          "$ref": "#/$defs/ruleBase"
-        },
+        { "$ref": "#/$defs/ruleBase" },
         {
           "type": "object",
           "required": ["subject"],
           "properties": {
-            "kind": {
-              "const": "diff"
-            },
-            "target": {
-              "const": "diff"
-            },
+            "kind": { "const": "diff" },
+            "target": { "const": "diff" },
             "subject": {
               "title": "Subject",
               "description": "Selector that defines diff items evaluated by the rule.",
-              "allOf": [
-                {
-                  "$ref": "#/$defs/selector"
-                },
-                {
-                  "properties": {
-                    "entity": {
-                      "const": "diffItems"
-                    }
-                  }
-                }
-              ]
+              "$ref": "#/$defs/diffOnlySelector"
             },
             "changeKinds": {
               "title": "Change Kinds",
               "description": "Optional list of diff change kinds that this rule is interested in.",
               "type": "array",
               "minItems": 1,
-              "items": {
-                "$ref": "#/$defs/changeKind"
-              },
+              "items": { "$ref": "#/$defs/changeKind" },
               "uniqueItems": true,
               "examples": [["removed"], ["unmatchedObserved", "changed"]]
             },
@@ -601,17 +547,13 @@
               "description": "Whether the rule is evaluated per diff item or over the aggregate diff selection.",
               "$ref": "#/$defs/graphMode",
               "default": "perItem"
-            }
-          },
-          "not": {
-            "anyOf": [
-              { "required": ["from"] },
-              { "required": ["to"] },
-              { "required": ["via"] },
-              { "required": ["viaMode"] },
-              { "required": ["maxDepth"] },
-              { "required": ["allowCycles"] }
-            ]
+            },
+            "from": false,
+            "to": false,
+            "via": false,
+            "viaMode": false,
+            "maxDepth": false,
+            "allowCycles": false
           }
         }
       ]
@@ -620,15 +562,9 @@
       "title": "Rule",
       "description": "Single self-contained rule. Must match exactly one supported rule family.",
       "oneOf": [
-        {
-          "$ref": "#/$defs/graphRule"
-        },
-        {
-          "$ref": "#/$defs/pathRule"
-        },
-        {
-          "$ref": "#/$defs/diffRule"
-        }
+        { "$ref": "#/$defs/graphRule" },
+        { "$ref": "#/$defs/pathRule" },
+        { "$ref": "#/$defs/diffRule" }
       ]
     }
   }
