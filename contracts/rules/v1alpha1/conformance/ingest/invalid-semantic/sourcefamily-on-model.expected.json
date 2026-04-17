@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_SOURCE_FAMILY_ON_MODEL_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/sourceFamilies",
+      "ruleId": "bad-sourcefamily"
+    }
+  ]
+}

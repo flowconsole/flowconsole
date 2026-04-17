@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_CHANGEKINDS_ON_NON_DIFF_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/changeKinds",
+      "ruleId": "bad-changekinds"
+    }
+  ]
+}

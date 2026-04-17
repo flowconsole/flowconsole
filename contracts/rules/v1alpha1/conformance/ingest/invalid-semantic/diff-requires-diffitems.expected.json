@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_SELECTOR_SHAPE_INCOMPATIBLE",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/subject/entity",
+      "ruleId": "diff-wrong-entity"
+    }
+  ]
+}

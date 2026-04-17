@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_FLOW_ON_DIFF_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/target",
+      "ruleId": "flow-diff"
+    }
+  ]
+}

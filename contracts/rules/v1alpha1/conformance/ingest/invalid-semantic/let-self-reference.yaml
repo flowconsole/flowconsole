@@ -1,0 +1,15 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: self-ref
+    name: Let self-reference
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: elements
+    let:
+      x: "x + 1"
+    assert: x > 0
+    message: Should fail

@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_DIFFITEMS_ON_NON_DIFF_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/subject/entity",
+      "ruleId": "bad-diffitems"
+    }
+  ]
+}

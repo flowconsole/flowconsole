@@ -1,0 +1,15 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: flow-bad-from
+    name: Flow with relationships in from
+    kind: flow
+    target: actual
+    severity: error
+    blocking: true
+    from:
+      entity: relationships
+    to:
+      entity: elements
+    assert: count(paths) > 0
+    message: Should fail
