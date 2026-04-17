@@ -262,7 +262,6 @@
       "title": "Rule Base",
       "description": "Common fields shared by all rule kinds.",
       "type": "object",
-      "additionalProperties": false,
       "required": ["id", "name", "kind", "target", "severity", "blocking", "assert", "message"],
       "properties": {
         "id": {
@@ -384,6 +383,7 @@
     "graphRule": {
       "title": "Graph Rule",
       "description": "Rule that evaluates structure within a set of selected graph entities.",
+      "unevaluatedProperties": false,
       "allOf": [
         {
           "$ref": "#/$defs/ruleBase"
@@ -452,6 +452,7 @@
     "pathRule": {
       "title": "Path Rule",
       "description": "Rule that evaluates reachability and path constraints between two element selections.",
+      "unevaluatedProperties": false,
       "allOf": [
         {
           "$ref": "#/$defs/ruleBase"
@@ -553,6 +554,7 @@
     "diffRule": {
       "title": "Diff Rule",
       "description": "Rule that evaluates declared versus observed differences represented as diff items.",
+      "unevaluatedProperties": false,
       "allOf": [
         {
           "$ref": "#/$defs/ruleBase"

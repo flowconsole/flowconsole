@@ -1,0 +1,43 @@
+{
+  "apiVersion": "rules.flowconsole.io/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "ingress-must-reach-checkout-db",
+      "name": "Ingress must reach checkout database",
+      "kind": "path",
+      "target": "observed",
+      "severity": "warning",
+      "blocking": false,
+      "description": "От ingress до checkout-db должен существовать хотя бы один корректный путь.",
+      "enabled": true,
+      "tags": ["topology", "path"],
+      "sourceFamilies": ["code", "infra"],
+      "from": {
+        "entity": "elements",
+        "kinds": ["Ingress", "Gateway"],
+        "sourceFamilies": ["infra"]
+      },
+      "to": {
+        "entity": "elements",
+        "kinds": ["Database"],
+        "name": { "equals": "checkout-db" },
+        "sourceFamilies": ["infra"]
+      },
+      "via": {
+        "entity": "elements",
+        "kinds": ["Service", "Application", "Worker"]
+      },
+      "viaMode": "include",
+      "maxDepth": 6,
+      "allowCycles": false,
+      "mode": "aggregate",
+      "where": { "source": "count(paths) >= 0" },
+      "let": {
+        "pathCount": { "source": "count(paths)" }
+      },
+      "assert": { "source": "pathCount > 0" },
+      "message": "От ingress до checkout-db не найден допустимый путь"
+    }
+  ]
+}

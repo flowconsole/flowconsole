@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowconsole.io/contracts/rules/v1alpha1/conformance/diagnostics-result.schema.json",
+  "title": "Conformance: Diagnostics Result",
+  "description": "Expected output for invalid ingest conformance cases.",
+  "type": "object",
+  "required": ["diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "diagnostics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code", "phase", "level", "path"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^RF_(PARSE|SCHEMA|SEM|EXPR|NORM)_"
+          },
+          "phase": {
+            "enum": ["parse", "schema", "semantic", "expression", "normalize"]
+          },
+          "level": {
+            "enum": ["error", "warning"]
+          },
+          "path": {
+            "type": "string",
+            "description": "JSON Pointer RFC 6901"
+          },
+          "ruleId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

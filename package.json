@@ -15,10 +15,15 @@
     "test:e2e": "pnpm --filter @flowconsole/web test:e2e",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "pnpm -r build && pnpm -r publish --no-git-checks"
+    "release": "pnpm -r build && pnpm -r publish --no-git-checks",
+    "validate:rules": "node contracts/rules/v1alpha1/validate.mjs",
+    "validate:rules:conformance": "node contracts/rules/v1alpha1/validate.mjs contracts/rules/v1alpha1/conformance/ingest/valid/*.yaml && node contracts/rules/v1alpha1/validate.mjs contracts/rules/v1alpha1/conformance/ingest/invalid/*.yaml --expect-errors",
+    "validate:rules:expected": "node contracts/rules/v1alpha1/validate.mjs --check-expected",
+    "validate:rules:all": "pnpm validate:rules:conformance && pnpm validate:rules:expected"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
+    "ajv": "^8.17.1",
     "@eslint/js": "^9.39.1",
     "@monaco-editor/react": "^4.7.0",
     "@playwright/test": "^1.57.0",
@@ -32,6 +37,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "graphviz-wasm": "^3.0.2",
+    "js-yaml": "^4.1.0",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "typescript-eslint": "^8.49.0",
