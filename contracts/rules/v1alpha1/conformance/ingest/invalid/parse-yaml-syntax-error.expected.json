@@ -1,0 +1,10 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_PARSE_YAML_SYNTAX_ERROR",
+      "phase": "parse",
+      "level": "error",
+      "path": "/"
+    }
+  ]
+}

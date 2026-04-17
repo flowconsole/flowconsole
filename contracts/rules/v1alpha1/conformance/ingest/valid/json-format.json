@@ -1,0 +1,20 @@
+{
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "json-rule",
+      "name": "Rule in JSON format",
+      "kind": "element",
+      "target": "actual",
+      "severity": "warning",
+      "blocking": false,
+      "subject": {
+        "entity": "elements",
+        "kinds": ["Service"]
+      },
+      "assert": "count(items) >= 0",
+      "message": "JSON format is also supported"
+    }
+  ]
+}

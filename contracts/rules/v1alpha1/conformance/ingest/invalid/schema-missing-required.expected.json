@@ -1,0 +1,10 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SCHEMA_MISSING_REQUIRED_FIELD",
+      "phase": "schema",
+      "level": "error",
+      "path": "/rules/0/assert"
+    }
+  ]
+}

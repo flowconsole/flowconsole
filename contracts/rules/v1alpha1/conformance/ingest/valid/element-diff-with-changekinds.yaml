@@ -1,0 +1,29 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: no-removed-gateways
+    name: Removed gateways are forbidden
+    kind: element
+    target: diff
+    severity: error
+    blocking: true
+    description: Gateway elements must not be removed from the architecture.
+    tags:
+      - drift
+      - gateway
+    sourceFamilies:
+      - code
+      - infra
+    subject:
+      entity: diffItems
+      kinds:
+        - Gateway
+        - Ingress
+    changeKinds:
+      - removed
+      - unmatchedModel
+    mode: aggregate
+    let:
+      removedCount: count(items)
+    assert: removedCount == 0
+    message: Found ${removedCount} removed or unmatched gateway elements

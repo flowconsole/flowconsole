@@ -1,0 +1,10 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_PARSE_UNSUPPORTED_API_VERSION",
+      "phase": "parse",
+      "level": "error",
+      "path": "/apiVersion"
+    }
+  ]
+}

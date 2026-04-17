@@ -1,0 +1,13 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: bad-severity
+    name: Rule with bad severity
+    kind: element
+    target: actual
+    severity: fatal
+    blocking: true
+    subject:
+      entity: elements
+    assert: "true"
+    message: Invalid severity value
