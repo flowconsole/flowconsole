@@ -1,0 +1,18 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: api-service-must-have-consumers
+    name: API services must have consumers
+    kind: element
+    target: actual
+    severity: warning
+    blocking: false
+    subject:
+      entity: elements
+      kinds:
+        - Service
+      name:
+        matches: "^api-.*"
+    mode: perItem
+    assert: count(incoming(item)) > 0
+    message: API service ${item.name} has no consumers

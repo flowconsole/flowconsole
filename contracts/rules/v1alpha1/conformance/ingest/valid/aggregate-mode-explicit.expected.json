@@ -3,19 +3,22 @@
   "kind": "RuleFile",
   "rules": [
     {
-      "id": "json-rule",
-      "name": "Rule in JSON format",
+      "id": "services-must-exist",
+      "name": "Services must exist",
       "kind": "element",
       "target": "actual",
       "severity": "warning",
       "blocking": false,
+      "enabled": true,
       "subject": {
         "entity": "elements",
-        "kinds": ["Service"]
+        "kinds": ["Service", "Application"]
       },
       "mode": "aggregate",
-      "assert": "count(items) >= 0",
-      "message": "JSON format is also supported"
+      "assert": {
+        "source": "count(items) > 0"
+      },
+      "message": "No services found"
     }
   ]
 }

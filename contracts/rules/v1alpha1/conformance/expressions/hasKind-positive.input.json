@@ -1,5 +1,5 @@
 {
-  "expression": "hasKind(item, \"Service\") && hasTag(item, \"critical\")",
+  "expression": "hasKind(item, \"Service\")",
   "context": {
     "family": "graph",
     "mode": "perItem"
@@ -10,7 +10,7 @@
       "canonicalId": "checkout.service",
       "kind": "Service",
       "name": "checkout",
-      "technology": null,
+      "technology": "dotnet",
       "tags": ["critical"],
       "properties": {},
       "source": "code_scan",

@@ -1,0 +1,18 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: database-consumer-limit
+    name: Database consumer limit
+    kind: element
+    target: actual
+    severity: warning
+    blocking: false
+    subject:
+      entity: elements
+      kinds:
+        - Database
+    mode: perItem
+    let:
+      consumerCount: count(incoming(item))
+    assert: consumerCount <= 3
+    message: "Database '${item.name}' (kind: ${item.kind}) has ${consumerCount} consumers"

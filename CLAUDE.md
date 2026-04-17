@@ -119,10 +119,30 @@ layout/
 └── llm/roleEnricher.ts    — optional LLM node role enrichment
 ```
 
+## Backend — Rule Engine
+
+Two .NET projects implement the v1alpha1 rule engine:
+
+- **backend/src/FlowConsole.Rules.Core** — domain types, compiled model, ingest pipeline (5 phases: parse → schema → semantic → expression → normalize), abstractions (IRuleFileIngestor, IExpressionCompiler, IExpressionEvaluator, ISubjectResolver, IPathFinder, IRuleExecutor). No external dependencies beyond YamlDotNet.
+- **backend/src/FlowConsole.Rules.Engine.Default** — Cel.NET-based expression compiler/evaluator, helper functions (collection, graph, diff, predicate), InMemory subject resolver, path finder, rule executor. Cel.NET types do not leak into the public API surface.
+
+Rule file contract: `contracts/rules/v1alpha1/` — JSON Schema, expression language spec, types, helpers, diagnostics, conformance suite (50+ fixtures).
+
+```bash
+# Backend build and test
+cd backend
+dotnet build src/FlowConsole.slnx
+dotnet test src/FlowConsole.slnx --verbosity quiet
+
+# Contract validation (conformance fixtures)
+cd .. && pnpm validate:rules:all
+```
+
 ## Testing Conventions
 
 - Unit tests: `tests/unit/` using Vitest + React Testing Library
 - E2E tests: `tests/e2e/` using Playwright (runs against built app on port 4173)
+- Backend tests: `backend/tests/` using xUnit + NSubstitute + FluentAssertions
 - Test config: `vitest.config.ts` (root), `playwright.config.ts` (root)
 
 ## Code Style

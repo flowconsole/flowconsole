@@ -3,8 +3,8 @@
   "kind": "RuleFile",
   "rules": [
     {
-      "id": "json-rule",
-      "name": "Rule in JSON format",
+      "id": "api-service-must-have-consumers",
+      "name": "API services must have consumers",
       "kind": "element",
       "target": "actual",
       "severity": "warning",
@@ -12,13 +12,14 @@
       "enabled": true,
       "subject": {
         "entity": "elements",
-        "kinds": ["Service"]
+        "kinds": ["Service"],
+        "name": { "matches": "^api-.*" }
       },
-      "mode": "aggregate",
+      "mode": "perItem",
       "assert": {
-        "source": "count(items) >= 0"
+        "source": "count(incoming(item)) > 0"
       },
-      "message": "JSON format is also supported"
+      "message": "API service ${item.name} has no consumers"
     }
   ]
 }

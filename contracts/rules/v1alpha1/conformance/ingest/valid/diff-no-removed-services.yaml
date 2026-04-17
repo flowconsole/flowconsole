@@ -21,7 +21,6 @@ rules:
         - Service
         - Application
         - Worker
-      where: item.changeKind == "removed"
     changeKinds:
       - removed
     mode: aggregate

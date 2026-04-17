@@ -92,7 +92,6 @@ rules:
       entity: diffItems
       kinds:
         - Gateway
-      where: item.changeKind == "unmatchedActual"
     changeKinds:
       - unmatchedActual
     mode: aggregate

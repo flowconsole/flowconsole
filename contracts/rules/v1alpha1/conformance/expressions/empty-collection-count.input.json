@@ -1,0 +1,24 @@
+{
+  "expression": "count(items) == 0",
+  "context": {
+    "family": "graph",
+    "mode": "aggregate"
+  },
+  "bindings": {
+    "items": [],
+    "stats": {
+      "count": 0,
+      "countByKind": {},
+      "countByTag": {},
+      "countBySourceFamily": {},
+      "distinctTags": []
+    },
+    "rule": {
+      "id": "sample",
+      "name": "Sample",
+      "severity": "info",
+      "kind": "element",
+      "target": "actual"
+    }
+  }
+}

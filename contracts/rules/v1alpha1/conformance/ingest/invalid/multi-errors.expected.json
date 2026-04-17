@@ -22,25 +22,18 @@
       "ruleId": "duplicate-id"
     },
     {
-      "code": "RF_SEM_CHANGEKINDS_ON_NON_DIFF_TARGET",
+      "code": "RF_SEM_DIFFITEMS_ON_NON_DIFF_TARGET",
       "phase": "semantic",
       "level": "error",
-      "path": "/rules/1/target",
+      "path": "/rules/1/subject/entity",
       "ruleId": "duplicate-id"
     },
     {
-      "code": "RF_SEM_PATH_ENDPOINT_INVALID_ENTITY",
+      "code": "RF_SEM_FLOW_ENDPOINT_INVALID_ENTITY",
       "phase": "semantic",
       "level": "error",
       "path": "/rules/2/from/entity",
       "ruleId": "bad-path-entity"
-    },
-    {
-      "code": "RF_EXPR_COMPILE_ERROR",
-      "phase": "expression",
-      "level": "error",
-      "path": "/rules/3/assert",
-      "ruleId": "bad-expression"
     }
   ]
 }

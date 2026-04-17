@@ -15,8 +15,7 @@
       "sourceFamilies": ["code", "infra"],
       "subject": {
         "entity": "diffItems",
-        "kinds": ["Service", "Application", "Worker"],
-        "where": { "source": "item.changeKind == \"removed\"" }
+        "kinds": ["Service", "Application", "Worker"]
       },
       "changeKinds": ["removed"],
       "mode": "aggregate",

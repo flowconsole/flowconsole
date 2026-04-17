@@ -99,8 +99,13 @@ function runRuleFileValidation() {
     try {
       data = ext === "json" ? JSON.parse(raw) : yaml.load(raw);
     } catch (e) {
-      console.log(`✗ ${file} — parse error: ${e.message}`);
-      failed++;
+      if (expectErrors) {
+        if (!quiet) console.log(`✓ ${file} — correctly rejected (parse error)`);
+        passed++;
+      } else {
+        console.log(`✗ ${file} — parse error: ${e.message}`);
+        failed++;
+      }
       continue;
     }
 

@@ -3,22 +3,22 @@
   "kind": "RuleFile",
   "rules": [
     {
-      "id": "json-rule",
-      "name": "Rule in JSON format",
+      "id": "uses-relationships-must-exist",
+      "name": "Uses relationships must exist",
       "kind": "element",
       "target": "actual",
-      "severity": "warning",
+      "severity": "info",
       "blocking": false,
       "enabled": true,
       "subject": {
-        "entity": "elements",
-        "kinds": ["Service"]
+        "entity": "relationships",
+        "kinds": ["Uses"]
       },
       "mode": "aggregate",
       "assert": {
-        "source": "count(items) >= 0"
+        "source": "count(items) > 0"
       },
-      "message": "JSON format is also supported"
+      "message": "No Uses relationships found"
     }
   ]
 }

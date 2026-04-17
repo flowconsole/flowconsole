@@ -73,8 +73,7 @@
       "sourceFamilies": ["code", "infra"],
       "subject": {
         "entity": "diffItems",
-        "kinds": ["Gateway"],
-        "where": { "source": "item.changeKind == \"unmatchedActual\"" }
+        "kinds": ["Gateway"]
       },
       "changeKinds": ["unmatchedActual"],
       "mode": "aggregate",
