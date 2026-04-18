@@ -159,11 +159,11 @@ Rule Expressions принимают **ограниченный subset** выра
 
 Приоритет — стандартный математический (см. любой справочник по приоритетам в expression-языках Python-семейства).
 
-**Функции и лямбды**
+**Функции и comprehension-макросы**
 
 - вызов helper'а: `count(items)`, `neighbors(item, "Calls")` — только имена из [`helpers.md`](helpers.md);
-- lambda с одним параметром: `x -> expr` — **только** как аргумент helper'а, явно принимающего lambda (`all`, `any`, `none`, `exists`, `count(list, predicate)`, `distinct(list, keyExpr)`);
-- lambda-параметр не может затенять binding или let-переменную → `RF_EXPR_SHADOWED_BINDING`.
+- comprehension-макросы CEL: `items.all(x, expr)`, `items.exists(x, expr)`, `items.filter(x, expr)`, `items.map(x, expr)` — **только** для предикатных overload'ов helper'ов (`all`, `any`, `none`, `exists`, `count(list, predicate)`, `distinct(list, keyExpr)`);
+- lambda-синтаксис `x -> expr` **не поддерживается** в v1alpha1 — используйте macro-форму вместо функциональной: `items.all(x, x > 0)` вместо `all(items, x -> x > 0)`.
 
 **Специальные конструкции**
 
@@ -174,7 +174,7 @@ Rule Expressions принимают **ограниченный subset** выра
 
 Следующие конструкции запрещены в v1alpha1 и приводят к `RF_EXPR_UNSUPPORTED_CONSTRUCT`:
 
-- **macros** вида `items.all(x, ...)`, `items.exists(x, ...)`, `items.map(x, ...)` — используйте функциональную форму `all(items, x -> ...)`;
+- **lambda-синтаксис** вида `all(items, x -> ...)` — используйте macro-форму `items.all(x, ...)`;
 - **optional chaining** `item.?technology` — используйте `has(item.technology) ? item.technology : defaultValue`;
 - **timestamp / duration literals и арифметика** над ними;
 - **imports / includes**;

@@ -7,8 +7,8 @@
 - `T`, `U` — type parameters (используются только для описания);
 - `list<T>` — упорядоченная коллекция типа `T`;
 - `?` после типа — опциональный (может быть `null`);
-- `predicate: T -> bool` — lambda, принимающая один параметр типа `T` и возвращающая `bool`;
-- `keyExpr: T -> K` — lambda-выражение для вычисления ключа;
+- `predicate: T -> bool` — predicate-выражение; в v1alpha1 используется CEL macro comprehension синтаксис: `items.all(x, x > 0)` вместо lambda `all(items, x -> x > 0)`;
+- `keyExpr: T -> K` — key-выражение (аналогично через macro comprehension);
 - overload'ы перечислены отдельными сигнатурами.
 
 Все helper-функции:
