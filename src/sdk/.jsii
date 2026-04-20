@@ -11,7 +11,7 @@
     "stability": "stable"
   },
   "homepage": "https://github.com/slackmaster9999/flowconsole.git",
-  "jsiiVersion": "5.9.22 (build b81c634)",
+  "jsiiVersion": "5.9.23 (build 29252a0)",
   "keywords": [],
   "license": "MIT",
   "metadata": {
@@ -20,7 +20,7 @@
         "hasDefaultInterfaces": true
       }
     },
-    "tscRootDir": "/Users/vmg/FlowConsole/oss/src/sdk"
+    "tscRootDir": "/workspace/.ralphex/worktrees/cli-phase1-scan-validate/oss/src/sdk"
   },
   "name": "@flowconsole/sdk",
   "readme": {
@@ -5269,5 +5269,5 @@
     }
   },
   "version": "2.0.0",
-  "fingerprint": "xliXq/mo6WXq6JkNtSs6FT54sh5J1lIppKOyezfXmRQ="
+  "fingerprint": "tuIXw7dbBxwS4FGzv9jx3GNsQTH2WFjQEvinhntJKiI="
 }

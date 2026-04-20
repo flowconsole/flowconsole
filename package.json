@@ -8,7 +8,7 @@
     "build:web": "pnpm --dir src/web build",
     "build:core": "pnpm --dir src/core build",
     "build:docs": "pnpm --dir src/docs build",
-    "build:cli": "pnpm --dir src/cli build",
+
     "build:sdk": "pnpm --dir src/sdk build",
     "test": "pnpm run test:unit && pnpm run test:e2e",
     "test:unit": "pnpm --filter @flowconsole/web test:unit",

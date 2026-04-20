@@ -2,7 +2,7 @@ packages:
   - src/app
   - src/web
   - src/docs
-  - src/cli
+
   - src/core
   - src/sdk
 
