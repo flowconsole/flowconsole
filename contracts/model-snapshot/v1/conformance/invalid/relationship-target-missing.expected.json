@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_REF_UNRESOLVED",
+      "phase": "reference",
+      "level": "error",
+      "path": "/relationships/0/targetId",
+      "message": "Relationship target 'non-existent' not found in elements"
+    }
+  ]
+}

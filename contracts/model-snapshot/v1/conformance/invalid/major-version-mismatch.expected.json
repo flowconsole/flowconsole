@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_VERSION_MAJOR_MISMATCH",
+      "phase": "version",
+      "level": "error",
+      "path": "/schemaVersion",
+      "message": "Major version 2 does not match supported major version 1"
+    }
+  ]
+}

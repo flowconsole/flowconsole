@@ -1,0 +1,39 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "CodeScan",
+  "elements": [
+    {
+      "id": "app-1",
+      "kind": "Application",
+      "name": "E-Commerce Platform"
+    },
+    {
+      "id": "mod-orders",
+      "kind": "Module",
+      "name": "Orders Module",
+      "parentId": "app-1"
+    },
+    {
+      "id": "cls-order",
+      "kind": "Class",
+      "name": "OrderService",
+      "parentId": "mod-orders",
+      "aliases": ["OrderSvc"]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r-1",
+      "sourceId": "app-1",
+      "targetId": "mod-orders",
+      "kind": "Contains"
+    },
+    {
+      "id": "r-2",
+      "sourceId": "mod-orders",
+      "targetId": "cls-order",
+      "kind": "Contains"
+    }
+  ]
+}

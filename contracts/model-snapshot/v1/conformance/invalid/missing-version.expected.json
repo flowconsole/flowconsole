@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_VERSION_MISSING",
+      "phase": "version",
+      "level": "error",
+      "path": "/",
+      "message": "Top-level 'schemaVersion' field is absent"
+    }
+  ]
+}

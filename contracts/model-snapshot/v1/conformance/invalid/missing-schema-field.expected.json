@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_FIELD_MISSING",
+      "phase": "schema",
+      "level": "error",
+      "path": "/",
+      "message": "Top-level '$schema' field is absent"
+    }
+  ]
+}

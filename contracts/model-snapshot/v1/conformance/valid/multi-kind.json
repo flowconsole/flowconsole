@@ -1,0 +1,35 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "CodeScan",
+  "elements": [
+    { "id": "cls-1", "kind": "Class", "name": "UserController" },
+    { "id": "ifc-1", "kind": "Interface", "name": "IUserRepository" },
+    { "id": "ep-1", "kind": "Endpoint", "name": "GET /users", "properties": { "httpMethod": "GET" } },
+    { "id": "fn-1", "kind": "Function", "name": "hashPassword" },
+    { "id": "prod-1", "kind": "Producer", "name": "OrderProducer" },
+    { "id": "cons-1", "kind": "Consumer", "name": "OrderConsumer" },
+    { "id": "svc-1", "kind": "Service", "name": "User Service" },
+    { "id": "app-1", "kind": "Application", "name": "Web App" },
+    { "id": "mod-1", "kind": "Module", "name": "Auth Module" },
+    { "id": "ext-1", "kind": "External", "name": "Stripe" },
+    { "id": "gw-1", "kind": "Gateway", "name": "API Gateway" },
+    { "id": "wrk-1", "kind": "Worker", "name": "Email Worker" },
+    { "id": "dep-1", "kind": "Deployment", "name": "user-svc-pod" },
+    { "id": "db-1", "kind": "Database", "name": "PostgreSQL" },
+    { "id": "q-1", "kind": "Queue", "name": "order-queue" },
+    { "id": "cache-1", "kind": "Cache", "name": "Redis" },
+    { "id": "ing-1", "kind": "Ingress", "name": "main-ingress", "properties": { "host": "api.example.com" } },
+    { "id": "ns-1", "kind": "Namespace", "name": "production" },
+    { "id": "brk-1", "kind": "Broker", "name": "Kafka Cluster" },
+    { "id": "top-1", "kind": "Topic", "name": "orders-topic", "properties": { "partitions": "12" } }
+  ],
+  "relationships": [
+    { "id": "r-1", "sourceId": "cls-1", "targetId": "ifc-1", "kind": "Implements" },
+    { "id": "r-2", "sourceId": "svc-1", "targetId": "db-1", "kind": "Calls" },
+    { "id": "r-3", "sourceId": "prod-1", "targetId": "top-1", "kind": "Produces" },
+    { "id": "r-4", "sourceId": "cons-1", "targetId": "top-1", "kind": "Consumes" },
+    { "id": "r-5", "sourceId": "gw-1", "targetId": "svc-1", "kind": "RoutesTo" },
+    { "id": "r-6", "sourceId": "dep-1", "targetId": "ns-1", "kind": "DeployedOn" }
+  ]
+}

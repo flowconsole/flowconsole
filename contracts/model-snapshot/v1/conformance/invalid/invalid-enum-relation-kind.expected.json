@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_INVALID_ENUM_VALUE",
+      "phase": "schema",
+      "level": "error",
+      "path": "/relationships/0/kind",
+      "message": "Relationship kind 'TalksTo' is not a valid RelationKind value"
+    }
+  ]
+}

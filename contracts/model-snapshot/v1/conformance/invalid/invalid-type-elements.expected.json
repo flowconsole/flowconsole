@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_INVALID_TYPE",
+      "phase": "schema",
+      "level": "error",
+      "path": "/elements",
+      "message": "Field 'elements' must be an array"
+    }
+  ]
+}

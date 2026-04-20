@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_REF_DUPLICATE_ID",
+      "phase": "reference",
+      "level": "error",
+      "path": "/elements/1/id",
+      "message": "Duplicate element id 'svc-1'"
+    }
+  ]
+}

@@ -19,7 +19,11 @@
     "validate:rules": "node contracts/rules/v1alpha1/validate.mjs",
     "validate:rules:conformance": "node contracts/rules/v1alpha1/validate.mjs contracts/rules/v1alpha1/conformance/ingest/valid/*.yaml && node contracts/rules/v1alpha1/validate.mjs contracts/rules/v1alpha1/conformance/ingest/invalid/*.yaml --expect-errors",
     "validate:rules:expected": "node contracts/rules/v1alpha1/validate.mjs --check-expected",
-    "validate:rules:all": "pnpm validate:rules:conformance && pnpm validate:rules:expected"
+    "validate:rules:all": "pnpm validate:rules:conformance && pnpm validate:rules:expected",
+    "validate:snapshots:valid": "node contracts/model-snapshot/v1/validate.mjs contracts/model-snapshot/v1/conformance/valid/*.json",
+    "validate:snapshots:invalid": "node contracts/model-snapshot/v1/validate.mjs contracts/model-snapshot/v1/conformance/invalid/*.json --expect-errors",
+    "validate:snapshots:expected": "node contracts/model-snapshot/v1/validate.mjs --check-expected",
+    "validate:snapshots:all": "pnpm validate:snapshots:valid && pnpm validate:snapshots:invalid && pnpm validate:snapshots:expected"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

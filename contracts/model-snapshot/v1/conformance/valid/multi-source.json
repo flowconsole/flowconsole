@@ -1,0 +1,45 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "CodeScan",
+  "elements": [
+    {
+      "id": "payment-service",
+      "kind": "Service",
+      "name": "Payment Service",
+      "source": "CodeScan",
+      "technology": "Go"
+    },
+    {
+      "id": "payment-db",
+      "kind": "Database",
+      "name": "Payment DB",
+      "source": "InfraScan",
+      "technology": "PostgreSQL"
+    },
+    {
+      "id": "payment-cache",
+      "kind": "Cache",
+      "name": "Payment Cache",
+      "source": "InfraScan",
+      "technology": "Redis"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "r-1",
+      "sourceId": "payment-service",
+      "targetId": "payment-db",
+      "kind": "Calls",
+      "technology": "pgx",
+      "source": "CodeScan"
+    },
+    {
+      "id": "r-2",
+      "sourceId": "payment-service",
+      "targetId": "payment-cache",
+      "kind": "Uses",
+      "source": "InfraScan"
+    }
+  ]
+}
