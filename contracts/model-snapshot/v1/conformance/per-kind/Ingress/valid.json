@@ -1,0 +1,16 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "InfraScan",
+  "elements": [
+    {
+      "id": "ingress-1",
+      "kind": "Ingress",
+      "name": "api-ingress",
+      "properties": {
+        "host": "api.flowconsole.tech"
+      }
+    }
+  ],
+  "relationships": []
+}

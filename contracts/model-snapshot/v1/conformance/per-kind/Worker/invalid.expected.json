@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_MISSING_REQUIRED_FIELD",
+      "phase": "schema",
+      "level": "error",
+      "path": "/elements/0",
+      "message": "Required property 'name' is missing"
+    }
+  ]
+}

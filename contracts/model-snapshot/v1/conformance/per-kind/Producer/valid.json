@@ -1,0 +1,9 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "CodeScan",
+  "elements": [
+    { "id": "producer-1", "kind": "Producer", "name": "OrderEventProducer" }
+  ],
+  "relationships": []
+}

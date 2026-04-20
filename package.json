@@ -22,8 +22,10 @@
     "validate:rules:all": "pnpm validate:rules:conformance && pnpm validate:rules:expected",
     "validate:snapshots:valid": "node contracts/model-snapshot/v1/validate.mjs contracts/model-snapshot/v1/conformance/valid/*.json",
     "validate:snapshots:invalid": "node contracts/model-snapshot/v1/validate.mjs contracts/model-snapshot/v1/conformance/invalid/*.json --expect-errors",
+    "validate:snapshots:per-kind-valid": "node contracts/model-snapshot/v1/validate.mjs contracts/model-snapshot/v1/conformance/per-kind/*/valid.json",
+    "validate:snapshots:per-kind-invalid": "node contracts/model-snapshot/v1/validate.mjs contracts/model-snapshot/v1/conformance/per-kind/*/invalid.json --expect-errors",
     "validate:snapshots:expected": "node contracts/model-snapshot/v1/validate.mjs --check-expected",
-    "validate:snapshots:all": "pnpm validate:snapshots:valid && pnpm validate:snapshots:invalid && pnpm validate:snapshots:expected"
+    "validate:snapshots:all": "pnpm validate:snapshots:valid && pnpm validate:snapshots:invalid && pnpm validate:snapshots:per-kind-valid && pnpm validate:snapshots:per-kind-invalid && pnpm validate:snapshots:expected"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
