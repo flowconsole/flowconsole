@@ -114,7 +114,7 @@ describe('Per-ElementKind round-trip', () => {
     if (comp.tags && comp.tags.length > 0) expect(dto.tags).toEqual(comp.tags);
   });
 
-  it.each(kindTests)('$name round-trips through toModelSnapshotDto()', ({ create, expectedKind }) => {
+  it.each(kindTests)('$name round-trips through _toModelSnapshotDto()', ({ create, expectedKind }) => {
     const comp = create();
     // Collect all entities needed (including parents)
     const entities: Component[] = [];
@@ -122,7 +122,7 @@ describe('Per-ElementKind round-trip', () => {
     entities.push(comp);
 
     const snapshot = buildSnapshot(entities);
-    const snapshotDto = snapshot.toModelSnapshotDto();
+    const snapshotDto = snapshot._toModelSnapshotDto();
 
     expect(snapshotDto.$schema).toBe('https://flowconsole.tech/contracts/model-snapshot/v1/schema.json');
     expect(snapshotDto.schemaVersion).toBe('1.1.0');
@@ -226,7 +226,7 @@ describe('Flow emission', () => {
     webapp.calls(api, 'POST /login').sendsRequest(db, 'SELECT user').scenario('login');
 
     const snapshot = buildSnapshot([webapp, api, db]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     expect(dto.flows).not.toBeNull();
     expect(dto.flows!.length).toBe(1);
@@ -253,7 +253,7 @@ describe('Flow emission', () => {
     api.executesRequest('validate credentials').scenario('validate');
 
     const snapshot = buildSnapshot([api]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     expect(dto.flows).not.toBeNull();
     const flow = dto.flows![0];
@@ -271,7 +271,7 @@ describe('Flow emission', () => {
     a.calls(b, 'step2').scenario('a-flow');
 
     const snapshot = buildSnapshot([a, b]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     expect(dto.flows).not.toBeNull();
     expect(dto.flows!.length).toBe(2);
@@ -283,7 +283,7 @@ describe('Flow emission', () => {
   it('empty scenarios produce flows: null', () => {
     const svc = new SoftwareSystem({ id: 'svc', name: 'Svc' });
     const snapshot = buildSnapshot([svc]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     expect(dto.flows).toBeNull();
   });
@@ -298,7 +298,7 @@ describe('FlowStepDto.sourceElementId', () => {
     a.calls(b, 'call').scenario('test');
 
     const snapshot = buildSnapshot([a, b]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
     for (const flow of dto.flows ?? []) {
       for (const step of flow.steps) {
         expect(step.sourceElementId).toBeTruthy();
@@ -311,7 +311,7 @@ describe('FlowStepDto.sourceElementId', () => {
     a.executesRequest('do something').scenario('test');
 
     const snapshot = buildSnapshot([a]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
     for (const flow of dto.flows ?? []) {
       for (const step of flow.steps) {
         expect(step.sourceElementId).toBe('a');
@@ -358,7 +358,7 @@ describe('Cross-source ID compatibility', () => {
     webapp.calls(api, 'HTTP request').scenario('test');
 
     const snapshot = buildSnapshot([webapp, api]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     // Relationship ID in relationships array
     const rel = dto.relationships.find(r => r.sourceId === 'webapp' && r.targetId === 'api');
@@ -384,7 +384,7 @@ describe('ModelSnapshotDto structure', () => {
     svc.uses(db, 'SQL queries').scenario('data-access');
 
     const snapshot = buildSnapshot([svc, db]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     expect(dto.$schema).toBe('https://flowconsole.tech/contracts/model-snapshot/v1/schema.json');
     expect(dto.schemaVersion).toBe('1.1.0');
@@ -406,7 +406,7 @@ describe('ModelSnapshotDto structure', () => {
     });
 
     const snapshot = buildSnapshot([svc]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
     const elem = dto.elements[0];
 
     expect(elem.description).toBe('A service');
@@ -419,7 +419,7 @@ describe('ModelSnapshotDto structure', () => {
     const svc = new SoftwareSystem({ id: 'svc', name: 'Service' });
 
     const snapshot = buildSnapshot([svc]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
     const elem = dto.elements[0];
 
     expect(elem.id).toBe('svc');
@@ -438,7 +438,7 @@ describe('ModelSnapshotDto structure', () => {
     a.calls(b, 'rpc');
 
     const snapshot = buildSnapshot([a, b]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     const rel = dto.relationships.find(r => r.sourceId === 'a' && r.targetId === 'b');
     expect(rel).toBeDefined();
@@ -451,7 +451,7 @@ describe('ModelSnapshotDto structure', () => {
     const app = new Container({ id: 'app', name: 'App', belongsTo: sys });
 
     const snapshot = buildSnapshot([sys, app]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     const appDto = dto.elements.find(e => e.id === 'app');
     expect(appDto).toBeDefined();
@@ -474,7 +474,7 @@ describe('Mixed edge and action steps in flow', () => {
       .scenario('auth-flow');
 
     const snapshot = buildSnapshot([webapp, api, db]);
-    const dto = snapshot.toModelSnapshotDto();
+    const dto = snapshot._toModelSnapshotDto();
 
     const flow = dto.flows![0];
     expect(flow.steps.length).toBe(3);

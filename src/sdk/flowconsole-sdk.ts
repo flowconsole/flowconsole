@@ -1,6 +1,21 @@
 // ── Existing types (kept unchanged) ──
 
+/**
+ * Describes the synchronization style of a connection between components.
+ * @example
+
+ * svc.calls(api, 'HTTP', { kind: 'sync' });
+
+ */
 export type ConnectionKind = 'sync' | 'async' | 'event' | 'dependency';
+
+/**
+ * Visual tone hint for a component on diagrams.
+ * @example
+
+ * new SoftwareSystem({ id: 'svc', name: 'Svc', tone: 'danger' });
+
+ */
 export type ComponentTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
 // ── Wire-format DTO interfaces (matches backend ModelSnapshotDto) ──
@@ -34,6 +49,7 @@ export interface RelationshipDto {
 
 /**
  * Wire-format flow step DTO. RelationshipId null = action step (per C3).
+ * @internal
  */
 export interface FlowStepDto {
   readonly sourceElementId: string;
@@ -44,6 +60,7 @@ export interface FlowStepDto {
 
 /**
  * Wire-format flow DTO with ordered steps.
+ * @internal
  */
 export interface FlowDto {
   readonly id: string;
@@ -54,6 +71,7 @@ export interface FlowDto {
 
 /**
  * Complete wire-format model snapshot DTO matching schema v1.1.0.
+ * @internal
  */
 export interface ModelSnapshotDto {
   readonly $schema: string;
@@ -64,10 +82,21 @@ export interface ModelSnapshotDto {
   readonly flows: FlowDto[] | null;
 }
 
+/**
+ * Options for connection styling and behavior on diagrams.
+ * @example
+
+ * svc.calls(api, 'REST', { kind: 'sync', detail: '/api/v1' });
+
+ */
 export interface ConnectionOptions {
+  /** Additional detail text shown near the connection arrow. */
   readonly detail?: string;
+  /** Synchronization style of the connection. */
   readonly kind?: ConnectionKind;
+  /** Icon identifier rendered on the connection. */
   readonly icon?: string;
+  /** If true, the connection is visually muted on diagrams. */
   readonly muted?: boolean;
 }
 
@@ -76,47 +105,88 @@ export interface ConnectionOptions {
 /**
  * Element kinds matching the backend ElementKind enum.
  * SDK exposes all 20 values (6 Code + 8 Infra + 6 Architecture).
+ *
+ * @example
+
+ * const svc = new Component(ElementKind.SERVICE, { id: 'api', name: 'API' });
+
  */
 export enum ElementKind {
   // Code layer
+  /** Class or struct in source code. */
   CLASS = 'Class',
+  /** Interface or protocol in source code. */
   INTERFACE = 'Interface',
+  /** HTTP/gRPC/GraphQL endpoint. */
   ENDPOINT = 'Endpoint',
+  /** Standalone function (Lambda, Cloud Function). */
   FUNCTION = 'Function',
+  /** Event producer component. */
   PRODUCER = 'Producer',
+  /** Event consumer component. */
   CONSUMER = 'Consumer',
   // Infra layer
+  /** Deployment target (K8s cluster, VM, serverless). */
   DEPLOYMENT = 'Deployment',
+  /** Relational or document database. */
   DATABASE = 'Database',
+  /** Message queue (RabbitMQ, SQS). */
   QUEUE = 'Queue',
+  /** In-memory cache (Redis, Memcached). */
   CACHE = 'Cache',
+  /** Network ingress point (load balancer, API gateway). */
   INGRESS = 'Ingress',
+  /** Logical grouping (K8s namespace). */
   NAMESPACE = 'Namespace',
+  /** Event streaming broker (Kafka, NATS, Pulsar). */
   BROKER = 'Broker',
+  /** Topic within a broker. */
   TOPIC = 'Topic',
   // Architecture layer
+  /** Top-level software system or service. */
   SERVICE = 'Service',
+  /** Application container within a system. */
   APPLICATION = 'Application',
+  /** Logical module within an application. */
   MODULE = 'Module',
+  /** External system or third-party integration. */
   EXTERNAL = 'External',
+  /** API gateway or reverse proxy. */
   GATEWAY = 'Gateway',
+  /** Background worker or job processor. */
   WORKER = 'Worker',
 }
 
 /**
  * Relation kinds matching the backend RelationKind enum.
+ *
+ * @example
+
+ * const id = computeRelationshipId(source, target, RelationKind.CALLS);
+
  */
 export enum RelationKind {
+  /** Parent contains child (auto-inferred from belongsTo). */
   CONTAINS = 'Contains',
+  /** Component deployed on infrastructure target. */
   DEPLOYED_ON = 'DeployedOn',
+  /** Generic usage (typically data stores). */
   USES = 'Uses',
+  /** Synchronous call (HTTP, gRPC). */
   CALLS = 'Calls',
+  /** Dependency relationship. */
   DEPENDS_ON = 'DependsOn',
+  /** Code-level import. */
   IMPORTS = 'Imports',
+  /** Interface implementation. */
   IMPLEMENTS = 'Implements',
+  /** Event/message production. */
   PRODUCES = 'Produces',
+  /** Event/message consumption. */
   CONSUMES = 'Consumes',
+  /** Ingress exposes a backend service. */
   EXPOSES = 'Exposes',
+  /** Gateway routes traffic to a service. */
   ROUTES_TO = 'RoutesTo',
 }
 
@@ -133,6 +203,13 @@ function generateAutoId(kind: ElementKind, name?: string): string {
 
 // ── Style types ──
 
+/**
+ * Predefined visual presets for diagram rendering.
+ * @example
+
+ * new SoftwareSystem({ id: 'svc', name: 'Svc', style: { preset: StylePreset.CRITICAL } });
+
+ */
 export enum StylePreset {
   DEFAULT = 'default',
   HIGHLIGHTED = 'highlighted',
@@ -142,6 +219,13 @@ export enum StylePreset {
   EXTERNAL = 'external',
 }
 
+/**
+ * Shape geometry for diagram node rendering.
+ * @example
+
+ * new Database({ id: 'db', name: 'DB', style: { shape: ShapeKind.CYLINDER } });
+
+ */
 export enum ShapeKind {
   RECTANGLE = 'rectangle',
   CIRCLE = 'circle',
@@ -152,12 +236,22 @@ export enum ShapeKind {
   CLOUD = 'cloud',
 }
 
+/**
+ * Custom visual style overrides for a component on diagrams.
+ * Style resolution priority: explicit custom colors > preset > tone > default theme.
+ */
 export interface ComponentStyle {
+  /** Apply a named style preset. */
   readonly preset?: StylePreset;
+  /** Text/foreground color (CSS). */
   readonly color?: string;
+  /** Background fill color (CSS). */
   readonly backgroundColor?: string;
+  /** Border color (CSS). */
   readonly borderColor?: string;
+  /** Icon identifier. */
   readonly icon?: string;
+  /** Shape override for the diagram node. */
   readonly shape?: ShapeKind;
 }
 
@@ -226,26 +320,58 @@ export function getDefaultShapeForKind(kind: ElementKind): ShapeKind {
 
 // ── Component args and base class ──
 
+/**
+ * Constructor arguments for Component and its subclasses.
+ *
+ * @example
+
+ * new SoftwareSystem({ id: 'api', name: 'API Service', technology: 'Node.js' });
+
+ */
 export interface ComponentArgs {
+  /** Unique identifier. Auto-generated from name if omitted. */
   readonly id?: string;
+  /** Human-readable name. */
   readonly name?: string;
+  /** Free-text description. */
   readonly description?: string;
+  /** Technology stack label (e.g., 'Node.js', 'PostgreSQL'). */
   readonly technology?: string;
+  /** Arbitrary key-value metadata. */
   readonly properties?: { [key: string]: string };
+  /** Parent component (infers Contains relationship). */
   readonly belongsTo?: Component;
+  /** Classification tags for filtering. */
   readonly tags?: string[];
+  /** Badge text rendered on the diagram node. */
   readonly badge?: string;
+  /** Visual tone hint for diagram rendering. */
   readonly tone?: ComponentTone;
+  /** Custom visual style overrides. */
   readonly style?: ComponentStyle;
 }
 
+/**
+ * Options for deployment relationships.
+ * @example
+
+ * api.deployedOn(cluster, { replicas: 3, cpu: '500m', memory: '256Mi' });
+
+ */
 export interface DeploymentOptions {
+  /** Number of replicas. */
   readonly replicas?: number;
+  /** CPU resource request (K8s format, e.g., '500m'). */
   readonly cpu?: string;
+  /** Memory resource request (K8s format, e.g., '256Mi'). */
   readonly memory?: string;
 }
 
+/**
+ * Options for expose relationships (ingress to service).
+ */
 export interface ExposeOptions {
+  /** URL path prefix for the exposed route. */
   readonly path?: string;
 }
 
@@ -783,6 +909,13 @@ export interface GraphqlApiArgs extends ComponentArgs {
 
 // ── Base element classes (13) ──
 
+/**
+ * Human actor or external user. Maps to ElementKind.EXTERNAL.
+ * @example
+
+ * const admin = new User({ id: 'admin', name: 'Admin', role: 'administrator' });
+
+ */
 export class User extends Component {
   public readonly role?: string;
 
@@ -792,6 +925,14 @@ export class User extends Component {
   }
 }
 
+/**
+ * Top-level software system. Maps to ElementKind.SERVICE.
+ * Named SoftwareSystem (not System) because 'System' is reserved in C#.
+ * @example
+
+ * const api = new SoftwareSystem({ id: 'api', name: 'API', technology: 'Node.js' });
+
+ */
 export class SoftwareSystem extends Component {
   public readonly domain?: string;
 
@@ -801,24 +942,44 @@ export class SoftwareSystem extends Component {
   }
 }
 
+/**
+ * Logical grouping (K8s namespace). Maps to ElementKind.NAMESPACE.
+ */
 export class Namespace extends Component {
   constructor(args: ComponentArgs) {
     super(ElementKind.NAMESPACE, args);
   }
 }
 
+/**
+ * Application container within a system. Maps to ElementKind.APPLICATION.
+ * @example
+
+ * const web = new Container({ id: 'web', name: 'Web App', belongsTo: system });
+
+ */
 export class Container extends Component {
   constructor(args: ComponentArgs) {
     super(ElementKind.APPLICATION, args);
   }
 }
 
+/**
+ * Logical module within an application. Maps to ElementKind.MODULE.
+ */
 export class Module extends Component {
   constructor(args: ComponentArgs) {
     super(ElementKind.MODULE, args);
   }
 }
 
+/**
+ * External system or third-party integration. Maps to ElementKind.EXTERNAL.
+ * @example
+
+ * const stripe = new External({ id: 'stripe', name: 'Stripe', vendor: 'Stripe Inc.' });
+
+ */
 export class External extends Component {
   public readonly vendor?: string;
 
@@ -828,19 +989,33 @@ export class External extends Component {
   }
 }
 
+/**
+ * API gateway or reverse proxy. Maps to ElementKind.GATEWAY.
+ */
 export class Gateway extends Component {
   constructor(args: ComponentArgs) {
     super(ElementKind.GATEWAY, args);
   }
 }
 
+/**
+ * Background worker or job processor. Maps to ElementKind.WORKER.
+ */
 export class Worker extends Component {
   constructor(args: ComponentArgs) {
     super(ElementKind.WORKER, args);
   }
 }
 
+/**
+ * Relational or document database. Maps to ElementKind.DATABASE.
+ * @example
+
+ * const db = new Database({ id: 'pg', name: 'PostgreSQL', engine: 'PostgreSQL' });
+
+ */
 export class Database extends Component {
+  /** Database engine name (e.g., 'PostgreSQL', 'MongoDB'). */
   public readonly engine?: string;
 
   constructor(args: DatabaseArgs) {
@@ -849,7 +1024,15 @@ export class Database extends Component {
   }
 }
 
+/**
+ * In-memory cache. Maps to ElementKind.CACHE.
+ * @example
+
+ * const cache = new Cache({ id: 'redis', name: 'Redis', engine: 'Redis' });
+
+ */
 export class Cache extends Component {
+  /** Cache engine name. */
   public readonly engine?: string;
 
   constructor(args: CacheArgs) {
@@ -858,7 +1041,15 @@ export class Cache extends Component {
   }
 }
 
+/**
+ * Message queue (RabbitMQ, SQS). Maps to ElementKind.QUEUE.
+ * @example
+
+ * const q = new Queue({ id: 'tasks', name: 'Task Queue', engine: 'RabbitMQ' });
+
+ */
 export class Queue extends Component {
+  /** Queue engine name. */
   public readonly engine?: string;
 
   constructor(args: QueueArgs) {
@@ -867,13 +1058,29 @@ export class Queue extends Component {
   }
 }
 
+/**
+ * Event streaming broker (Kafka, NATS, Pulsar). Maps to ElementKind.BROKER.
+ * @example
+
+ * const broker = new Broker({ id: 'kafka', name: 'Kafka' });
+
+ */
 export class Broker extends Component {
   constructor(args: BrokerArgs) {
     super(ElementKind.BROKER, args);
   }
 }
 
+/**
+ * Topic within a broker. Maps to ElementKind.TOPIC.
+ * Must have a Broker as belongsTo parent.
+ * @example
+
+ * const topic = new Topic({ id: 'events', name: 'Events', partitions: 12, belongsTo: broker });
+
+ */
 export class Topic extends Component {
+  /** Number of topic partitions. */
   public readonly partitions?: number;
 
   constructor(args: TopicArgs) {
@@ -884,6 +1091,14 @@ export class Topic extends Component {
 
 // ── Deployment classes (6) ──
 
+/**
+ * Kubernetes cluster deployment target. Maps to ElementKind.DEPLOYMENT.
+ * @example
+
+ * const cluster = new K8sCluster({ id: 'prod', name: 'Production', region: 'us-east-1' });
+ * api.deployedOn(cluster, { replicas: 3 });
+
+ */
 export class K8sCluster extends Component {
   public readonly region?: string;
   public readonly version?: string;
@@ -895,6 +1110,7 @@ export class K8sCluster extends Component {
   }
 }
 
+/** Managed database service (RDS, Cloud SQL). Maps to ElementKind.DEPLOYMENT. */
 export class ManagedDatabase extends Component {
   public readonly provider?: string;
   public readonly engine?: string;
@@ -906,6 +1122,7 @@ export class ManagedDatabase extends Component {
   }
 }
 
+/** Serverless compute target (Lambda, Cloud Functions). Maps to ElementKind.DEPLOYMENT. */
 export class Serverless extends Component {
   public readonly runtime?: string;
   public readonly provider?: string;
@@ -917,6 +1134,7 @@ export class Serverless extends Component {
   }
 }
 
+/** Virtual machine deployment target. Maps to ElementKind.DEPLOYMENT. */
 export class Vm extends Component {
   public readonly os?: string;
   public readonly provider?: string;
@@ -928,6 +1146,7 @@ export class Vm extends Component {
   }
 }
 
+/** Content delivery network. Maps to ElementKind.DEPLOYMENT. */
 export class Cdn extends Component {
   public readonly provider?: string;
 
@@ -937,6 +1156,7 @@ export class Cdn extends Component {
   }
 }
 
+/** Network ingress point (load balancer). Maps to ElementKind.INGRESS. */
 export class Ingress extends Component {
   public readonly host?: string;
   public readonly tls?: boolean;
@@ -952,6 +1172,13 @@ export class Ingress extends Component {
 
 // API patterns (extend Container → kind=Application)
 
+/**
+ * REST API container. Pre-sets technology='REST API'.
+ * @example
+
+ * const api = new RestApi({ id: 'api', name: 'User API', baseUrl: '/api/v1' });
+
+ */
 export class RestApi extends Container {
   public readonly baseUrl?: string;
   public readonly openapi?: string;
@@ -963,6 +1190,7 @@ export class RestApi extends Container {
   }
 }
 
+/** gRPC API container. Pre-sets technology='gRPC'. */
 export class GrpcApi extends Container {
   public readonly proto?: string;
 
@@ -972,6 +1200,7 @@ export class GrpcApi extends Container {
   }
 }
 
+/** GraphQL API container. Pre-sets technology='GraphQL'. */
 export class GraphqlApi extends Container {
   public readonly schema?: string;
 
@@ -983,54 +1212,63 @@ export class GraphqlApi extends Container {
 
 // Web/Mobile/Desktop frameworks (extend Container → kind=Application)
 
+/** React SPA container. Pre-sets technology='React'. */
 export class ReactApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'React', ...args });
   }
 }
 
+/** Next.js application container. Pre-sets technology='Next.js'. */
 export class NextApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Next.js', ...args });
   }
 }
 
+/** Vue.js application container. Pre-sets technology='Vue.js'. */
 export class VueApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Vue.js', ...args });
   }
 }
 
+/** Angular application container. Pre-sets technology='Angular'. */
 export class AngularApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Angular', ...args });
   }
 }
 
+/** Svelte application container. Pre-sets technology='Svelte'. */
 export class SvelteApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Svelte', ...args });
   }
 }
 
+/** Blazor application container. Pre-sets technology='Blazor'. */
 export class BlazorApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Blazor', ...args });
   }
 }
 
+/** iOS mobile application container. Pre-sets technology='iOS'. */
 export class IosApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'iOS', ...args });
   }
 }
 
+/** Android mobile application container. Pre-sets technology='Android'. */
 export class AndroidApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Android', ...args });
   }
 }
 
+/** Desktop application container. Pre-sets technology='Desktop'. */
 export class DesktopApp extends Container {
   constructor(args: ComponentArgs) {
     super({ technology: 'Desktop', ...args });
@@ -1039,24 +1277,28 @@ export class DesktopApp extends Container {
 
 // Database convenience classes (extend Database)
 
+/** PostgreSQL database. Pre-sets engine='PostgreSQL'. */
 export class Postgres extends Database {
   constructor(args: DatabaseArgs) {
     super({ engine: 'PostgreSQL', ...args });
   }
 }
 
+/** MySQL database. Pre-sets engine='MySQL'. */
 export class Mysql extends Database {
   constructor(args: DatabaseArgs) {
     super({ engine: 'MySQL', ...args });
   }
 }
 
+/** MongoDB database. Pre-sets engine='MongoDB'. */
 export class Mongo extends Database {
   constructor(args: DatabaseArgs) {
     super({ engine: 'MongoDB', ...args });
   }
 }
 
+/** ClickHouse analytics database. Pre-sets engine='ClickHouse'. */
 export class Clickhouse extends Database {
   constructor(args: DatabaseArgs) {
     super({ engine: 'ClickHouse', ...args });
@@ -1065,12 +1307,14 @@ export class Clickhouse extends Database {
 
 // Cache convenience classes (extend Cache)
 
+/** Redis cache. Pre-sets engine='Redis'. */
 export class Redis extends Cache {
   constructor(args: CacheArgs) {
     super({ engine: 'Redis', ...args });
   }
 }
 
+/** Memcached cache. Pre-sets engine='Memcached'. */
 export class Memcached extends Cache {
   constructor(args: CacheArgs) {
     super({ engine: 'Memcached', ...args });
@@ -1079,12 +1323,14 @@ export class Memcached extends Cache {
 
 // Queue convenience classes (extend Queue)
 
+/** RabbitMQ message queue. Pre-sets engine='RabbitMQ'. */
 export class Rabbit extends Queue {
   constructor(args: QueueArgs) {
     super({ engine: 'RabbitMQ', ...args });
   }
 }
 
+/** AWS SQS queue. Pre-sets engine='AWS SQS'. */
 export class Sqs extends Queue {
   constructor(args: QueueArgs) {
     super({ engine: 'AWS SQS', ...args });
@@ -1093,18 +1339,21 @@ export class Sqs extends Queue {
 
 // Broker convenience classes (extend Broker)
 
+/** Apache Kafka broker. Pre-sets technology='Kafka'. */
 export class Kafka extends Broker {
   constructor(args: BrokerArgs) {
     super({ technology: 'Kafka', ...args });
   }
 }
 
+/** NATS messaging broker. Pre-sets technology='NATS'. */
 export class Nats extends Broker {
   constructor(args: BrokerArgs) {
     super({ technology: 'NATS', ...args });
   }
 }
 
+/** Apache Pulsar broker. Pre-sets technology='Apache Pulsar'. */
 export class Pulsar extends Broker {
   constructor(args: BrokerArgs) {
     super({ technology: 'Apache Pulsar', ...args });
@@ -1427,23 +1676,29 @@ export function validateBelongsTo(entities: Component[]): void {
 }
 
 /**
- * ModelSnapshot result from buildSnapshot().
+ * IModelSnapshot result from buildSnapshot().
  * Includes emitter methods for wire-format serialization.
  */
-export interface ModelSnapshot {
+export interface IModelSnapshot {
   readonly entities: Component[];
   readonly relationships: InferredRelationship[];
   readonly scenarios: { [name: string]: FlowStep[] };
-  toModelSnapshotDto(): ModelSnapshotDto;
+  /** @internal */
+  _toModelSnapshotDto(): ModelSnapshotDto;
+  /**
+   * Serialize to JSON string with canonical key ordering for byte-stable output.
+   * @param indent - Number of spaces for indentation (default: 2).
+   * @returns JSON string matching schema v1.1.0.
+   */
   toJson(indent?: number): string;
 }
 
 /**
- * Build a complete ModelSnapshot from the current runtime state.
+ * Build a complete IModelSnapshot from the current runtime state.
  * Validates belongsTo rules and infers all relationships.
  * Returns object with data properties and emitter methods.
  */
-export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): ModelSnapshot {
+export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): IModelSnapshot {
   const rt = runtime ?? getRuntime();
 
   // Validate
@@ -1462,11 +1717,11 @@ export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): Mod
   const relationships = inferRelationships(entities, allFlows, rt.deployments);
   const scenarios = rt.scenarios;
 
-  const snapshot: ModelSnapshot = {
+  const snapshot: IModelSnapshot = {
     entities,
     relationships,
     scenarios,
-    toModelSnapshotDto(): ModelSnapshotDto {
+    _toModelSnapshotDto(): ModelSnapshotDto {
       // Build flows from scenarios, sorted by id for stability
       const scenarioEntries = Object.entries(scenarios).sort(([a], [b]) => a.localeCompare(b));
       const flows: FlowDto[] = scenarioEntries.map(([name, steps]) => {
@@ -1488,9 +1743,76 @@ export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): Mod
       };
     },
     toJson(indent = 2): string {
-      return JSON.stringify(snapshot.toModelSnapshotDto(), canonicalReplacer, indent);
+      return JSON.stringify(snapshot._toModelSnapshotDto(), canonicalReplacer, indent);
     },
   };
 
   return snapshot;
+}
+
+// ── emit() helper ──
+
+// Ambient declarations for Node.js APIs used by emit().
+// Avoids @types/node dependency which would pollute the jsii surface.
+declare const process: { stdout: { write(data: string): boolean } };
+declare function require(id: string): { promises: { writeFile(path: string, data: string): Promise<void> } };
+
+/**
+ * Options for the emit() helper.
+ *
+ * @example
+ *
+ * await emit(snapshot, { filePath: 'output.json', indent: 2 });
+ *
+ */
+export interface EmitOptions {
+  /**
+   * Output target: 'stdout' (default), 'file', or a WritableStream object.
+   * When set to 'file', filePath is required.
+   */
+  readonly to?: string;
+  /** File path for 'file' target. Required when to='file'. */
+  readonly filePath?: string;
+  /** JSON indentation spaces. Default: 2. */
+  readonly indent?: number;
+}
+
+/**
+ * Emit a model snapshot as JSON to stdout, a file, or a writable stream.
+ *
+ * @example
+ *
+ * const snapshot = buildSnapshot([svc, db]);
+ * await emit(snapshot);                              // stdout
+ * await emit(snapshot, { to: 'file', filePath: 'out.json' }); // file
+ *
+ * @param snapshot - Model snapshot from buildSnapshot().
+ * @param opts - Output options (target, filePath, indent).
+ */
+export async function emit(snapshot: IModelSnapshot, opts?: EmitOptions): Promise<void> {
+  const json = snapshot.toJson(opts?.indent ?? 2);
+  const output = json + '\n';
+  const target = opts?.to ?? 'stdout';
+
+  if (target === 'stdout') {
+    process.stdout.write(output);
+    return;
+  }
+
+  if (target === 'file') {
+    if (!opts?.filePath) {
+      throw new Error('filePath required when to=file');
+    }
+    const fs = require('fs');
+    await fs.promises.writeFile(opts.filePath, output);
+    return;
+  }
+
+  // WritableStream (duck-typed: any object with a .write() method)
+  if (typeof target === 'object' && target !== null && typeof (target as { write?: unknown }).write === 'function') {
+    (target as { write(data: string): void }).write(output);
+    return;
+  }
+
+  throw new Error(`Unknown emit target: ${String(target)}`);
 }
