@@ -3,6 +3,67 @@
 export type ConnectionKind = 'sync' | 'async' | 'event' | 'dependency';
 export type ComponentTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
+// ── Wire-format DTO interfaces (matches backend ModelSnapshotDto) ──
+
+/**
+ * Wire-format element DTO matching backend schema.
+ */
+export interface ElementDto {
+  readonly id: string;
+  readonly kind: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly technology?: string;
+  readonly parentId?: string;
+  readonly properties?: { [key: string]: string };
+  readonly tags?: string[];
+}
+
+/**
+ * Wire-format relationship DTO matching backend schema.
+ */
+export interface RelationshipDto {
+  readonly id: string;
+  readonly sourceId: string;
+  readonly targetId: string;
+  readonly kind: string;
+  readonly label?: string;
+  readonly technology?: string;
+  readonly properties?: { [key: string]: string };
+}
+
+/**
+ * Wire-format flow step DTO. RelationshipId null = action step (per C3).
+ */
+export interface FlowStepDto {
+  readonly sourceElementId: string;
+  readonly relationshipId: string | null;
+  readonly label?: string;
+  readonly properties?: { [key: string]: string };
+}
+
+/**
+ * Wire-format flow DTO with ordered steps.
+ */
+export interface FlowDto {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly steps: FlowStepDto[];
+}
+
+/**
+ * Complete wire-format model snapshot DTO matching schema v1.1.0.
+ */
+export interface ModelSnapshotDto {
+  readonly $schema: string;
+  readonly schemaVersion: string;
+  readonly source: string;
+  readonly elements: ElementDto[];
+  readonly relationships: RelationshipDto[];
+  readonly flows: FlowDto[] | null;
+}
+
 export interface ConnectionOptions {
   readonly detail?: string;
   readonly kind?: ConnectionKind;
@@ -487,6 +548,24 @@ export class Component {
     this.badge = args.badge;
     this.tone = args.tone;
     this.style = args.style;
+  }
+
+  /**
+   * Convert this component to a wire-format ElementDto.
+   */
+  public toDto(): ElementDto {
+    const dto: ElementDto = {
+      id: this.id,
+      kind: this.kind,
+      name: this.name ?? this.id,
+    };
+    const extras: Record<string, unknown> = {};
+    if (this.description) extras['description'] = this.description;
+    if (this.technology) extras['technology'] = this.technology;
+    if (this.belongsTo) extras['parentId'] = this.belongsTo.id;
+    if (this.properties && Object.keys(this.properties).length > 0) extras['properties'] = this.properties;
+    if (this.tags && this.tags.length > 0) extras['tags'] = this.tags;
+    return Object.keys(extras).length > 0 ? { ...dto, ...extras } as ElementDto : dto;
   }
 
   // ── Base flow methods ──
@@ -1064,6 +1143,97 @@ const ALLOWED_PARENTS: { [key: string]: ElementKind[] | undefined } = {
   [ElementKind.TOPIC]: [ElementKind.BROKER],
 };
 
+// ── Deterministic relationship ID computation ──
+
+/**
+ * Maps RelationKind enum to backend scanner convention string.
+ * Single-word: lowercase ('Calls' → 'calls').
+ * Multi-word: camelCase first letter lowered ('DependsOn' → 'dependsOn').
+ */
+export function relationKindToConventionString(kind: RelationKind): string {
+  return kind.charAt(0).toLowerCase() + kind.slice(1);
+}
+
+/**
+ * Compute deterministic relationship ID matching backend scanner convention.
+ * Format: "{srcId}--{kindConvention}-->{tgtId}"
+ *
+ * MUST match production scanners:
+ * - HelmConceptProjector.cs:61   → "{chart}--contains-->{workload}"
+ * - CSharpConceptProjector.cs:85 → "{root}--exposes-->{api}"
+ */
+export function computeRelationshipId(source: Component, target: Component, kind: RelationKind): string {
+  const srcId = source.id ?? source.name ?? '';
+  const tgtId = target.id ?? target.name ?? '';
+  const relName = relationKindToConventionString(kind);
+  return `${srcId}--${relName}-->${tgtId}`;
+}
+
+// ── Canonical JSON serialization ──
+
+/**
+ * JSON replacer that sorts object keys for byte-stable output.
+ */
+function canonicalReplacer(_key: string, value: unknown): unknown {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return Object.keys(value as Record<string, unknown>).sort().reduce<Record<string, unknown>>((acc, k) => {
+      acc[k] = (value as Record<string, unknown>)[k];
+      return acc;
+    }, {});
+  }
+  return value;
+}
+
+// ── Step-to-DTO mapping ──
+
+/**
+ * Map internal FlowStep to wire-format FlowStepDto.
+ * Action steps (no target) get relationshipId=null per C3.
+ */
+function mapStepToDto(step: FlowStep): FlowStepDto {
+  const sourceElementId = step.source.id ?? step.source.name ?? '';
+  if (!step.target) {
+    // Action step
+    const result: FlowStepDto = {
+      sourceElementId,
+      relationshipId: null,
+    };
+    if (step.label) {
+      return { ...result, label: step.label };
+    }
+    return result;
+  }
+  const kind = inferRelationKindForStep(step);
+  const relationshipId = kind ? computeRelationshipId(step.source, step.target, kind) : null;
+  const result: FlowStepDto = {
+    sourceElementId,
+    relationshipId,
+  };
+  if (step.label) {
+    return { ...result, label: step.label };
+  }
+  return result;
+}
+
+/**
+ * Map InferredRelationship to wire-format RelationshipDto.
+ */
+function mapInferredToDto(rel: InferredRelationship): RelationshipDto {
+  const srcId = rel.source.id;
+  const tgtId = rel.target.id;
+  const kindStr = relationKindToConventionString(rel.relationKind);
+  const dto: RelationshipDto = {
+    id: `${srcId}--${kindStr}-->${tgtId}`,
+    sourceId: srcId,
+    targetId: tgtId,
+    kind: rel.relationKind,
+  };
+  if (rel.labels.length > 0) {
+    return { ...dto, label: rel.labels.join(', ') };
+  }
+  return dto;
+}
+
 /** Set of ElementKinds considered as Database or Cache for inference */
 const DATA_STORE_KINDS = new Set([ElementKind.DATABASE, ElementKind.CACHE]);
 /** Set of ElementKinds considered as Topic or Queue for inference */
@@ -1258,16 +1428,20 @@ export function validateBelongsTo(entities: Component[]): void {
 
 /**
  * ModelSnapshot result from buildSnapshot().
+ * Includes emitter methods for wire-format serialization.
  */
 export interface ModelSnapshot {
   readonly entities: Component[];
   readonly relationships: InferredRelationship[];
   readonly scenarios: { [name: string]: FlowStep[] };
+  toModelSnapshotDto(): ModelSnapshotDto;
+  toJson(indent?: number): string;
 }
 
 /**
  * Build a complete ModelSnapshot from the current runtime state.
  * Validates belongsTo rules and infers all relationships.
+ * Returns object with data properties and emitter methods.
  */
 export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): ModelSnapshot {
   const rt = runtime ?? getRuntime();
@@ -1286,10 +1460,37 @@ export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): Mod
 
   // Infer relationships
   const relationships = inferRelationships(entities, allFlows, rt.deployments);
+  const scenarios = rt.scenarios;
 
-  return {
+  const snapshot: ModelSnapshot = {
     entities,
     relationships,
-    scenarios: rt.scenarios,
+    scenarios,
+    toModelSnapshotDto(): ModelSnapshotDto {
+      // Build flows from scenarios, sorted by id for stability
+      const scenarioEntries = Object.entries(scenarios).sort(([a], [b]) => a.localeCompare(b));
+      const flows: FlowDto[] = scenarioEntries.map(([name, steps]) => {
+        const flowDto: FlowDto = {
+          id: name,
+          name,
+          steps: steps.map(s => mapStepToDto(s)),
+        };
+        return flowDto;
+      });
+
+      return {
+        $schema: 'https://flowconsole.tech/contracts/model-snapshot/v1/schema.json',
+        schemaVersion: '1.1.0',
+        source: 'Git',
+        elements: entities.map(e => e.toDto()),
+        relationships: relationships.map(r => mapInferredToDto(r)),
+        flows: flows.length > 0 ? flows : null,
+      };
+    },
+    toJson(indent = 2): string {
+      return JSON.stringify(snapshot.toModelSnapshotDto(), canonicalReplacer, indent);
+    },
   };
+
+  return snapshot;
 }
