@@ -1694,6 +1694,49 @@ export interface IModelSnapshot {
 }
 
 /**
+ * Static helper class exposing module-level functions for jsii consumers (C#, Java, Python, Go).
+ * TypeScript users can import the free-standing functions directly.
+ *
+ * @example
+ *
+ * // C#: FlowConsole.Sdk.BuildSnapshot(entities);
+ * // Java: Sdk.buildSnapshot(entities);
+ * // Python: Sdk.build_snapshot(entities)
+ *
+ */
+export class Sdk {
+  private constructor() { /* static-only */ }
+
+  /**
+   * Build a model snapshot from entities and the current runtime state.
+   */
+  public static buildSnapshot(entities: Component[]): IModelSnapshot {
+    return buildSnapshot(entities);
+  }
+
+  /**
+   * Emit a model snapshot as JSON to stdout.
+   */
+  public static async emit(snapshot: IModelSnapshot): Promise<void> {
+    return emit(snapshot);
+  }
+
+  /**
+   * Reset the global flow runtime, clearing all scenarios and deployments.
+   */
+  public static resetRuntime(): void {
+    resetRuntime();
+  }
+
+  /**
+   * Return the global FlowRuntime singleton.
+   */
+  public static runtime(): FlowRuntime {
+    return getRuntime();
+  }
+}
+
+/**
  * Build a complete IModelSnapshot from the current runtime state.
  * Validates belongsTo rules and infers all relationships.
  * Returns object with data properties and emitter methods.

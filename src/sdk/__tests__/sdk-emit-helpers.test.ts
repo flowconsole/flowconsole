@@ -12,6 +12,7 @@ import {
   EmitOptions,
   ElementKind,
   RelationKind,
+  Sdk,
 } from '../flowconsole-sdk';
 
 // Import union types for type-level tests
@@ -264,5 +265,59 @@ describe('Discriminated union ergonomics', () => {
     if (endpoint.kind === 'Endpoint') {
       expect(endpoint.httpMethod).toBe('GET');
     }
+  });
+});
+
+// ── Sdk static helper class tests (jsii compatibility) ──
+
+describe('Sdk static helper class', () => {
+  it('Sdk.buildSnapshot() delegates to buildSnapshot()', () => {
+    const svc = new SoftwareSystem({ id: 'svc', name: 'Service' });
+    const db = new Database({ id: 'db', name: 'DB' });
+    svc.calls(db, 'query').scenario('test');
+
+    const snapshot = Sdk.buildSnapshot([svc, db]);
+    const dto = snapshot._toModelSnapshotDto();
+
+    expect(dto.schemaVersion).toBe('1.1.0');
+    expect(dto.source).toBe('Git');
+    expect(dto.elements.length).toBe(2);
+    expect(dto.flows).not.toBeNull();
+    expect(dto.flows!.length).toBe(1);
+    expect(dto.flows![0].name).toBe('test');
+  });
+
+  it('Sdk.resetRuntime() clears all state', () => {
+    const svc = new SoftwareSystem({ id: 'svc1', name: 'Service' });
+    svc.calls(new Database({ id: 'db1', name: 'DB' }), 'query').scenario('before-reset');
+
+    Sdk.resetRuntime();
+
+    const runtime = Sdk.runtime();
+    expect(Object.keys(runtime.scenarios).length).toBe(0);
+    expect(runtime.unnamedFlows.length).toBe(0);
+  });
+
+  it('Sdk.runtime() returns the global FlowRuntime', () => {
+    const runtime = Sdk.runtime();
+    expect(runtime).toBeDefined();
+    expect(typeof runtime.startFlow).toBe('function');
+    expect(typeof runtime.reset).toBe('function');
+  });
+
+  it('Sdk.emit() writes to stdout', async () => {
+    const svc = new SoftwareSystem({ id: 'svc2', name: 'Service' });
+    const snapshot = Sdk.buildSnapshot([svc]);
+
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+    await Sdk.emit(snapshot);
+
+    expect(writeSpy).toHaveBeenCalledOnce();
+    const written = writeSpy.mock.calls[0][0] as string;
+    const parsed = JSON.parse(written.trim());
+    expect(parsed.schemaVersion).toBe('1.1.0');
+    expect(parsed.elements[0].id).toBe('svc2');
+
+    writeSpy.mockRestore();
   });
 });

@@ -2344,7 +2344,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1768
+        "line": 1811
       },
       "name": "EmitOptions",
       "properties": [
@@ -2358,7 +2358,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1775
+            "line": 1818
           },
           "name": "filePath",
           "optional": true,
@@ -2376,7 +2376,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1777
+            "line": 1820
           },
           "name": "indent",
           "optional": true,
@@ -2394,7 +2394,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1773
+            "line": 1816
           },
           "name": "to",
           "optional": true,
@@ -5090,6 +5090,105 @@
       ],
       "symbolId": "flowconsole-sdk:RestApiArgs"
     },
+    "@flowconsole/sdk.Sdk": {
+      "assembly": "@flowconsole/sdk",
+      "docs": {
+        "example": "// C#: FlowConsole.Sdk.BuildSnapshot(entities);\n// Java: Sdk.buildSnapshot(entities);\n// Python: Sdk.build_snapshot(entities)",
+        "remarks": "TypeScript users can import the free-standing functions directly.",
+        "stability": "stable",
+        "summary": "Static helper class exposing module-level functions for jsii consumers (C#, Java, Python, Go)."
+      },
+      "fqn": "@flowconsole/sdk.Sdk",
+      "kind": "class",
+      "locationInModule": {
+        "filename": "flowconsole-sdk.ts",
+        "line": 1707
+      },
+      "methods": [
+        {
+          "docs": {
+            "stability": "stable",
+            "summary": "Build a model snapshot from entities and the current runtime state."
+          },
+          "locationInModule": {
+            "filename": "flowconsole-sdk.ts",
+            "line": 1713
+          },
+          "name": "buildSnapshot",
+          "parameters": [
+            {
+              "name": "entities",
+              "type": {
+                "collection": {
+                  "elementtype": {
+                    "fqn": "@flowconsole/sdk.Component"
+                  },
+                  "kind": "array"
+                }
+              }
+            }
+          ],
+          "returns": {
+            "type": {
+              "fqn": "@flowconsole/sdk.IModelSnapshot"
+            }
+          },
+          "static": true
+        },
+        {
+          "async": true,
+          "docs": {
+            "stability": "stable",
+            "summary": "Emit a model snapshot as JSON to stdout."
+          },
+          "locationInModule": {
+            "filename": "flowconsole-sdk.ts",
+            "line": 1720
+          },
+          "name": "emit",
+          "parameters": [
+            {
+              "name": "snapshot",
+              "type": {
+                "fqn": "@flowconsole/sdk.IModelSnapshot"
+              }
+            }
+          ],
+          "static": true
+        },
+        {
+          "docs": {
+            "stability": "stable",
+            "summary": "Reset the global flow runtime, clearing all scenarios and deployments."
+          },
+          "locationInModule": {
+            "filename": "flowconsole-sdk.ts",
+            "line": 1727
+          },
+          "name": "resetRuntime",
+          "static": true
+        },
+        {
+          "docs": {
+            "stability": "stable",
+            "summary": "Return the global FlowRuntime singleton."
+          },
+          "locationInModule": {
+            "filename": "flowconsole-sdk.ts",
+            "line": 1734
+          },
+          "name": "runtime",
+          "returns": {
+            "type": {
+              "fqn": "@flowconsole/sdk.FlowRuntime"
+            }
+          },
+          "static": true
+        }
+      ],
+      "name": "Sdk",
+      "symbolId": "flowconsole-sdk:Sdk"
+    },
     "@flowconsole/sdk.Serverless": {
       "assembly": "@flowconsole/sdk",
       "base": "@flowconsole/sdk.Component",
@@ -5842,5 +5941,5 @@
     }
   },
   "version": "2.0.0",
-  "fingerprint": "ZPcWLKPREWKq/jo/OiEDg0XmRXynFrmHmgLTBGXDurY="
+  "fingerprint": "E2j6i687P6rfc4UL6KKC7PFbcWRZ+bu1J79VcA6pdFY="
 }
