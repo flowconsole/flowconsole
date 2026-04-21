@@ -30,6 +30,11 @@
       "type": "array",
       "items": { "$ref": "#/$defs/Relationship" },
       "description": "All relationships between elements"
+    },
+    "flows": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/Flow" },
+      "description": "Optional sequence flows describing interactions between elements"
     }
   },
   "$defs": {
@@ -225,6 +230,57 @@
         "Exposes",
         "RoutesTo"
       ]
+    },
+    "Flow": {
+      "type": "object",
+      "required": ["id", "name", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique flow identifier within the snapshot"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable flow name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional flow description"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FlowStep" },
+          "description": "Ordered sequence of flow steps (array index = order)"
+        }
+      }
+    },
+    "FlowStep": {
+      "type": "object",
+      "required": ["sourceElementId"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceElementId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Source element ID for this step"
+        },
+        "relationshipId": {
+          "type": ["string", "null"],
+          "description": "Relationship ID for edge steps; null for action steps"
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional step label"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Custom key-value properties for this step"
+        }
+      }
     }
   }
 }

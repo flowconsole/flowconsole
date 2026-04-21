@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_FLOW_RELATIONSHIP_MISSING",
+      "phase": "reference",
+      "level": "error",
+      "path": "/flows/0/steps/0",
+      "message": "Edge step's relationshipId 'svc-a--calls-->nonexistent' not found in relationships"
+    }
+  ]
+}

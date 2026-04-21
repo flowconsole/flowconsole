@@ -1,0 +1,21 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.1.0",
+  "source": "Git",
+  "elements": [
+    { "id": "svc-a", "kind": "Service", "name": "Service A" },
+    { "id": "scanned-db", "kind": "Database", "name": "Scanned DB", "source": "InfraScan" }
+  ],
+  "relationships": [
+    { "id": "svc-a--calls-->scanned-db", "sourceId": "svc-a", "targetId": "scanned-db", "kind": "Calls" }
+  ],
+  "flows": [
+    {
+      "id": "cross-source-flow",
+      "name": "Cross Source Flow",
+      "steps": [
+        { "sourceElementId": "scanned-db", "relationshipId": null, "label": "action on cross-source element" }
+      ]
+    }
+  ]
+}

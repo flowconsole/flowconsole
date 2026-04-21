@@ -7,10 +7,11 @@ This document describes the DTO fields and per-kind required properties for the 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `$schema` | string (const URI) | yes | Must be `"https://flowconsole.tech/contracts/model-snapshot/v1/schema.json"` |
-| `schemaVersion` | string (semver) | yes | Schema version, e.g. `"1.0.0"` |
+| `schemaVersion` | string (semver) | yes | Schema version, e.g. `"1.1.0"` |
 | `source` | string | yes | Origin source: `"CodeScan"`, `"InfraScan"`, `"Git"`, `"Import"` |
 | `elements` | array of Element | yes | All elements in the snapshot |
 | `relationships` | array of Relationship | yes | All relationships between elements |
+| `flows` | array of Flow or null | no | Sequence flows describing interactions (added in 1.1.0). Only allowed when `source` is `"Git"` |
 
 ## Element
 
@@ -94,3 +95,34 @@ All other kinds have no required properties keys (the `properties` field itself 
 - `Consumes` — consumes messages from target
 - `Exposes` — exposes functionality via target
 - `RoutesTo` — routes traffic to target
+
+## Flow (added in schema 1.1.0)
+
+A flow describes an ordered sequence of interactions between elements, typically representing a user journey, API call chain, or data pipeline.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | yes | Unique flow identifier within the snapshot |
+| `name` | string | yes | Human-readable flow name |
+| `description` | string | no | Optional flow description |
+| `steps` | array of FlowStep | yes | Ordered sequence of steps (array index = order) |
+
+Flows are only allowed in snapshots with `source: "Git"`. Non-Git source pushes with non-empty flows are rejected with `SNAPSHOT_FLOW_NOT_ALLOWED_FOR_SOURCE`.
+
+## FlowStep
+
+Each step in a flow represents either an edge step (traversing a relationship) or an action step (an action within a single element).
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `sourceElementId` | string | yes | Source element ID — must exist in elements array |
+| `relationshipId` | string or null | no | Relationship ID for edge steps; `null` or absent for action steps |
+| `label` | string | no | Optional step label |
+| `properties` | object (string values) | no | Custom key-value properties for this step |
+
+### Edge steps vs action steps
+
+- **Edge step**: `relationshipId` is a non-null string referencing a relationship in the `relationships` array. The target element is derived from the relationship — no explicit `targetElementId` field. The `relationshipId` follows the convention `{sourceId}--{kindLowercase}-->{targetId}` (e.g., `webapp--calls-->api`).
+- **Action step**: `relationshipId` is `null` (or absent). Represents an action performed within the source element (e.g., `executesRequest()`, `processPayment()`). The `sourceElementId` must still exist in the elements array (`SNAPSHOT_FLOW_ACTION_STEP_INVALID` if not).
+
+There is no explicit `Order` field — the position in the `steps` array determines execution order.

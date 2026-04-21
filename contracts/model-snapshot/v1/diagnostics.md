@@ -29,6 +29,7 @@ Each diagnostic has the following shape:
 - `SNAPSHOT_SCHEMA_*` — JSON Schema validation errors;
 - `SNAPSHOT_VERSION_*` — schema version compatibility errors/warnings;
 - `SNAPSHOT_REF_*` — semantic reference integrity errors;
+- `SNAPSHOT_FLOW_*` — flow-specific semantic validation errors;
 - `SNAPSHOT_LIMIT_*` — backend security limit violations.
 
 ## Diagnostic catalog v1
@@ -60,6 +61,16 @@ Each diagnostic has the following shape:
 | `SNAPSHOT_REF_UNRESOLVED` | error | Relationship references an element ID not present in elements array | Ensure all sourceId/targetId values match an element id |
 | `SNAPSHOT_REF_DUPLICATE_ID` | error | Two or more elements share the same id | Element IDs must be unique within a snapshot |
 
+### Flow phase (semantic validation for flows)
+
+| Code | Level | Description | Hint |
+|------|-------|-------------|------|
+| `SNAPSHOT_FLOW_NOT_ALLOWED_FOR_SOURCE` | error | Flows present in non-Git source push | Flows are owned by source=git only |
+| `SNAPSHOT_FLOW_STEP_UNRESOLVED` | error | Flow step references unknown element or cross-source partition element | Declare element via SDK Components in Git source |
+| `SNAPSHOT_FLOW_ID_DUPLICATE` | error | Two or more flows share the same id within a snapshot | Flow ids must be unique |
+| `SNAPSHOT_FLOW_RELATIONSHIP_MISSING` | error | Edge step's RelationshipId not found in relationships array | Check RelationshipId derivation |
+| `SNAPSHOT_FLOW_ACTION_STEP_INVALID` | error | Action step (RelationshipId=null) with invalid SourceElementId | sourceElementId must exist in elements |
+
 ### Limit phase (backend security limits)
 
 | Code | Level | Description | Hint |
@@ -74,6 +85,7 @@ Each diagnostic has the following shape:
 - `schema` errors are blocking — subsequent phases are not executed;
 - `version` errors are blocking for major mismatch; minor ahead is a warning only;
 - `reference` errors indicate semantic issues detected after successful deserialization;
+- `flow` errors are semantic — detected during reference/flow validation after deserialization;
 - `limit` errors are backend-side enforcement, not emitted by CLI validation;
 - Multiple diagnostics can be emitted per phase (all errors collected before halting).
 

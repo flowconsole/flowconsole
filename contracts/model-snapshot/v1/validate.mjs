@@ -106,6 +106,77 @@ function runSemanticChecks(data) {
     }
   }
 
+  // Flow phase: validate flows if present
+  if (Array.isArray(data.flows) && data.flows.length > 0) {
+    // Source ownership: flows only allowed for source=Git
+    if (data.source && data.source !== "Git") {
+      errors.push(`flow: flows present in non-Git source '${data.source}' push`);
+    }
+
+    // Duplicate flow IDs
+    const flowIds = new Set();
+    for (let i = 0; i < data.flows.length; i++) {
+      const flow = data.flows[i];
+      if (flow && flow.id) {
+        if (flowIds.has(flow.id)) {
+          errors.push(`flow: duplicate flow id '${flow.id}' at /flows/${i}`);
+        }
+        flowIds.add(flow.id);
+      }
+    }
+
+    // Build element lookup (id -> effective source) and relationship lookup
+    const elementIds = new Set();
+    const elementSources = new Map();
+    if (Array.isArray(data.elements)) {
+      for (const el of data.elements) {
+        if (el && el.id) {
+          elementIds.add(el.id);
+          elementSources.set(el.id, el.source || data.source);
+        }
+      }
+    }
+    const relationshipIds = new Set();
+    if (Array.isArray(data.relationships)) {
+      for (const rel of data.relationships) {
+        if (rel && rel.id) relationshipIds.add(rel.id);
+      }
+    }
+
+    // Validate flow steps
+    for (let i = 0; i < data.flows.length; i++) {
+      const flow = data.flows[i];
+      if (!flow || !Array.isArray(flow.steps)) continue;
+      for (let j = 0; j < flow.steps.length; j++) {
+        const step = flow.steps[j];
+        if (!step) continue;
+        const stepPath = `/flows/${i}/steps/${j}`;
+
+        // Check sourceElementId exists and is same-source
+        if (step.sourceElementId) {
+          if (!elementIds.has(step.sourceElementId)) {
+            if (step.relationshipId == null) {
+              errors.push(`flow: action step sourceElementId '${step.sourceElementId}' not found at ${stepPath}`);
+            } else {
+              errors.push(`flow: step sourceElementId '${step.sourceElementId}' not found at ${stepPath}`);
+            }
+          } else {
+            // Cross-source check: step must reference Git-partition elements only
+            const elemSource = elementSources.get(step.sourceElementId);
+            if (elemSource && elemSource !== "Git") {
+              errors.push(`flow: step references cross-source element '${step.sourceElementId}' (source: ${elemSource}) at ${stepPath}`);
+            }
+          }
+        }
+
+        // Check relationshipId exists (edge steps)
+        if (step.relationshipId != null && !relationshipIds.has(step.relationshipId)) {
+          errors.push(`flow: step relationshipId '${step.relationshipId}' not found at ${stepPath}`);
+        }
+      }
+    }
+  }
+
   return errors;
 }
 

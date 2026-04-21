@@ -1,0 +1,21 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.1.0",
+  "source": "Git",
+  "elements": [
+    { "id": "order-service", "kind": "Service", "name": "Order Service" },
+    { "id": "payment-service", "kind": "Service", "name": "Payment Service" }
+  ],
+  "relationships": [],
+  "flows": [
+    {
+      "id": "process-order",
+      "name": "Process Order",
+      "steps": [
+        { "sourceElementId": "order-service", "label": "validateOrder()" },
+        { "sourceElementId": "order-service", "label": "calculateTotal()" },
+        { "sourceElementId": "payment-service", "label": "processPayment()" }
+      ]
+    }
+  ]
+}

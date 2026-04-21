@@ -1,0 +1,21 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.1.0",
+  "source": "Git",
+  "elements": [
+    { "id": "svc-a", "kind": "Service", "name": "Service A" },
+    { "id": "svc-b", "kind": "Service", "name": "Service B" }
+  ],
+  "relationships": [
+    { "id": "svc-a--calls-->svc-b", "sourceId": "svc-a", "targetId": "svc-b", "kind": "Calls" }
+  ],
+  "flows": [
+    {
+      "id": "broken-flow",
+      "name": "Broken Flow",
+      "steps": [
+        { "sourceElementId": "svc-a", "relationshipId": "svc-a--calls-->nonexistent", "label": "bad edge step" }
+      ]
+    }
+  ]
+}

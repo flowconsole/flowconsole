@@ -7,8 +7,12 @@ JSON wire format for exchanging architectural model snapshots between FlowConsol
 The `schemaVersion` field uses semantic versioning:
 
 - **Patch** (1.0.0 → 1.0.1): silent pass — no behavioral difference
-- **Minor** (1.0.0 → 1.1.0): additive changes (new optional fields) — consumer emits `SNAPSHOT_VERSION_MINOR_AHEAD` warning but processes the snapshot, preserving unknown fields
+- **Minor** (1.0.0 → 1.1.0): additive changes (new optional fields) — consumer emits `SNAPSHOT_VERSION_MINOR_AHEAD` warning but processes the snapshot, preserving unknown fields. The schema URI (`$id`) does not change on minor bumps — it is keyed to the major version (`v1`)
 - **Major** (1.0.0 → 2.0.0): breaking changes — consumer emits `SNAPSHOT_VERSION_MAJOR_MISMATCH` error and rejects the snapshot
+
+### Version 1.1.0 (additive)
+
+Added optional top-level `flows` property for describing sequence flows between elements. Flows are only permitted when `source` is `"Git"`. See [`types.md`](types.md) for `Flow` and `FlowStep` type documentation and [`diagnostics.md`](diagnostics.md) for new `SNAPSHOT_FLOW_*` diagnostic codes.
 
 ## Required top-level fields
 
@@ -17,7 +21,7 @@ Every valid ModelSnapshot JSON must have:
 ```json
 {
   "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "source": "CodeScan",
   "elements": [],
   "relationships": []
