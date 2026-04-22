@@ -1,0 +1,41 @@
+{
+  "name": "@flowconsole/cli",
+  "version": "2.0.0",
+  "description": "FlowConsole CLI (fc) — architecture-as-code scanning, validation, and push",
+  "license": "Apache-2.0",
+  "bin": {
+    "fc": "./bin/fc.js"
+  },
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "postinstall.js",
+    "README.md"
+  ],
+  "keywords": [
+    "architecture",
+    "architecture-as-code",
+    "diagrams",
+    "cli",
+    "flowconsole"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AhmadMayo/flowconsole.git",
+    "directory": "cli-npm"
+  }
+}

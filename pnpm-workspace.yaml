@@ -6,5 +6,7 @@ packages:
   - src/core
   - src/sdk
 
+  - cli-npm
+
 onlyBuiltDependencies:
   - '@ast-grep/lang-csharp'
