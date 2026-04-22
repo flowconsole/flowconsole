@@ -125,6 +125,7 @@ Two .NET projects implement the v1alpha1 rule engine:
 
 - **backend/src/FlowConsole.Rules.Core** — domain types, compiled model, ingest pipeline (5 phases: parse → schema → semantic → expression → normalize), abstractions (IRuleFileIngestor, IExpressionCompiler, IExpressionEvaluator, ISubjectResolver, IPathFinder, IRuleExecutor). No external dependencies beyond YamlDotNet.
 - **backend/src/FlowConsole.Rules.Engine.Default** — Cel.NET-based expression compiler/evaluator, helper functions (collection, graph, diff, predicate), InMemory subject resolver, path finder, rule executor. Cel.NET types do not leak into the public API surface.
+- **backend/src/FlowConsole.Scanners.Helm** — Helm chart scanner shared library. Parses Chart.yaml + templates/ to produce typed Elements/Relationships (Deployment, Service, Ingress, ConfigMap, etc.). Implements `IInfraScanner`. Used by both backend API and CLI (`fc scan` auto-detects via Chart.yaml).
 
 Rule file contract: `contracts/rules/v1alpha1/` — JSON Schema, expression language spec, types, helpers, diagnostics, conformance suite (50+ fixtures).
 
