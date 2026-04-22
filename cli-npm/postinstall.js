@@ -75,7 +75,7 @@ function getDownloadBaseUrl() {
   return "https://github.com/AhmadMayo/flowconsole/releases/download";
 }
 
-function fetch(url) {
+function fetch(url, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https") ? https : http;
     client
@@ -87,7 +87,11 @@ function fetch(url) {
             res.statusCode === 307) &&
           res.headers.location
         ) {
-          return fetch(res.headers.location).then(resolve, reject);
+          if (maxRedirects <= 0) {
+            reject(new Error(`Too many redirects following ${url}`));
+            return;
+          }
+          return fetch(res.headers.location, maxRedirects - 1).then(resolve, reject);
         }
         if (res.statusCode !== 200) {
           reject(
