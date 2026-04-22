@@ -9,6 +9,7 @@
   "scripts": {
     "postinstall": "node postinstall.js"
   },
+  "cliVersion": "0.2.0-beta",
   "engines": {
     "node": ">=18.0.0"
   },
