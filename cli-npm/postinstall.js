@@ -197,12 +197,15 @@ function extractZip(buf, destDir) {
       });
     } catch (_) {
       // Fallback to PowerShell on Windows
+      // Escape single quotes for PowerShell (double them inside single-quoted strings)
+      const escapedTmpFile = tmpFile.replace(/'/g, "''");
+      const escapedDestDir = destDir.replace(/'/g, "''");
       execFileSync(
         "powershell",
         [
           "-NoProfile",
           "-Command",
-          `Expand-Archive -Path '${tmpFile}' -DestinationPath '${destDir}' -Force`,
+          `Expand-Archive -Path '${escapedTmpFile}' -DestinationPath '${escapedDestDir}' -Force`,
         ],
         { stdio: "pipe" }
       );
