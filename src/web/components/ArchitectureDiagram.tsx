@@ -66,8 +66,6 @@ function sizeOf(node: ArchitectureDiagramModel['nodes'][number]) {
   return { width: w, height: h };
 }
 
-// --- Highlight state ---
-
 type HighlightState = {
   hoveredNodeId: string | null;
   hoveredEdgeId: string | null;
@@ -103,7 +101,6 @@ export function ArchitectureDiagram({
   const trail = useMemo(() => scopeTrail(model, scopeId), [model, scopeId]);
   const parentScopeId = trail.length > 1 ? trail[trail.length - 2].id : undefined;
 
-  // --- React Flow state ---
   const [nodes, setNodes] = useNodesState<ArchitectureNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<ArchitectureEdge>([]);
   const [pendingFocus, setPendingFocus] = useState<string | string[] | undefined>();
@@ -118,7 +115,6 @@ export function ArchitectureDiagram({
     }
   }, [focusElementId, setNodes]);
 
-  // --- Flow panel ---
   const flows = model.flows ?? [];
   const [isFlowPanelVisible, setFlowPanelVisible] = useState(false);
   const defaultFlow = useMemo(
@@ -130,7 +126,6 @@ export function ArchitectureDiagram({
   const [activeFlowStep, setActiveFlowStep] = useState(-1);
   const [flowAnimationTick, setFlowAnimationTick] = useState(0);
 
-  // --- Lookup maps ---
   const nodeTitles = useMemo(() => {
     const map = new Map<string, string>();
     model.nodes.forEach((n) => map.set(n.id, n.data.title));
@@ -149,7 +144,6 @@ export function ArchitectureDiagram({
     return map;
   }, [nodes]);
 
-  // --- Highlight ---
   const [highlight, setHighlight] = useState<HighlightState>(EMPTY_HIGHLIGHT);
   const isHighlightActive = highlight.hoveredNodeId !== null || highlight.hoveredEdgeId !== null;
 
@@ -213,7 +207,6 @@ export function ArchitectureDiagram({
     });
   }, [edges, isHighlightActive, highlight.connectedEdgeIds]);
 
-  // --- Layout computation ---
   // On model change: preserve current scope if the container still exists
   // in the new model; otherwise fall back to the top level.
   useEffect(() => {
@@ -306,7 +299,6 @@ export function ArchitectureDiagram({
     [setNodes, rerouteEdges]
   );
 
-  // --- Scope/focus transitions ---
   const [scopeTransition, setScopeTransition] = useState(false);
   useEffect(() => {
     setFlowAnimationTick((tick) => tick + 1);
@@ -315,7 +307,6 @@ export function ArchitectureDiagram({
     return () => clearTimeout(timer);
   }, [scopeId]);
 
-  // --- Flow panel logic ---
   useEffect(() => {
     if (!activeFlowId && flows.length) {
       setActiveFlowId(flows[0]?.id);
@@ -434,7 +425,6 @@ export function ArchitectureDiagram({
     }
   }, [activeFlowId, activeFlowStep, flows, nodeIndex, visibleNodeMap]);
 
-  // --- Navigation ---
   const findClosestContainer = useCallback(
     (nodeId: string) => {
       let current = nodeIndex.get(nodeId);
@@ -491,7 +481,6 @@ export function ArchitectureDiagram({
     onElementSelect?.(null);
   }, [onElementSelect]);
 
-  // --- Theme ---
   const minimapTheme = useMemo(
     () =>
       effectiveScheme === 'light'
@@ -602,8 +591,6 @@ export function ArchitectureDiagram({
   );
 }
 
-// --- Flow step panel ---
-
 type FlowStepPanelProps = {
   flows: FlowDefinition[];
   activeFlowId?: string;
@@ -691,8 +678,6 @@ function FlowStepPanel({
     </div>
   );
 }
-
-// --- Viewport controller ---
 
 type ViewportControllerProps = {
   focusTarget?: string | string[];

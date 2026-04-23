@@ -1,4 +1,3 @@
-// ── Existing types (kept unchanged) ──
 
 /**
  * Describes the synchronization style of a connection between components.
@@ -100,8 +99,6 @@ export interface ConnectionOptions {
   readonly muted?: boolean;
 }
 
-// ── Enums aligned with backend ──
-
 /**
  * Element kinds matching the backend ElementKind enum.
  * SDK exposes all 20 values (6 Code + 8 Infra + 6 Architecture).
@@ -200,8 +197,6 @@ function generateAutoId(kind: ElementKind, name?: string): string {
   _slugCounters.set(base, count + 1);
   return count === 0 ? base : `${base}-${count + 1}`;
 }
-
-// ── Style types ──
 
 /**
  * Predefined visual presets for diagram rendering.
@@ -318,8 +313,6 @@ export function getDefaultShapeForKind(kind: ElementKind): ShapeKind {
   }
 }
 
-// ── Component args and base class ──
-
 /**
  * Constructor arguments for Component and its subclasses.
  *
@@ -418,8 +411,6 @@ export class FlowBuilder {
     return this;
   }
 
-  // ── Base flow methods ──
-
   public sendsRequest(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
     this._steps.push({ source: this._current, target, label, options, method: 'sendsRequest' });
     this._current = target;
@@ -510,8 +501,6 @@ export class FlowBuilder {
   public inParallel(...branches: FlowBuilder[]): FlowBuilder {
     return this;
   }
-
-  // ── Convenience flow wrappers ──
 
   public opens(target: Component, label?: string): FlowBuilder {
     return this.sendsRequest(target, label, { kind: 'sync' });
@@ -694,8 +683,6 @@ export class Component {
     return Object.keys(extras).length > 0 ? { ...dto, ...extras } as ElementDto : dto;
   }
 
-  // ── Base flow methods ──
-
   public sendsRequest(target: Component, label?: string, options?: ConnectionOptions): FlowBuilder {
     const runtime = getRuntime();
     const builder = runtime.startFlow(this);
@@ -765,8 +752,6 @@ export class Component {
     return builder.inParallel(...branches);
   }
 
-  // ── Convenience flow wrappers ──
-
   public opens(target: Component, label?: string): FlowBuilder {
     return this.sendsRequest(target, label, { kind: 'sync' });
   }
@@ -794,8 +779,6 @@ export class Component {
   public runs(label?: string): FlowBuilder {
     return this.executesRequest(label);
   }
-
-  // ── Deployment methods ──
 
   public deployedOn(target: Component, options?: DeploymentOptions): void {
     const runtime = getRuntime();
@@ -826,8 +809,6 @@ export class Component {
     });
   }
 }
-
-// ── Args interfaces for element classes ──
 
 export interface UserArgs extends ComponentArgs {
   readonly role?: string;
@@ -861,8 +842,6 @@ export interface TopicArgs extends ComponentArgs {
   readonly partitions?: number;
 }
 
-// ── Deployment args ──
-
 export interface K8sClusterArgs extends ComponentArgs {
   readonly region?: string;
   readonly version?: string;
@@ -892,8 +871,6 @@ export interface IngressArgs extends ComponentArgs {
   readonly tls?: boolean;
 }
 
-// ── Convenience args ──
-
 export interface RestApiArgs extends ComponentArgs {
   readonly baseUrl?: string;
   readonly openapi?: string;
@@ -906,8 +883,6 @@ export interface GrpcApiArgs extends ComponentArgs {
 export interface GraphqlApiArgs extends ComponentArgs {
   readonly schema?: string;
 }
-
-// ── Base element classes (13) ──
 
 /**
  * Human actor or external user. Maps to ElementKind.EXTERNAL.
@@ -1089,8 +1064,6 @@ export class Topic extends Component {
   }
 }
 
-// ── Deployment classes (6) ──
-
 /**
  * Kubernetes cluster deployment target. Maps to ElementKind.DEPLOYMENT.
  * @example
@@ -1167,8 +1140,6 @@ export class Ingress extends Component {
     this.tls = args.tls;
   }
 }
-
-// ── Convenience classes (23) ──
 
 // API patterns (extend Container → kind=Application)
 
@@ -1360,8 +1331,6 @@ export class Pulsar extends Broker {
   }
 }
 
-// ── Inference and validation ──
-
 /**
  * Represents a single inferred relationship between two components.
  */
@@ -1392,8 +1361,6 @@ const ALLOWED_PARENTS: { [key: string]: ElementKind[] | undefined } = {
   [ElementKind.TOPIC]: [ElementKind.BROKER],
 };
 
-// ── Deterministic relationship ID computation ──
-
 /**
  * Maps RelationKind enum to backend scanner convention string.
  * Single-word: lowercase ('Calls' → 'calls').
@@ -1417,8 +1384,6 @@ export function computeRelationshipId(source: Component, target: Component, kind
   const relName = relationKindToConventionString(kind);
   return `${srcId}--${relName}-->${tgtId}`;
 }
-
-// ── Canonical JSON serialization ──
 
 /**
  * JSON replacer that sorts object keys for byte-stable output.
@@ -1744,7 +1709,6 @@ export class Sdk {
 export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): IModelSnapshot {
   const rt = runtime ?? getRuntime();
 
-  // Validate
   validateBelongsTo(entities);
 
   // Collect all flow steps
@@ -1792,8 +1756,6 @@ export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): IMo
 
   return snapshot;
 }
-
-// ── emit() helper ──
 
 // Ambient declarations for Node.js APIs used by emit().
 // Avoids @types/node dependency which would pollute the jsii surface.

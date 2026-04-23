@@ -152,8 +152,6 @@ export function routeEdges(
   return result;
 }
 
-// --- Internal helpers ---
-
 /**
  * Bundle edges: snap similar mid-corridor cross positions AND
  * merge nearby source/target ports on the same node.
@@ -497,7 +495,6 @@ function computeWaypoints(
 
   return waypoints;
 }
-
 
 /**
  * Detect if waypoints form a "hook" — the path reverses direction on the main axis

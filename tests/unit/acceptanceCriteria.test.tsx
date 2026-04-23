@@ -130,8 +130,6 @@ describe('Acceptance: Shapes produce correct nodeTypes and DOM', () => {
   }, 15000);
 });
 
-// ── Custom colors ──
-
 describe('Acceptance: Custom colors apply correctly', () => {
   it('backgroundColor on rectangle -> style contains the color', async () => {
     const result = await evaluateDiagramCode(customBgColorOnRectCode);
@@ -207,8 +205,6 @@ describe('Acceptance: Custom colors apply correctly', () => {
     expect(polygon?.getAttribute('stroke')).toBe('#c0392b');
   }, 15000);
 });
-
-// ── Presets ──
 
 describe('Acceptance: Presets apply correct visual styles', () => {
   it('deprecated -> opacity <= 0.6, dashed border (rect) or stroke-dasharray (SVG)', async () => {
@@ -293,8 +289,6 @@ describe('Acceptance: Presets apply correct visual styles', () => {
     expect(card).toHaveClass('diagram-card--deprecated');
   }, 15000);
 });
-
-// ── Navigation ──
 
 describe('Acceptance: Container click navigation', () => {
   const renderContainer = (data: Partial<ContainerNodeType['data']> = {}) =>

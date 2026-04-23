@@ -22,8 +22,6 @@
 
 import type { ComponentTone, ComponentStyle, Component } from './flowconsole-sdk';
 
-// ── Base element shape ──
-
 interface ElementBase {
   readonly id?: string;
   readonly name?: string;
@@ -36,8 +34,6 @@ interface ElementBase {
   readonly tone?: ComponentTone;
   readonly style?: ComponentStyle;
 }
-
-// ── ElementKind discriminated union ──
 
 /** Code layer element kinds. */
 export type CodeElement =
@@ -85,8 +81,6 @@ export type ArchitectureElement =
  * ```
  */
 export type ElementKindUnion = CodeElement | InfraElement | ArchitectureElement;
-
-// ── RelationKind discriminated union ──
 
 /**
  * Discriminated union of all 11 relation kinds.

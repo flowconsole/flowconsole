@@ -169,8 +169,6 @@ describe('toJson() byte-stability', () => {
   });
 });
 
-// ── computeRelationshipId matches backend scanner convention ──
-
 describe('computeRelationshipId', () => {
   const testCases = [
     { srcId: 'webapp', tgtId: 'api', kind: RelationKind.CALLS, expected: 'webapp--calls-->api' },
@@ -320,8 +318,6 @@ describe('FlowStepDto.sourceElementId', () => {
   });
 });
 
-// ── Discriminated union ergonomics ──
-
 describe('Discriminated union ergonomics', () => {
   it('ElementKind enum values are string-typed', () => {
     // Compile-time check: ElementKind values are assignable to string
@@ -373,8 +369,6 @@ describe('Cross-source ID compatibility', () => {
     expect(rel!.id).toBe(step.relationshipId);
   });
 });
-
-// ── Full ModelSnapshotDto structure validation ──
 
 describe('ModelSnapshotDto structure', () => {
   it('produces valid structure with all required fields', () => {
@@ -458,8 +452,6 @@ describe('ModelSnapshotDto structure', () => {
     expect(appDto!.parentId).toBe('sys');
   });
 });
-
-// ── Mixed flow with edge and action steps ──
 
 describe('Mixed edge and action steps in flow', () => {
   it('correctly maps a flow with both edge and action steps', () => {

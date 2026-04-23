@@ -11,7 +11,6 @@ export const codeSamples: CodeSample[] = [
   User, RestApi, Postgres, Redis, Kafka, Topic, Worker, External, Ingress,
 } from "@flowconsole/sdk";
 
-// ── All 7 shapes ──
 const rect = new Module({
   name: "Rectangle",
   description: "default shape",
@@ -48,7 +47,6 @@ const person = new Module({
   style: { shape: "person" },
 });
 
-// ── 5 presets on rectangles ──
 const highlighted = new Module({
   name: "Highlighted",
   description: "glow effect",
@@ -75,7 +73,6 @@ const external = new Module({
   style: { preset: "external" },
 });
 
-// ── Custom colors (explicit overrides) ──
 const branded = new Module({
   name: "Branded",
   description: "custom bg + border",
@@ -96,7 +93,6 @@ const child = new Module({
   belongsTo: ns,
 });
 
-// ── Convenience classes with automatic shape inference ──
 const user = new User({ name: "Customer" });
 const api = new RestApi({ name: "API Service", baseUrl: "/v1" });
 const db = new Postgres({ name: "Main DB" });
@@ -107,7 +103,6 @@ const reportJob = new Worker({ name: "Reporter" });
 const fraud = new External({ name: "Fraud Guard", vendor: "FraudCo" });
 const ingress = new Ingress({ name: "Public Ingress", host: "app.example.com" });
 
-// ── A few connections so the diagram renders edges too ──
 rect.sendsRequest(circle, "step 1")
   .then(circle).sendsRequest(hex, "step 2")
   .then(hex).sendsRequest(cloud, "step 3")
@@ -126,7 +121,6 @@ highlighted.sendsRequest(critical, "alert")
 branded.sendsRequest(overridden, "custom styling")
   .scenario("Custom colors");
 
-// ── Icon formats (per SDK spec) ──
 // Built-in library name → resolves to Tabler SVG icon
 const iconNamed = new Module({
   name: "Named Icon",
@@ -197,14 +191,12 @@ child.sendsRequest(api, "call parent")
   External, Ingress, Cdn, K8sCluster,
 } from "@flowconsole/sdk";
 
-// ── Actors ──
 const customer = new User({ name: "Customer", description: "Shops online" });
 const admin = new User({ name: "Admin", description: "Manages catalog" });
 
 // ── Top-level system grouping ──
 const shop = new SoftwareSystem({ name: "E-Shop Platform" });
 
-// ── Edge layer (hexagons via Ingress/Gateway) ──
 const publicIngress = new Ingress({
   name: "Public Ingress",
   host: "shop.example.com",
@@ -216,7 +208,6 @@ const edgeCdn = new Cdn({
   description: "Static assets & images",
 });
 
-// ── Frontends ──
 const storefront = new NextApp({
   name: "Storefront",
   description: "Customer-facing web",
@@ -229,7 +220,6 @@ const adminApp = new ReactApp({
   style: { preset: "highlighted" },
 });
 
-// ── Core APIs ──
 const authApi = new RestApi({
   name: "Auth API",
   description: "Sign-in, tokens, sessions",
@@ -252,20 +242,17 @@ const checkoutApi = new RestApi({
   style: { preset: "critical" },
 });
 
-// ── Data stores ──
 const productsDb = new Postgres({ name: "Products DB", belongsTo: shop });
 const ordersDb = new Postgres({ name: "Orders DB", belongsTo: shop });
 const sessionCache = new Redis({ name: "Session Cache", belongsTo: shop });
 const inventoryDb = new Postgres({ name: "Inventory DB", belongsTo: shop });
 
-// ── Messaging ──
 const eventBus = new Kafka({ name: "Event Bus", belongsTo: shop });
 const orderPlaced = new Topic({
   name: "order.placed",
   belongsTo: eventBus,
 });
 
-// ── Async workers ──
 const inventoryWorker = new Worker({
   name: "Inventory Worker",
   description: "Reserves stock on order",
@@ -284,7 +271,6 @@ const emailProvider = new External({
   vendor: "SendGrid",
 });
 
-// ── Deprecated legacy ──
 const legacyReports = new RestApi({
   name: "Legacy Reports",
   description: "Old reporting API, being sunset",
@@ -292,7 +278,6 @@ const legacyReports = new RestApi({
   style: { preset: "deprecated" },
 });
 
-// ── Flows ──
 customer.opens(storefront, "browse shop")
   .then(storefront).sendsRequest(edgeCdn, "load assets")
   .then(storefront).sendsRequest(publicIngress, "api requests")
@@ -328,7 +313,6 @@ admin.opens(adminApp, "manage shop")
   .then(catalogApi).writes(productsDb, "update catalog")
   .scenario("Admin workflow");
 
-// ── Deployment ──
 const cluster = new K8sCluster({ name: "prod-eu", region: "eu-west-1" });
 storefront.deployedOn(cluster, { replicas: 4 });
 authApi.deployedOn(cluster, { replicas: 3 });
@@ -382,6 +366,5 @@ user.opens(api, "Call API")
     `
   }
 ];
-
 
 export const defaultSampleId = codeSamples[0]?.id ?? 'test-sample';

@@ -70,8 +70,6 @@ import {
   InferredRelationship,
 } from '../flowconsole-sdk';
 
-// ── Base element classes (13) ──
-
 describe('Base element classes', () => {
   it('User has kind EXTERNAL and role', () => {
     const u = new User({ name: 'Alice', role: 'Admin' });
@@ -175,8 +173,6 @@ describe('Base element classes', () => {
     expect(c.style).toEqual(style);
   });
 });
-
-// ── Convenience classes (23) ──
 
 describe('Convenience classes', () => {
   describe('API patterns (extend Container)', () => {
@@ -306,8 +302,6 @@ describe('Convenience classes', () => {
   });
 });
 
-// ── Deployment classes (6) ──
-
 describe('Deployment classes', () => {
   it('K8sCluster has kind DEPLOYMENT with region and version', () => {
     const k = new K8sCluster({ name: 'prod-eu', region: 'eu-west-1', version: '1.28' });
@@ -350,8 +344,6 @@ describe('Deployment classes', () => {
     expect(i.tls).toBe(true);
   });
 });
-
-// ── Flow API ──
 
 describe('Flow API', () => {
   let runtime: FlowRuntime;
@@ -562,8 +554,6 @@ describe('Flow API', () => {
   });
 });
 
-// ── Scenario ──
-
 describe('Scenario', () => {
   let runtime: FlowRuntime;
 
@@ -621,8 +611,6 @@ describe('Scenario', () => {
     expect(steps[2].target).toBe(db);
   });
 });
-
-// ── Inference of relationships ──
 
 describe('inferRelationships', () => {
   it('sendsRequest to Container → Calls', () => {
@@ -852,8 +840,6 @@ describe('inferRelationships', () => {
   });
 });
 
-// ── Validation of belongsTo ──
-
 describe('validateBelongsTo', () => {
   it('Topic without Broker throws', () => {
     const topic = new Topic({ name: 'orphan', partitions: 1 });
@@ -919,8 +905,6 @@ describe('validateBelongsTo', () => {
   });
 });
 
-// ── Deployment methods ──
-
 describe('Deployment methods', () => {
   it('deployedOn registers DeployedOn relationship', () => {
     const api = new RestApi({ name: 'API' });
@@ -957,8 +941,6 @@ describe('Deployment methods', () => {
     expect(dep.options).toEqual({ path: '/api/orders' });
   });
 });
-
-// ── Style defaults ──
 
 describe('Style functions', () => {
   describe('getDefaultIconForKind', () => {
@@ -1074,8 +1056,6 @@ describe('Style functions', () => {
     });
   });
 });
-
-// ── buildSnapshot ──
 
 describe('buildSnapshot', () => {
   it('builds a complete snapshot with entities, relationships, and scenarios', () => {

@@ -3,8 +3,6 @@
  * One component per shape and preset for acceptance testing.
  */
 
-// ── Shapes ──
-
 // Circle shape via explicit style override
 export const circleShapeCode = `const gw: Gateway = { name: "Circle GW", style: { shape: "circle" } };`;
 
@@ -26,8 +24,6 @@ export const pipeShapeCode = `const q: Queue = { name: "Pipe Q" };`;
 // Person shape (User default)
 export const personShapeCode = `const u: User = { name: "Person U" };`;
 
-// ── Custom colors ──
-
 export const customBgColorOnRectCode = `const svc: RestApi = { name: "Red BG", style: { backgroundColor: "#e74c3c" } };`;
 
 export const customBgColorOnCircleCode = `const gw: Gateway = { name: "Red Circle", style: { shape: "circle", backgroundColor: "#e74c3c" } };`;
@@ -35,8 +31,6 @@ export const customBgColorOnCircleCode = `const gw: Gateway = { name: "Red Circl
 export const customBorderColorOnRectCode = `const svc: RestApi = { name: "Red Border", style: { borderColor: "#c0392b" } };`;
 
 export const customBorderColorOnHexagonCode = `const gw: Gateway = { name: "Red Hex", style: { borderColor: "#c0392b" } };`;
-
-// ── Presets ──
 
 export const deprecatedPresetCode = `const svc: RestApi = { name: "Deprecated", style: { preset: "deprecated" } };`;
 

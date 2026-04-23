@@ -30,8 +30,6 @@ beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdk-emit-'));
 });
 
-// ── emit() helper tests ──
-
 describe('emit() helper', () => {
   function makeSnapshot() {
     const svc = new SoftwareSystem({ id: 'svc', name: 'Service' });
@@ -267,8 +265,6 @@ describe('Discriminated union ergonomics', () => {
     }
   });
 });
-
-// ── Sdk static helper class tests (jsii compatibility) ──
 
 describe('Sdk static helper class', () => {
   it('Sdk.buildSnapshot() delegates to buildSnapshot()', () => {
