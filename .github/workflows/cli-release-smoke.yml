@@ -1,0 +1,66 @@
+name: CLI Release Smoke (npm)
+
+# Triggered manually or after CLI release to verify npm wrapper on all platforms
+on:
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: 'npm package version to test (e.g., 2.0.0-0.2.0-beta)'
+        required: true
+        type: string
+
+jobs:
+  npm-smoke:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+          - rid: osx-x64
+            os: macos-13
+          - rid: osx-arm64
+            os: macos-latest
+          - rid: win-x64
+            os: windows-latest
+          - rid: win-arm64
+            os: windows-11-arm
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install @flowconsole/cli
+        run: npm install -g @flowconsole/cli@${{ inputs.cli_version }}
+
+      - name: Smoke test - fc --version
+        shell: bash
+        run: |
+          VERSION=$(fc --version)
+          echo "Reported version: $VERSION"
+          [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
+
+      - name: Smoke test - fc --help
+        run: fc --help
+
+      - name: Smoke test - fc scan --help
+        run: fc scan --help
+
+      - name: Smoke test - fc validate --help
+        run: fc validate --help
+
+      - name: Smoke test - fc push --help
+        run: fc push --help
+
+      - name: Smoke test - fc diff --help
+        run: fc diff --help
+
+      - name: Smoke test - fc telemetry status
+        env:
+          DO_NOT_TRACK: '1'
+        run: fc telemetry status

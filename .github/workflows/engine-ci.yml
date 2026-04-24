@@ -1,0 +1,205 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, phase*]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION_PATH: backend/src/FlowConsole.slnx
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore
+
+      - name: Test
+        run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --verbosity quiet
+
+      - name: Lint (format check)
+        run: dotnet format ${{ env.SOLUTION_PATH }} --verify-no-changes --verbosity diagnostic
+
+  cli-cross-platform:
+    needs: build-and-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+          - os: windows-latest
+            rid: win-x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Publish SFA (${{ matrix.rid }})
+        run: |
+          dotnet publish backend/src/FlowConsole.Cli/FlowConsole.Cli.csproj -r ${{ matrix.rid }} -c Release -o artifacts/${{ matrix.rid }}
+
+      - name: Smoke test - fc --version
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            FC="artifacts/${{ matrix.rid }}/fc.exe"
+          else
+            chmod +x artifacts/${{ matrix.rid }}/fc
+            FC="artifacts/${{ matrix.rid }}/fc"
+          fi
+          VERSION=$("$FC" --version)
+          echo "Reported version: $VERSION"
+          [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
+
+      - name: Smoke test - fc scan
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="artifacts/${{ matrix.rid }}/fc.exe"; else FC="artifacts/${{ matrix.rid }}/fc"; fi
+          "$FC" scan contracts/model-snapshot/v1/conformance/valid/minimal.json
+
+      - name: Smoke test - fc validate
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="artifacts/${{ matrix.rid }}/fc.exe"; else FC="artifacts/${{ matrix.rid }}/fc"; fi
+          "$FC" validate contracts/model-snapshot/v1/conformance/valid/minimal.json
+
+  sfa-publish:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid: [linux-x64, linux-arm64, osx-x64, osx-arm64, win-x64, win-arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Publish SFA (${{ matrix.rid }})
+        run: |
+          dotnet publish backend/src/FlowConsole.Cli/FlowConsole.Cli.csproj \
+            -r ${{ matrix.rid }} \
+            -c Release \
+            -o artifacts/${{ matrix.rid }}
+
+      - name: Upload SFA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fc-${{ matrix.rid }}
+          path: artifacts/${{ matrix.rid }}/
+
+  sfa-smoke-test:
+    needs: sfa-publish
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: osx-arm64
+            os: macos-latest
+          - rid: win-x64
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download SFA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fc-${{ matrix.rid }}
+          path: fc-bin/
+
+      - name: Make binary executable (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x fc-bin/fc
+
+      - name: Smoke test - fc --version
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="fc-bin/fc.exe"; else FC="fc-bin/fc"; fi
+          VERSION=$("$FC" --version)
+          echo "Reported version: $VERSION"
+          [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
+
+      - name: Smoke test - fc scan
+        run: |
+          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} scan contracts/model-snapshot/v1/conformance/valid/minimal.json
+        continue-on-error: false
+
+      - name: Smoke test - fc validate
+        run: |
+          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} validate contracts/model-snapshot/v1/conformance/valid/minimal.json
+        continue-on-error: false
+
+      - name: Smoke test - fc explain
+        run: |
+          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} rules list
+        continue-on-error: false
+
+      - name: Smoke test - fc fmt
+        run: |
+          cp contracts/model-snapshot/v1/conformance/valid/minimal.json /tmp/test-fmt.json 2>/dev/null || copy contracts\model-snapshot\v1\conformance\valid\minimal.json %TEMP%\test-fmt.json
+          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} fmt ${{ runner.os == 'Windows' && '%TEMP%\test-fmt.json' || '/tmp/test-fmt.json' }}
+        continue-on-error: false
+
+  nuget-pack:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Pack NuGet tool
+        run: |
+          dotnet pack backend/src/FlowConsole.Cli/FlowConsole.Cli.csproj \
+            -c Release \
+            -o artifacts/nuget
+
+      - name: Upload NuGet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: artifacts/nuget/*.nupkg
