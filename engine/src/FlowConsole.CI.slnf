@@ -1,0 +1,19 @@
+{
+  "solution": {
+    "path": "FlowConsole.slnx",
+    "projects": [
+      "FlowConsole.Api\\FlowConsole.Api.csproj",
+      "FlowConsole.Application\\FlowConsole.Application.csproj",
+      "FlowConsole.Core\\FlowConsole.Core.csproj",
+      "FlowConsole.Graph\\FlowConsole.Graph.csproj",
+      "FlowConsole.Infrastructure\\FlowConsole.Infrastructure.csproj",
+      "FlowConsole.Schema\\FlowConsole.Schema.csproj",
+      "FlowConsole.Shared\\FlowConsole.Shared.csproj",
+      "..\\plugins\\FlowConsole.Scanner.K8s\\FlowConsole.Scanner.K8s.csproj",
+      "..\\plugins\\FlowConsole.Importer.Structurizr\\FlowConsole.Importer.Structurizr.csproj",
+      "..\\plugins\\FlowConsole.Importer.Backstage\\FlowConsole.Importer.Backstage.csproj",
+      "..\\plugins\\FlowConsole.Importer.CMDB\\FlowConsole.Importer.CMDB.csproj",
+      "..\\tests\\FlowConsole.Tests.Unit\\FlowConsole.Tests.Unit.csproj"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: no-cyclic-dependencies
+    name: No cyclic dependencies
+    kind: flow
+    target: actual
+    severity: error
+    blocking: true
+    description: Modules and services must not have cyclic dependencies.
+    tags:
+      - governance
+      - structural
+    from:
+      entity: elements
+      kinds:
+        - Module
+        - Service
+    to:
+      entity: elements
+      kinds:
+        - Module
+        - Service
+    allowCycles: true
+    maxDepth: 8
+    mode: perPath
+    assert: from.Id != to.Id
+    message: "Cyclic dependency detected: ${from.Name} -> ... -> ${to.Name}"

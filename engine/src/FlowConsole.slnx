@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="FlowConsole.Api/FlowConsole.Api.csproj" />
+    <Project Path="FlowConsole.Application/FlowConsole.Application.csproj" />
+    <Project Path="FlowConsole.Core/FlowConsole.Core.csproj" />
+    <Project Path="FlowConsole.Graph/FlowConsole.Graph.csproj" />
+    <Project Path="FlowConsole.Infrastructure/FlowConsole.Infrastructure.csproj" />
+    <Project Path="FlowConsole.Schema/FlowConsole.Schema.csproj" />
+    <Project Path="FlowConsole.Shared/FlowConsole.Shared.csproj" />
+    <Project Path="FlowConsole.Rules.Core/FlowConsole.Rules.Core.csproj" />
+    <Project Path="FlowConsole.Rules.Engine.Default/FlowConsole.Rules.Engine.Default.csproj" />
+    <Project Path="FlowConsole.Scanners.Core/FlowConsole.Scanners.Core.csproj" />
+    <Project Path="FlowConsole.Scanners.CodeParsing/FlowConsole.Scanners.CodeParsing.csproj" />
+    <Project Path="FlowConsole.Scanners.CSharp/FlowConsole.Scanners.CSharp.csproj" />
+    <Project Path="FlowConsole.Scanners.Helm/FlowConsole.Scanners.Helm.csproj" />
+    <Project Path="FlowConsole.Snapshots.Mapping/FlowConsole.Snapshots.Mapping.csproj" />
+    <Project Path="FlowConsole.Cli/FlowConsole.Cli.csproj" />
+  </Folder>
+  <Folder Name="/plugins/">
+    <Project Path="../plugins/FlowConsole.Scanner.K8s/FlowConsole.Scanner.K8s.csproj" />
+    <Project Path="../plugins/FlowConsole.Importer.Structurizr/FlowConsole.Importer.Structurizr.csproj" />
+    <Project Path="../plugins/FlowConsole.Importer.Backstage/FlowConsole.Importer.Backstage.csproj" />
+    <Project Path="../plugins/FlowConsole.Importer.CMDB/FlowConsole.Importer.CMDB.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="../tests/FlowConsole.Tests.Unit/FlowConsole.Tests.Unit.csproj" />
+    <Project Path="../tests/FlowConsole.Tests.Integration/FlowConsole.Tests.Integration.csproj" />
+    <Project Path="../tests/FlowConsole.Tests.E2E/FlowConsole.Tests.E2E.csproj" />
+    <Project Path="../tests/FlowConsole.Tests.Performance/FlowConsole.Tests.Performance.csproj" />
+    <Project Path="../tests/FlowConsole.Schema.Tests/FlowConsole.Schema.Tests.csproj" />
+    <Project Path="../tests/FlowConsole.Scanners.Core.Tests/FlowConsole.Scanners.Core.Tests.csproj" />
+    <Project Path="../tests/FlowConsole.Scanners.CSharp.Tests/FlowConsole.Scanners.CSharp.Tests.csproj" />
+    <Project Path="../tests/FlowConsole.Scanners.CodeParsing.Tests/FlowConsole.Scanners.CodeParsing.Tests.csproj" />
+    <Project Path="../tests/FlowConsole.Snapshots.Mapping.Tests/FlowConsole.Snapshots.Mapping.Tests.csproj" />
+    <Project Path="../tests/FlowConsole.Cli.Tests/FlowConsole.Cli.Tests.csproj" />
+  </Folder>
+</Solution>

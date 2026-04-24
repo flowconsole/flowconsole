@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowConsole.Core\FlowConsole.Core.csproj" />
+  </ItemGroup>
+
+</Project>

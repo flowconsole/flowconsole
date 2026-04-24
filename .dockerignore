@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.git/
+**/reports/
+**/dist/
+**/.next/
+**/.vite/
+**/*.tsbuildinfo
+backend/tests/
+backend/docker/
+.editorconfig
+*.md

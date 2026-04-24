@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>fc</AssemblyName>
+    <RootNamespace>FlowConsole.Cli</RootNamespace>
+    <PublishAot>false</PublishAot>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Suppress IL2104 (trim warnings from third-party assemblies) during publish.
+         TrimMode=partial preserves these assemblies, so warnings are noise. -->
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+  </PropertyGroup>
+
+  <!-- NuGet tool packaging (framework-dependent secondary distribution channel) -->
+  <PropertyGroup>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>fc</ToolCommandName>
+    <PackageId>FlowConsole.Cli</PackageId>
+    <Version>0.2.0-alpha</Version>
+    <Authors>FlowConsole</Authors>
+    <Description>FlowConsole CLI — architecture-as-code scanner, validator, and SDK synthesizer. Scan C# projects, validate against rules, synthesize SDK models, format snapshots.</Description>
+    <PackageProjectUrl>https://flowconsole.tech</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageTags>architecture;code-scanner;validation;architecture-as-code</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/flowconsole/flowconsole</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlowConsole.Cli.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\bash-completion.sh" LogicalName="FlowConsole.Cli.Resources.bash-completion.sh" />
+    <EmbeddedResource Include="Resources\zsh-completion.zsh" LogicalName="FlowConsole.Cli.Resources.zsh-completion.zsh" />
+    <EmbeddedResource Include="Resources\fish-completion.fish" LogicalName="FlowConsole.Cli.Resources.fish-completion.fish" />
+    <EmbeddedResource Include="Resources\pwsh-completion.ps1" LogicalName="FlowConsole.Cli.Resources.pwsh-completion.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowConsole.Scanners.Core\FlowConsole.Scanners.Core.csproj" />
+    <ProjectReference Include="..\FlowConsole.Scanners.Helm\FlowConsole.Scanners.Helm.csproj" />
+    <ProjectReference Include="..\FlowConsole.Scanners.CodeParsing\FlowConsole.Scanners.CodeParsing.csproj" />
+    <ProjectReference Include="..\FlowConsole.Scanners.CSharp\FlowConsole.Scanners.CSharp.csproj" />
+    <ProjectReference Include="..\FlowConsole.Snapshots.Mapping\FlowConsole.Snapshots.Mapping.csproj" />
+    <ProjectReference Include="..\FlowConsole.Schema\FlowConsole.Schema.csproj" />
+    <ProjectReference Include="..\FlowConsole.Rules.Core\FlowConsole.Rules.Core.csproj" />
+    <ProjectReference Include="..\FlowConsole.Rules.Engine.Default\FlowConsole.Rules.Engine.Default.csproj" />
+  </ItemGroup>
+
+</Project>

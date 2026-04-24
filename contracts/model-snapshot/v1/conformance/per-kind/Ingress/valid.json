@@ -8,7 +8,7 @@
       "kind": "Ingress",
       "name": "api-ingress",
       "properties": {
-        "host": "api.flowconsole.tech"
+        "host": "api.example.com"
       }
     }
   ],

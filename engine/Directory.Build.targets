@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    CI: skip copying NuGet dlls for non-test projects.
+    Unit tests are built from the CI solution filter and then executed with
+    dotnet test without rebuilding, so test projects must keep their runnable
+    output.
+  -->
+  <PropertyGroup Condition="('$(CI)' == 'true' or '$(CIBuild)' == 'true') and '$(IsTestProject)' != 'true'">
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+</Project>
