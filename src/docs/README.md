@@ -31,9 +31,6 @@ pnpm run dev
 
 ## Tech Stack + Features
 
-### Project template
-  - https://github.com/mickasmt/next-saas-stripe-starter
-
 ### Frameworks
 
 - [Next.js](https://nextjs.org/) – React framework for building performant apps with the best developer experience

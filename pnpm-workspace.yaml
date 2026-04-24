@@ -8,5 +8,8 @@ packages:
 
   - cli-npm
 
+  - frontend/app
+  - frontend/shared
+
 onlyBuiltDependencies:
   - '@ast-grep/lang-csharp'
