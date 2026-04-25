@@ -54,7 +54,7 @@ jobs:
 
       - name: Build SDK artifacts (jsii + pacmak)
         run: |
-          pnpm --dir src/sdk package
+          pnpm --dir packages/sdk package
 
       - name: Publish preview packages (beta tag)
         run: pnpm -r publish --tag beta --no-git-checks
@@ -65,7 +65,7 @@ jobs:
       - name: Publish Go SDK (beta)
         env:
           GO_SDK_PUSH_TOKEN: ${{ secrets.GO_SDK_PUSH_TOKEN }}
-        working-directory: src/sdk
+        working-directory: packages/sdk
         run: |
           if [ -z "$GO_SDK_PUSH_TOKEN" ]; then
             echo "GO_SDK_PUSH_TOKEN is not set; skipping Go publish."
@@ -102,7 +102,7 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
             echo "No Python artifacts found in dist/python; skipping publish."
           fi
-        working-directory: src/sdk
+        working-directory: packages/sdk
 
       - name: Setup Python
         if: steps.python_artifacts.outputs.found == 'true'
@@ -114,7 +114,7 @@ jobs:
         if: steps.python_artifacts.outputs.found == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: src/sdk/dist/python/
+          packages-dir: packages/sdk/dist/python/
           password: ${{ secrets.PYPI_API_TOKEN }}
 
       - name: Check Java SDK artifacts
@@ -126,9 +126,9 @@ jobs:
             echo "pom_path=$POM_PATH" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
-            echo "No Java artifacts found in src/sdk/dist/java; skipping publish."
+            echo "No Java artifacts found in packages/sdk/dist/java; skipping publish."
           fi
-        working-directory: src/sdk
+        working-directory: packages/sdk
 
       - name: Setup Java
         if: steps.java_artifacts.outputs.found == 'true'
@@ -163,7 +163,7 @@ jobs:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
           CENTRAL_TOKEN_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        working-directory: src/sdk
+        working-directory: packages/sdk
         run: |
           set -euo pipefail
 
@@ -215,7 +215,7 @@ jobs:
       - name: Publish NuGet packages (beta)
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        working-directory: src/sdk
+        working-directory: packages/sdk
         run: |
           NUGET_PACKAGES=$(find dist/dotnet -type f -name "*.nupkg")
           if [ -z "$NUGET_PACKAGES" ]; then

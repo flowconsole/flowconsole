@@ -3,7 +3,7 @@ name: SDK Dogfood Validation
 on:
   pull_request:
     paths:
-      - 'src/sdk/**'
+      - 'packages/sdk/**'
       - 'examples/self-architecture/**'
       - 'contracts/model-snapshot/**'
   workflow_dispatch:
@@ -30,16 +30,16 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install dependencies
-        run: cd src/sdk && pnpm install
+        run: cd packages/sdk && pnpm install
 
       - name: Build SDK
-        run: cd src/sdk && pnpm build
+        run: cd packages/sdk && pnpm build
 
       - name: Generate jsii C# bindings
-        run: cd src/sdk && HOME=/tmp npx jsii-pacmak --targets dotnet
+        run: cd packages/sdk && HOME=/tmp npx jsii-pacmak --targets dotnet
 
       - name: Run SDK tests
-        run: cd src/sdk && pnpm test
+        run: cd packages/sdk && pnpm test
 
       # TS dogfood
       - name: Install tsx
@@ -48,7 +48,7 @@ jobs:
       - name: Run TS dogfood
         working-directory: examples/self-architecture
         run: |
-          npm install @flowconsole/sdk@file:../../src/sdk
+          npm install @flowconsole/sdk@file:../../packages/sdk
           npx tsx flowconsole-arch.ts > ts-output.json
           echo "TS dogfood output generated ($(wc -l < ts-output.json) lines)"
 
@@ -60,7 +60,7 @@ jobs:
 
       # C# dogfood
       - name: Add local NuGet source
-        run: dotnet nuget add source ${{ github.workspace }}/src/sdk/dist/dotnet/ --name flowconsole-local
+        run: dotnet nuget add source ${{ github.workspace }}/packages/sdk/dist/dotnet/ --name flowconsole-local
 
       - name: Restore C# dogfood
         working-directory: examples/self-architecture

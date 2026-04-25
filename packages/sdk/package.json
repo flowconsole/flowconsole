@@ -58,7 +58,7 @@
       "dotnet": {
         "namespace": "FlowConsole",
         "packageId": "FlowConsole.Sdk",
-        "iconUrl": "https://raw.githubusercontent.com/slackmaster9999/flowconsole/main/src/docs/public/_static/favicons/android-chrome-512x512.png"
+        "iconUrl": "https://raw.githubusercontent.com/slackmaster9999/flowconsole/main/apps/docs/public/_static/favicons/android-chrome-512x512.png"
       },
       "go": {
         "packageName": "flowconsole",

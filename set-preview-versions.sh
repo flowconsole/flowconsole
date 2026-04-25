@@ -10,10 +10,10 @@ const fs = require("fs");
 const path = require("path");
 
 const packages = [
-  "src/core/package.json",
-  "src/cli/package.json",
-  "src/sdk/package.json",
-  "src/web/package.json",
+  "packages/core/package.json",
+  "packages/cli/package.json",
+  "packages/sdk/package.json",
+  "packages/web/package.json",
 ];
 
 for (const relPath of packages) {

@@ -454,7 +454,7 @@ jobs:
       - name: Update cliVersion and bump npm version
         id: bump
         run: |
-          cd cli-npm
+          cd packages/cli
           # Update cliVersion (binary version) to match the released CLI version.
           # Bump npm package version to 2.0.0-<cli-version> so each release gets a unique
           # npm version while staying in the 2.x wrapper stream.
@@ -472,13 +472,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          cd cli-npm
+          cd packages/cli
           npm publish --access public --tag latest
 
       - name: Dry-run npm publish
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' }}
         run: |
-          cd cli-npm
+          cd packages/cli
           npm publish --access public --dry-run
 
   npm-release-gate:
