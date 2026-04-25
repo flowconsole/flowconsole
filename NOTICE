@@ -24,6 +24,9 @@ This product includes software developed by:
 - fast-equals (MIT License) - https://github.com/planttheidea/fast-equals
 - @tabler/icons-react (MIT License) - https://tabler.io/icons
 - @react-hookz/web (MIT License) - https://react-hookz.github.io/web
+- elkjs (EPL-2.0 License) - https://github.com/kieler/elkjs
+- webcola (MIT License) - https://github.com/nicktomlin/webcola
+- graphology (MIT License) - https://graphology.github.io
 
 ## CLI Dependencies
 
@@ -48,6 +51,18 @@ This product includes software developed by:
 - shiki (MIT License) - https://shiki.matsu.io
 - recharts (MIT License) - https://recharts.org
 - Zod (MIT License) - https://zod.dev
+
+## Backend Dependencies (.NET)
+
+- ASP.NET Core (MIT License) - https://dotnet.microsoft.com/apps/aspnet
+- Entity Framework Core (MIT License) - https://docs.microsoft.com/ef/core
+- FluentResults (MIT License) - https://github.com/altmann/FluentResults
+- FluentValidation (Apache-2.0 License) - https://fluentvalidation.net
+- Wolverine (MIT License) - https://wolverine.netlify.app
+- Npgsql (PostgreSQL License) - https://www.npgsql.org
+- CliWrap (MIT License) - https://github.com/Tyrrrz/CliWrap
+- LibGit2Sharp (MIT License) - https://github.com/libgit2/libgit2sharp
+- TreeSitter.DotNet (MIT License) - Tree-sitter bindings for .NET
 
 ## Build & Development Tools
 
