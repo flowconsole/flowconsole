@@ -9,7 +9,7 @@ packages:
   - cli-npm
 
   - apps/app
-  - frontend/shared
+  - packages/ui
 
 onlyBuiltDependencies:
   - '@ast-grep/lang-csharp'
