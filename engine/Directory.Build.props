@@ -7,6 +7,17 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Authors>FlowConsole</Authors>
+    <Company>FlowConsole</Company>
+    <Copyright>Copyright (c) 2025-2026 FlowConsole</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/flowconsole/flowconsole</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://flowconsole.tech</PackageProjectUrl>
+    <Description>FlowConsole — Architecture as Code platform</Description>
+  </PropertyGroup>
+
   <!-- CI optimizations: set CI=true or pass -p:CIBuild=true -->
   <PropertyGroup Condition="'$(CI)' == 'true' or '$(CIBuild)' == 'true'">
     <EnableSourceLink>false</EnableSourceLink>

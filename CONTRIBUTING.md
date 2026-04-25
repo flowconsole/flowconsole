@@ -64,11 +64,11 @@ pnpm install
 pnpm build
 
 # Backend
-cd backend
+cd backend/src
 dotnet build FlowConsole.slnx
 
-# Run everything (PostgreSQL + AGE + backend + frontend)
-cd ..
+# Run backend stack (PostgreSQL + AGE + Ollama + API)
+cd ../../backend/docker
 docker compose up
 ```
 
@@ -82,7 +82,7 @@ pnpm test:unit
 pnpm test:e2e
 
 # Backend tests
-cd backend
+cd backend/src
 dotnet test FlowConsole.slnx
 ```
 
@@ -106,7 +106,7 @@ dotnet test FlowConsole.slnx
 
 ### C# / .NET
 
-- `dotnet format` enforces the style defined in `.editorconfig` and `Directory.Build.props`.
+- `dotnet format` enforces the style defined in `Directory.Build.props`.
 - `TreatWarningsAsErrors` and `EnforceCodeStyleInBuild` are enabled project-wide.
 - Use records and `with`-expressions for immutable data.
 - Business errors use `Result<T>` (FluentResults), not exceptions.

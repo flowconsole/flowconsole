@@ -49,7 +49,7 @@
       "java": {
         "package": "flowconsole.sdk",
         "maven": {
-          "groupId": "io.github.slackmaster9999",
+          "groupId": "io.github.flowconsole",
           "artifactId": "flowconsole-sdk"
         }
       },
@@ -60,11 +60,11 @@
       "dotnet": {
         "namespace": "FlowConsole",
         "packageId": "FlowConsole.Sdk",
-        "iconUrl": "https://raw.githubusercontent.com/slackmaster9999/flowconsole/main/apps/docs/public/_static/favicons/android-chrome-512x512.png"
+        "iconUrl": "https://raw.githubusercontent.com/flowconsole/flowconsole/main/apps/docs/public/_static/favicons/android-chrome-512x512.png"
       },
       "go": {
         "packageName": "flowconsole",
-        "moduleName": "github.com/slackmaster9999/go-flowconsole"
+        "moduleName": "github.com/flowconsole/go-flowconsole"
       }
     },
     "tsconfig": "tsconfig.json",
