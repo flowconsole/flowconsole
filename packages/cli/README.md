@@ -71,7 +71,7 @@ fc scan ./project -o snapshot.json && \
 
 - Check your internet connection — the binary is downloaded from GitHub Releases
 - If behind a proxy, configure `https_proxy` / `HTTPS_PROXY` environment variable
-- If on an unsupported platform, download the binary manually from the [Releases page](https://github.com/AhmadMayo/flowconsole/releases)
+- If on an unsupported platform, download the binary manually from the [Releases page](https://github.com/flowconsole/flowconsole/releases)
 - Set `FLOWCONSOLE_CLI_DOWNLOAD_URL` to point to a mirror if GitHub is blocked
 
 ### Binary not found after install

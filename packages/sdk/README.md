@@ -12,12 +12,12 @@ Built with [jsii](https://github.com/aws/jsii), so the same API is available in 
 - **Java (Maven)**:
   ```xml
   <dependency>
-    <groupId>io.github.slackmaster9999</groupId>
+    <groupId>io.github.flowconsole</groupId>
     <artifactId>flowconsole-sdk</artifactId>
     <version>2.0.0</version>
   </dependency>
   ```
-- **Go**: `go get github.com/slackmaster9999/go-flowconsole/flowconsole/v2`
+- **Go**: `go get github.com/flowconsole/go-flowconsole/flowconsole/v2`
 
 ## Quick Start (TypeScript)
 
@@ -377,4 +377,4 @@ Artifacts are written to `src/sdk/dist/` with language-specific subdirectories (
 
 ## License
 
-MIT — see `src/sdk/LICENSE`.
+Apache-2.0 — see [LICENSE](../../LICENSE) in the repository root.
