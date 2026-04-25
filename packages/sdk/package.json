@@ -16,7 +16,7 @@
   },
   "repository": {
     "url": "https://github.com/slackmaster9999/flowconsole.git",
-    "directory": "src/sdk"
+    "directory": "packages/sdk"
   },
   "license": "MIT",
   "exports": {

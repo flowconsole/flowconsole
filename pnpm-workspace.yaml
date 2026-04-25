@@ -4,7 +4,7 @@ packages:
   - apps/docs
 
   - packages/core
-  - src/sdk
+  - packages/sdk
 
   - cli-npm
 
