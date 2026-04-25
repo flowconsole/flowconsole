@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FlowConsole is an architecture-as-code tool that lets developers model system architecture using a typed API and generates animated diagrams and system flows. The project uses a pnpm monorepo structure.
+FlowConsole is an architecture-as-code platform that lets developers model system architecture, track system drift, and generate animated diagrams and system flows. The project uses a pnpm monorepo structure.
 
 ## Common Commands
 
@@ -36,7 +36,6 @@ pnpm --filter @flowconsole/web vitest run tests/unit/<filename>.test.ts
 - **apps/app** (`app`) - Product SPA (Vite + React 19, the authenticated workspace UI)
 - **apps/docs** (`flowconsole-docs`) - Documentation + marketing site (Next.js)
 - **packages/web** (`@flowconsole/web`) - React diagram components, layout pipeline, Monaco workbench
-- **packages/core** (`@flowconsole/core`) - Core DSL parsers and shared utilities
 - **packages/sdk** (`@flowconsole/sdk` v2.0.0) - Typed architecture-as-code SDK with jsii multi-language support (TypeScript, C#, Java, Python, Go). 13 base element classes, 6 deployment classes, 23 convenience wrappers. Three-layer API: Topology (elements + belongsTo), Flows (fluent interaction chains with automatic relationship inference), Deployment (infrastructure targets). `SoftwareSystem` (not `System`) due to C# reserved name. Key exports: `buildSnapshot()`, `getRuntime()`
 - **packages/ui** (`@flowconsole/ui`) - Shared shadcn/Radix UI primitives (consumed by apps/app and apps/docs)
 - **packages/cli** (`@flowconsole/cli`) - npm-wrapper that distributes the .NET self-contained `fc` CLI binary (source in `backend/src/FlowConsole.Cli/`)
