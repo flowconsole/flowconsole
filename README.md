@@ -1,11 +1,25 @@
 <p align="center">
   <h1 align="center">FlowConsole</h1>
-  <p align="center">Architecture as Code platform — define, validate, and visualize software architecture using real programming languages</p>
+  <p align="center">Architecture as Code platform — define, validate, and visualize software architecture</p>
+</p>
+<br/>
+<p align="center">
+  <a href="https://img.shields.io/github/v/release/flowconsole/flowconsole"><img src="https://img.shields.io/github/v/release/flowconsole/flowconsole?include_prereleases&display_name=tag" alt="np"></a>
+  <a href="https://discord.gg/23CkhhDz"><img src="https://img.shields.io/badge/Community-discord-blue?style=flat&logo=discord" alt="discord chat"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+  <a href="https://www.npmjs.com/package/@flowconsole/cli"><img src="https://img.shields.io/npm/v/@flowconsole/core.svg" alt="npm"></a>
+</p>
+<p align="center">
+    <a href="https://slackmaster9999.github.io/flowconsole/?utm_source=gh-hero">Docs</a>
+    ·
+    <a href="https://dev.flowconsole.pages.dev/?utm_source=gh-hero">Playground</a>
+    ·
+    <a href="#roadmap">Roadmap</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
-  <a href="https://www.npmjs.com/package/@flowconsole/core"><img src="https://img.shields.io/npm/v/@flowconsole/core.svg" alt="npm"></a>
+  <a href="https://www.npmjs.com/package/@flowconsole/cli"><img src="https://img.shields.io/npm/v/@flowconsole/core.svg" alt="npm"></a>
 </p>
 
 ## What is FlowConsole?
@@ -21,14 +35,13 @@ FlowConsole turns your architecture into a **queryable live graph**, not a colle
 - **Graph analytics** — analyze dependencies, coupling, and complexity
 - **CI/CD validation** — integrate architecture checks into your pipeline
 - **MCP server** — expose the architecture model to AI agents and tools
-- **Local AI queries** — ask questions about your architecture using Ollama (Qwen3-8B by default)
 
 ## How FlowConsole Compares
 
 | Capability | FlowConsole | Structurizr | LikeC4 | Mermaid / PlantUML |
 |---|---|---|---|---|
-| Model in real languages (TS, C#, Go, Java, Python) | Yes | DSL only | DSL only | Markup only |
-| Queryable graph database | Yes (Apache AGE) | No | No | No |
+| Model in real languages (TS, C#, Go, Java, Python) | SDK | DSL only | DSL only | Markup only |
+| Queryable graph database | Yes | No | No | No |
 | Drift detection | Yes | No | No | No |
 | Fitness functions / rules | Yes | No | No | No |
 | CI/CD validation | Yes | Partial | Partial | No |
@@ -46,7 +59,7 @@ cd flowconsole/backend/docker
 docker compose up
 ```
 
-This starts the API server (port 5555), PostgreSQL with Apache AGE, and Ollama for AI features. See [backend/README.md](backend/README.md) for build-from-source instructions and configuration options.
+This starts the API server (port 5555), PostgreSQL with Apache AGE. See [backend/README.md](backend/README.md) for build-from-source instructions and configuration options.
 
 ## Supported Languages
 
@@ -57,23 +70,23 @@ This starts the API server (port 5555), PostgreSQL with Apache AGE, and Ollama f
 | Go | Yes | — |
 | Java | Yes | — |
 | Python | Yes | — |
-| YAML | Yes | — |
+| YAML | WIP | — |
 
 ## Architecture Overview
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                  FlowConsole                      │
+│                  FlowConsole                     │
 ├──────────────┬──────────────┬────────────────────┤
 │   Frontend   │   Backend    │       CLI          │
 │  (React/Vite)│ (.NET 10)    │  (fc binary)       │
 │              │              │                    │
-│  @flowconsole│  ASP.NET Core│  scan, validate,   │
-│  /web        │  Minimal API │  push, diff        │
-│              │  SignalR      │                    │
+│              │  ASP.NET Core│  scan, validate,   │
+│              │  Minimal API │  push, diff        │
+│              │              │                    │
 ├──────────────┴──────────────┴────────────────────┤
-│              PostgreSQL + Apache AGE              │
-│              (graph queries on the model)         │
+│              PostgreSQL + Apache AGE             │
+│              (graph queries on the model)        │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -81,10 +94,9 @@ This starts the API server (port 5555), PostgreSQL with Apache AGE, and Ollama f
 
 | Package | Description |
 |---|---|
-| [`@flowconsole/core`](packages/core) | Core parser library for architecture-as-code |
 | [`@flowconsole/web`](packages/web) | Web UI components for the FlowConsole frontend |
 | [`@flowconsole/sdk`](packages/sdk) | SDK for defining architectural models (multi-language via jsii) |
-| [`@flowconsole/cli`](packages/cli) | CLI wrapper — installs the `fc` binary |
+| [`@flowconsole/cli`](packages/cli) | CLI wrapper — installs the `fc` binary(Scanners + rule engine) |
 | [`@flowconsole/ui`](packages/ui) | Shared UI component library |
 
 ## Project Structure
@@ -95,12 +107,11 @@ flowconsole/
 │   ├── app/          # Main frontend application (Vite + React)
 │   └── docs/         # Documentation site (Next.js)
 ├── packages/
-│   ├── core/         # Core parser library
 │   ├── web/          # Web UI components
-│   ├── sdk/          # Multi-language SDK (jsii)
+│   ├── sdk/          # Multi-language SDK
 │   ├── cli/          # CLI npm wrapper
 │   └── ui/           # Shared UI components
-├── backend/          # .NET modular monolith (API, CQRS, graph engine)
+├── backend/          # .NET app (API)
 └── contracts/        # JSON schemas (model-snapshot, rules)
 ```
 
@@ -110,3 +121,31 @@ flowconsole/
 - [Contributing](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [License](LICENSE) (Apache-2.0)
+
+## Commercial / Hosted Offering
+
+In addition to the open-source core, the FlowConsole project provides
+commercial offerings, such as:
+- managed SaaS deployment,
+- enterprise features,
+- proprietary plugins/extensions,
+- commercial support and services.
+
+These offerings are **not part of this open-source repository** and are
+provided under separate commercial terms.
+
+Use of the FlowConsole hosted service is governed by its own
+Terms of Service and does not change the licensing of the open-source core.
+
+---
+## Trademarks
+
+The FlowConsole name, logo, and branding are trademarks of the project
+maintainers and may not be used without permission.
+
+This does not affect your rights to use, modify, or distribute the
+open-source software itself.
+## Disclaimer
+
+This software is provided "as is", without warranty of any kind, express
+or implied. See the LICENSE file for details.

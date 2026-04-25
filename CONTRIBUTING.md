@@ -144,6 +144,49 @@ Use a descriptive prefix:
 - Address review feedback by pushing new commits (do not force-push during review).
 - PRs that do not comply with the CLA requirement will not be merged.
 
+### Acceptance is at maintainer discretion
+
+Submitting a pull request does **not guarantee that it will be merged.**
+Maintainers may decline a contribution — including a working, well-tested one —
+for any of the following reasons (non-exhaustive):
+
+- The change is **out of scope** for the project's stated goals.
+- The functionality belongs to the **commercial / SaaS edition** of FlowConsole
+  rather than the open-source core. FlowConsole follows an **open-core model**:
+  certain capabilities/features are intentionally kept in the closed-source
+  product and are not accepted into this repository, even when the
+  implementation is technically sound. If you are unsure whether a feature
+  falls on the OSS or SaaS side of the line, please open an issue first.
+- It conflicts with the **roadmap** or with work already in progress.
+- The design **doesn't fit the existing architecture** or would impose ongoing
+  maintenance cost we are not prepared to take on.
+- **Code quality, test coverage, or documentation** falls below project
+  standards and the gap is not addressed during review.
+- The change introduces **breaking changes** without sufficient justification
+  or migration path.
+- It duplicates functionality that exists elsewhere in the codebase or in a
+  dependency we already use.
+- We cannot reach the contributor for required clarification within a
+  reasonable timeframe.
+
+**To reduce the risk of rejection on a substantial change**, please:
+
+1. **Open an issue or discussion first** describing the problem and your
+   proposed approach — *before* writing the code. Maintainers will indicate
+   whether the direction is likely to be accepted.
+2. Keep PRs **small and focused** — one logical change per PR.
+3. Reference the related issue in the PR description.
+
+Bug fixes, documentation improvements, and small focused changes can usually
+go directly to PR without prior discussion.
+
+If a contribution is declined, the work remains yours under the project's
+license — you are welcome to maintain it in a fork.
+
+Maintainers may also **close stale PRs** that have not received a response to
+review feedback within a reasonable period (typically 30 days). A closed PR
+can always be reopened once the feedback is addressed.
+
 ---
 
 ## Questions
