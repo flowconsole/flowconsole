@@ -11,7 +11,7 @@
     "stability": "stable"
   },
   "homepage": "https://github.com/slackmaster9999/flowconsole.git",
-  "jsiiVersion": "5.9.37 (build 5176c0d)",
+  "jsiiVersion": "5.9.23 (build 29252a0)",
   "keywords": [],
   "license": "MIT",
   "metadata": {
@@ -20,21 +20,21 @@
         "hasDefaultInterfaces": true
       }
     },
-    "tscRootDir": "/workspace/.ralphex/worktrees/sdk-synth-phase1/oss/src/sdk"
+    "tscRootDir": "/Users/vmg/FlowConsole/src_oss/packages/sdk"
   },
   "name": "@flowconsole/sdk",
   "readme": {
     "markdown": "# FlowConsole SDK\n\nFlowConsole SDK provides a typed, declarative API for describing software architecture as code. Define elements, flows, and deployments in TypeScript — the SDK infers relationships automatically and builds a `ModelSnapshot` for the FlowConsole engine.\n\nBuilt with [jsii](https://github.com/aws/jsii), so the same API is available in TypeScript, Python, C#, Java, and Go.\n\n## Install\n\n- **npm**: `npm install @flowconsole/sdk`\n- **Python**: `pip install flowconsole-sdk`\n- **.NET**: `dotnet add package FlowConsole.Sdk`\n- **Java (Maven)**:\n  ```xml\n  <dependency>\n    <groupId>io.github.slackmaster9999</groupId>\n    <artifactId>flowconsole-sdk</artifactId>\n    <version>2.0.0</version>\n  </dependency>\n  ```\n- **Go**: `go get github.com/slackmaster9999/go-flowconsole/flowconsole/v2`\n\n## Quick Start (TypeScript)\n\nThe SDK has three layers: Topology, Flows, and Deployment.\n\n```typescript\nimport {\n  User, SoftwareSystem, Container, RestApi, Postgres, Redis, Kafka, Topic, External,\n  Gateway, K8sCluster, ManagedDatabase, Ingress, buildSnapshot, getRuntime\n} from \"@flowconsole/sdk\";\n\n// ── Layer 1: Topology ──\nconst customer = new User({ name: \"Customer\", role: \"Buyer\" });\nconst shop = new SoftwareSystem({ name: \"eShop\", domain: \"e-commerce\" });\nconst gateway = new Gateway({ name: \"API Gateway\", belongsTo: shop });\nconst web = new Container({ name: \"Web App\", technology: \"Blazor\", belongsTo: shop });\nconst ordersApi = new RestApi({\n  name: \"Orders API\",\n  technology: \"ASP.NET Core\",\n  baseUrl: \"/api/v1/orders\",\n  belongsTo: shop\n});\nconst db = new Postgres({ name: \"Ledger\", belongsTo: shop });\nconst cache = new Redis({ name: \"Session\", belongsTo: shop });\nconst kafka = new Kafka({ name: \"Event Bus\", belongsTo: shop });\nconst orderEvents = new Topic({ name: \"order.events\", partitions: 12, belongsTo: kafka });\nconst stripe = new External({ name: \"Stripe\", vendor: \"Stripe Inc.\", belongsTo: shop });\n\n// ── Layer 2: Flows ──\ncustomer.opens(web, \"Opens shop\")\n  .then(web).sendsRequest(gateway, \"Browse catalog\")\n  .then(gateway).sendsRequest(ordersApi, \"GET /products\")\n  .then(ordersApi).reads(cache, \"Check cache\")\n  .then(ordersApi).reads(db, \"Query products\")\n  .scenario(\"Browse catalog\");\n\ncustomer.opens(web, \"Place order\")\n  .then(web).sendsRequest(ordersApi, \"POST /orders\")\n  .then(ordersApi).writes(db, \"Save order\")\n  .then(ordersApi).sendsRequest(stripe, \"Charge card\")\n  .then(ordersApi).publishes(orderEvents, \"OrderPlaced\")\n  .scenario(\"Customer purchase\");\n\n// ── Layer 3: Deployment ──\nconst prodCluster = new K8sCluster({ name: \"prod-eu\", region: \"eu-west-1\" });\nconst rdsMain = new ManagedDatabase({ name: \"RDS prod\", provider: \"AWS RDS\" });\nconst publicIngress = new Ingress({ name: \"Public\", host: \"shop.example.com\" });\nweb.deployedOn(prodCluster, { replicas: 3 });\nordersApi.deployedOn(prodCluster, { replicas: 5 });\ndb.deployedOn(rdsMain);\ncache.deployedOn(prodCluster, { replicas: 1 });\npublicIngress.routesTo(gateway);\ngateway.exposes(ordersApi, { path: \"/api/orders\" });\n\n// Build snapshot (validates and infers relationships)\nconst entities = [\n  customer, shop, gateway, web, ordersApi, db, cache, kafka, orderEvents, stripe,\n  prodCluster, rdsMain, publicIngress,\n];\nconst snapshot = buildSnapshot(entities);\n```\n\n## Quick Start (C#)\n\n```csharp\nusing FlowConsole;\n\nvar customer = new User(new UserArgs { Name = \"Customer\", Role = \"Buyer\" });\nvar shop = new SoftwareSystem(new SoftwareSystemArgs { Name = \"eShop\", Domain = \"e-commerce\" });\nvar ordersApi = new RestApi(new RestApiArgs {\n    Name = \"Orders API\",\n    Technology = \"ASP.NET Core\",\n    BaseUrl = \"/api/v1/orders\",\n    BelongsTo = shop\n});\nvar web = new Container(new ComponentArgs { Name = \"Web App\", Technology = \"Blazor\", BelongsTo = shop });\nvar db = new Postgres(new DatabaseArgs { Name = \"Ledger\", BelongsTo = shop });\nvar kafka = new Kafka(new BrokerArgs { Name = \"Event Bus\", BelongsTo = shop });\nvar orderEvents = new Topic(new TopicArgs {\n    Name = \"order.events\", Partitions = 12, BelongsTo = kafka\n});\n\ncustomer.Opens(web, \"Place order\")\n    .Then(web).SendsRequest(ordersApi, \"POST /orders\")\n    .Then(ordersApi).Writes(db, \"Save order\")\n    .Then(ordersApi).Publishes(orderEvents, \"OrderPlaced\")\n    .Scenario(\"Customer purchase\");\n\nvar prodCluster = new K8sCluster(new K8sClusterArgs { Name = \"prod-eu\", Region = \"eu-west-1\" });\nordersApi.DeployedOn(prodCluster, new DeploymentOptions { Replicas = 5 });\n```\n\n## Elements\n\n### Base Elements (13 classes)\n\n| Class | Backend ElementKind | Layer | Extra Fields |\n|-------|-------------------|-------|-------------|\n| `User` | External | Architecture | `role` |\n| `SoftwareSystem` | Service | Architecture | `domain` |\n| `Namespace` | Namespace | Architecture | — |\n| `Container` | Application | Architecture | — |\n| `Module` | Module | Architecture | — |\n| `External` | External | Architecture | `vendor` |\n| `Gateway` | Gateway | Architecture | — |\n| `Worker` | Worker | Architecture | — |\n| `Database` | Database | Infra | `engine` |\n| `Cache` | Cache | Infra | `engine` |\n| `Queue` | Queue | Infra | `engine` |\n| `Broker` | Broker | Infra | — |\n| `Topic` | Topic | Infra | `partitions` |\n\n### Convenience Classes (23 classes)\n\nThin wrappers that set default `technology` or `engine`. User-supplied values always override defaults.\n\n**API patterns** (extend Container):\n- `RestApi` — technology=\"REST API\", fields: `baseUrl`, `openapi`\n- `GrpcApi` — technology=\"gRPC\", field: `proto`\n- `GraphqlApi` — technology=\"GraphQL\", field: `schema`\n\n**Web/Mobile/Desktop** (extend Container):\n- `ReactApp` (React), `NextApp` (Next.js), `VueApp` (Vue.js), `AngularApp` (Angular), `SvelteApp` (Svelte), `BlazorApp` (Blazor)\n- `IosApp` (iOS), `AndroidApp` (Android), `DesktopApp` (Desktop)\n\n**Databases** (extend Database):\n- `Postgres` (PostgreSQL), `Mysql` (MySQL), `Mongo` (MongoDB), `Clickhouse` (ClickHouse)\n\n**Caches** (extend Cache):\n- `Redis`, `Memcached`\n\n**Queues** (extend Queue):\n- `Rabbit` (RabbitMQ), `Sqs` (AWS SQS)\n\n**Brokers** (extend Broker):\n- `Kafka`, `Nats` (NATS), `Pulsar` (Apache Pulsar)\n\n### Deployment Classes (6 classes)\n\n| Class | Backend ElementKind | Extra Fields |\n|-------|-------------------|-------------|\n| `K8sCluster` | Deployment | `region`, `version` |\n| `ManagedDatabase` | Deployment | `provider`, `engine` |\n| `Serverless` | Deployment | `runtime`, `provider` |\n| `Vm` | Deployment | `os`, `provider` |\n| `Cdn` | Deployment | `provider` |\n| `Ingress` | Ingress | `host`, `tls` |\n\n## Flow Methods\n\nFlows describe runtime interactions between components using a fluent chain API.\n\n### Base Methods\n\n| Method | Purpose | Returns |\n|--------|---------|---------|\n| `sendsRequest(target, label?, options?)` | Generic request | FlowBuilder |\n| `sendsRequestTo(target, label?, options?)` | Alias for sendsRequest | FlowBuilder |\n| `getDataFrom(target, label?, options?)` | Read data | FlowBuilder |\n| `calls(target, label?, options?)` | Explicit Calls relationship | FlowBuilder |\n| `uses(target, label?, options?)` | Explicit Uses relationship | FlowBuilder |\n| `dependsOn(target, label?, options?)` | Explicit DependsOn relationship | FlowBuilder |\n| `produces(target, label?, options?)` | Explicit Produces relationship | FlowBuilder |\n| `consumes(target, label?, options?)` | Explicit Consumes relationship | FlowBuilder |\n| `executesRequest(label?)` | Internal action (no relationship) | FlowBuilder |\n| `then(next)` | Switch source in chain | FlowBuilder |\n| `inParallel(...branches)` | Parallel branches | FlowBuilder |\n\n### Convenience Wrappers\n\n| Method | Equivalent | Typical Target | Semantics |\n|--------|-----------|---------------|-----------|\n| `opens(target, label?)` | sendsRequest + kind:'sync' | Container/Gateway | User opens UI |\n| `publishes(target, label?)` | sendsRequest + kind:'event' | Topic/Queue | Publish event |\n| `emits(target, label?)` | alias for publishes | Topic/Queue | Same as publishes |\n| `subscribes(target, label?)` | getDataFrom | Topic/Queue | Subscribe to events |\n| `reads(target, label?)` | getDataFrom | Database/Cache | Read data |\n| `writes(target, label?)` | sendsRequest + kind:'sync' | Database/Cache | Write data |\n| `runs(label?)` | executesRequest | — | Internal action |\n\n### Scenario\n\nTerminate a flow chain with `.scenario(name)` to group it for diagram rendering:\n\n```typescript\nuser.opens(web, \"Login\")\n  .then(web).sendsRequest(api, \"POST /auth\")\n  .scenario(\"User login\");\n```\n\n## Deployment\n\nDeployment methods link architecture elements to infrastructure targets.\n\n| Method | Relationship |\n|--------|-------------|\n| `component.deployedOn(target, options?)` | DeployedOn |\n| `ingress.routesTo(target)` | RoutesTo |\n| `gateway.exposes(target, options?)` | Exposes |\n\n`DeploymentOptions`: `replicas`, `cpu`, `memory`.\n`ExposeOptions`: `path`.\n\n```typescript\nconst cluster = new K8sCluster({ name: \"prod\", region: \"us-east-1\" });\napi.deployedOn(cluster, { replicas: 3 });\n\nconst ingress = new Ingress({ name: \"Public\", host: \"api.example.com\" });\ningress.routesTo(gateway);\ngateway.exposes(api, { path: \"/api\" });\n```\n\n## Relationship Inference\n\nThe SDK does not require explicit relationship declarations. Relationships are inferred from flows and deployment calls using these rules:\n\n| Flow Method | kind | Target Type | Inferred RelationKind |\n|------------|------|------------|----------------------|\n| `sendsRequest` | sync (default) | Container/Gateway/External | **Calls** |\n| `sendsRequest` | sync | Database/Cache | **Uses** |\n| `sendsRequest` | async | any | **Calls** (async flag) |\n| `sendsRequest` | event | Topic/Queue | **Produces** |\n| `sendsRequest` | dependency | any | **DependsOn** |\n| `getDataFrom` | — | Database/Cache | **Uses** |\n| `getDataFrom` | — | Topic/Queue | **Consumes** |\n| `getDataFrom` | — | Container/External | **Calls** (read flag) |\n| `calls` | sync (default) | any | **Calls** |\n| `uses` | dependency (default) | any | **Uses** |\n| `dependsOn` | dependency (default) | any | **DependsOn** |\n| `produces` | event (default) | any | **Produces** |\n| `consumes` | dependency (default) | any | **Consumes** |\n| `executesRequest` | — | — | (no relationship) |\n| (implicit `belongsTo`) | — | — | **Contains** |\n\n**Deduplication**: One (source, target, relationKind) tuple produces one relationship. Labels from all matching calls are merged into a `labels` array. Different relationKinds between the same pair (e.g., Calls + DependsOn) produce separate relationships.\n\n**No transitive inference**: If A publishes to a Topic and B subscribes to it, no A→B relationship is created. The graph path A→Topic→B is visible through the model.\n\n### Deployment Relationships\n\n| Call | Inferred RelationKind |\n|------|----------------------|\n| `component.deployedOn(target)` | **DeployedOn** |\n| `ingress.routesTo(target)` | **RoutesTo** |\n| `gateway.exposes(target)` | **Exposes** |\n\n## Styles\n\nEach element accepts an optional `style` field for visual customization.\n\n```typescript\ninterface ComponentStyle {\n  preset?: StylePreset;\n  color?: string;\n  backgroundColor?: string;\n  borderColor?: string;\n  icon?: string;\n  shape?: ShapeKind;\n}\n```\n\n### Presets\n\n| Preset | Purpose |\n|--------|---------|\n| `default` | Normal node |\n| `highlighted` | Accent color for discussion |\n| `critical` | Red — problem/critical |\n| `deprecated` | Gray — outdated |\n| `new` | Green — newly added |\n| `external` | Dashed border, muted color |\n\n### Shapes\n\n`rectangle`, `circle`, `hexagon`, `cylinder`, `pipe`, `person`, `cloud`.\n\nDefault shapes by element kind:\n- `User` → person\n- `Database`, `Cache` → cylinder\n- `Queue`, `Topic` → pipe\n- `External` → cloud\n- `Gateway`, `Ingress` → hexagon\n- Everything else → rectangle\n\n### Icons\n\nThe `style.icon` field accepts:\n- `data:...;base64,...` — inline base64 data URL\n- `http://...` / `https://...` — external URL\n- `/...` / `./...` — relative file path\n- Otherwise — name from the built-in icon library\n\nBuilt-in icons: `user`, `system`, `database`, `queue`, `topic`, `cache`, `api`, `gateway`, `worker`, `cloud`, `deployment`, `kubernetes`, `aws`, `browser`, `mobile`.\n\nDefault icons are auto-assigned by element kind when `style.icon` is not set.\n\n### Example with Styles\n\n```typescript\nconst legacy = new Container({\n  name: \"Legacy Service\",\n  style: { preset: StylePreset.DEPRECATED, shape: ShapeKind.RECTANGLE }\n});\n\nconst critical = new Database({\n  name: \"Core DB\",\n  style: { preset: StylePreset.CRITICAL, icon: \"database\" }\n});\n```\n\n## belongsTo Validation\n\n| Element | Allowed `belongsTo` | Required? |\n|---------|---------------------|-----------|\n| `User`, `SoftwareSystem` | — (top-level) | No |\n| `Namespace` | SoftwareSystem | Optional |\n| `Container` | SoftwareSystem, Namespace | Optional |\n| `Module` | Container, SoftwareSystem | Optional |\n| `Gateway` | SoftwareSystem, Container | Optional |\n| `Worker` | SoftwareSystem, Container | Optional |\n| `External` | SoftwareSystem, Container | Optional |\n| `Database` | SoftwareSystem, Container | Optional |\n| `Cache` | SoftwareSystem, Container | Optional |\n| `Queue` | SoftwareSystem, Container | Optional |\n| `Broker` | SoftwareSystem, Container | Optional |\n| `Topic` | **Broker** | **Yes** |\n\n`buildSnapshot()` validates these rules and throws on violations.\n\n## Building ModelSnapshot\n\n```typescript\nimport { buildSnapshot, getRuntime } from \"@flowconsole/sdk\";\n\n// After defining elements, flows, and deployments:\nconst entities = [customer, shop, api, db, kafka, orderEvents];\nconst snapshot = buildSnapshot(entities);\n\n// snapshot.entities — all components\n// snapshot.relationships — inferred relationships (Contains, Calls, Uses, Produces, etc.)\n// snapshot.scenarios — named flow scenarios\n```\n\n## Building Multi-Language Packages\n\n1. Install dependencies: `pnpm install`\n2. Build TypeScript: `pnpm --filter @flowconsole/sdk build`\n3. Generate packages: `pnpm --filter @flowconsole/sdk package`\n\nArtifacts are written to `src/sdk/dist/` with language-specific subdirectories (dotnet, java, python, go).\n\n## Python Package\n\n- Package: `flowconsole-sdk`, import: `flowconsole`\n- Generated via `jsii-pacmak`; property names mirror TypeScript definitions\n- Ships the DSL types; use alongside the FlowConsole engine\n\n## License\n\nMIT — see `src/sdk/LICENSE`.\n"
   },
   "repository": {
-    "directory": "src/sdk",
+    "directory": "packages/sdk",
     "type": "git",
     "url": "https://github.com/slackmaster9999/flowconsole.git"
   },
   "schema": "jsii/0.10.0",
   "targets": {
     "dotnet": {
-      "iconUrl": "https://raw.githubusercontent.com/slackmaster9999/flowconsole/main/src/docs/public/_static/favicons/android-chrome-512x512.png",
+      "iconUrl": "https://raw.githubusercontent.com/slackmaster9999/flowconsole/main/apps/docs/public/_static/favicons/android-chrome-512x512.png",
       "namespace": "FlowConsole",
       "packageId": "FlowConsole.Sdk"
     },
@@ -73,7 +73,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1266
+          "line": 1237
         },
         "parameters": [
           {
@@ -87,7 +87,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1265
+        "line": 1236
       },
       "name": "AndroidApp",
       "symbolId": "flowconsole-sdk:AndroidApp"
@@ -107,7 +107,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1238
+          "line": 1209
         },
         "parameters": [
           {
@@ -121,7 +121,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1237
+        "line": 1208
       },
       "name": "AngularApp",
       "symbolId": "flowconsole-sdk:AngularApp"
@@ -141,7 +141,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1252
+          "line": 1223
         },
         "parameters": [
           {
@@ -155,7 +155,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1251
+        "line": 1222
       },
       "name": "BlazorApp",
       "symbolId": "flowconsole-sdk:BlazorApp"
@@ -176,7 +176,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1069
+          "line": 1044
         },
         "parameters": [
           {
@@ -190,7 +190,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1068
+        "line": 1043
       },
       "name": "Broker",
       "symbolId": "flowconsole-sdk:Broker"
@@ -208,7 +208,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 857
+        "line": 838
       },
       "name": "BrokerArgs",
       "symbolId": "flowconsole-sdk:BrokerArgs"
@@ -229,7 +229,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1038
+          "line": 1013
         },
         "parameters": [
           {
@@ -243,7 +243,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1034
+        "line": 1009
       },
       "name": "Cache",
       "properties": [
@@ -255,7 +255,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1036
+            "line": 1011
           },
           "name": "engine",
           "optional": true,
@@ -279,7 +279,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 848
+        "line": 829
       },
       "name": "CacheArgs",
       "properties": [
@@ -291,7 +291,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 849
+            "line": 830
           },
           "name": "engine",
           "optional": true,
@@ -317,7 +317,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1153
+          "line": 1126
         },
         "parameters": [
           {
@@ -331,7 +331,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1150
+        "line": 1123
       },
       "name": "Cdn",
       "properties": [
@@ -342,7 +342,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1151
+            "line": 1124
           },
           "name": "provider",
           "optional": true,
@@ -366,7 +366,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 886
+        "line": 865
       },
       "name": "CdnArgs",
       "properties": [
@@ -378,7 +378,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 887
+            "line": 866
           },
           "name": "provider",
           "optional": true,
@@ -404,7 +404,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1303
+          "line": 1274
         },
         "parameters": [
           {
@@ -418,7 +418,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1302
+        "line": 1273
       },
       "name": "Clickhouse",
       "symbolId": "flowconsole-sdk:Clickhouse"
@@ -436,7 +436,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 665
+          "line": 654
         },
         "parameters": [
           {
@@ -456,7 +456,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 651
+        "line": 640
       },
       "methods": [
         {
@@ -465,7 +465,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 709
+            "line": 696
           },
           "name": "calls",
           "parameters": [
@@ -502,7 +502,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 745
+            "line": 732
           },
           "name": "consumes",
           "parameters": [
@@ -539,7 +539,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 733
+            "line": 720
           },
           "name": "dependsOn",
           "parameters": [
@@ -576,7 +576,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 800
+            "line": 783
           },
           "name": "deployedOn",
           "parameters": [
@@ -601,7 +601,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 778
+            "line": 763
           },
           "name": "emits",
           "parameters": [
@@ -631,7 +631,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 751
+            "line": 738
           },
           "name": "executesRequest",
           "parameters": [
@@ -655,7 +655,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 819
+            "line": 802
           },
           "name": "exposes",
           "parameters": [
@@ -680,7 +680,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 721
+            "line": 708
           },
           "name": "getDataFrom",
           "parameters": [
@@ -719,7 +719,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 762
+            "line": 749
           },
           "name": "inParallel",
           "parameters": [
@@ -744,7 +744,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 770
+            "line": 755
           },
           "name": "opens",
           "parameters": [
@@ -774,7 +774,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 739
+            "line": 726
           },
           "name": "produces",
           "parameters": [
@@ -811,7 +811,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 774
+            "line": 759
           },
           "name": "publishes",
           "parameters": [
@@ -841,7 +841,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 786
+            "line": 771
           },
           "name": "reads",
           "parameters": [
@@ -871,7 +871,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 810
+            "line": 793
           },
           "name": "routesTo",
           "parameters": [
@@ -889,7 +889,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 794
+            "line": 779
           },
           "name": "runs",
           "parameters": [
@@ -913,7 +913,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 699
+            "line": 686
           },
           "name": "sendsRequest",
           "parameters": [
@@ -950,7 +950,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 705
+            "line": 692
           },
           "name": "sendsRequestTo",
           "parameters": [
@@ -987,7 +987,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 782
+            "line": 767
           },
           "name": "subscribes",
           "parameters": [
@@ -1017,7 +1017,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 715
+            "line": 702
           },
           "name": "then",
           "parameters": [
@@ -1041,7 +1041,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 682
+            "line": 671
           },
           "name": "toDto",
           "returns": {
@@ -1056,7 +1056,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 727
+            "line": 714
           },
           "name": "uses",
           "parameters": [
@@ -1093,7 +1093,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 790
+            "line": 775
           },
           "name": "writes",
           "parameters": [
@@ -1127,7 +1127,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 653
+            "line": 642
           },
           "name": "id",
           "type": {
@@ -1141,7 +1141,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 663
+            "line": 652
           },
           "name": "kind",
           "type": {
@@ -1155,7 +1155,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 660
+            "line": 649
           },
           "name": "badge",
           "optional": true,
@@ -1170,7 +1170,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 658
+            "line": 647
           },
           "name": "belongsTo",
           "optional": true,
@@ -1185,7 +1185,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 655
+            "line": 644
           },
           "name": "description",
           "optional": true,
@@ -1200,7 +1200,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 654
+            "line": 643
           },
           "name": "name",
           "optional": true,
@@ -1215,7 +1215,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 657
+            "line": 646
           },
           "name": "properties",
           "optional": true,
@@ -1235,7 +1235,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 662
+            "line": 651
           },
           "name": "style",
           "optional": true,
@@ -1250,7 +1250,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 659
+            "line": 648
           },
           "name": "tags",
           "optional": true,
@@ -1270,7 +1270,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 656
+            "line": 645
           },
           "name": "technology",
           "optional": true,
@@ -1285,7 +1285,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 661
+            "line": 650
           },
           "name": "tone",
           "optional": true,
@@ -1308,7 +1308,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 331
+        "line": 324
       },
       "name": "ComponentArgs",
       "properties": [
@@ -1321,7 +1321,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 347
+            "line": 340
           },
           "name": "badge",
           "optional": true,
@@ -1338,7 +1338,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 343
+            "line": 336
           },
           "name": "belongsTo",
           "optional": true,
@@ -1355,7 +1355,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 337
+            "line": 330
           },
           "name": "description",
           "optional": true,
@@ -1373,7 +1373,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 333
+            "line": 326
           },
           "name": "id",
           "optional": true,
@@ -1390,7 +1390,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 335
+            "line": 328
           },
           "name": "name",
           "optional": true,
@@ -1407,7 +1407,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 341
+            "line": 334
           },
           "name": "properties",
           "optional": true,
@@ -1429,7 +1429,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 351
+            "line": 344
           },
           "name": "style",
           "optional": true,
@@ -1446,7 +1446,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 345
+            "line": 338
           },
           "name": "tags",
           "optional": true,
@@ -1468,7 +1468,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 339
+            "line": 332
           },
           "name": "technology",
           "optional": true,
@@ -1485,7 +1485,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 349
+            "line": 342
           },
           "name": "tone",
           "optional": true,
@@ -1508,7 +1508,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 243
+        "line": 238
       },
       "name": "ComponentStyle",
       "properties": [
@@ -1521,7 +1521,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 249
+            "line": 244
           },
           "name": "backgroundColor",
           "optional": true,
@@ -1538,7 +1538,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 251
+            "line": 246
           },
           "name": "borderColor",
           "optional": true,
@@ -1555,7 +1555,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 247
+            "line": 242
           },
           "name": "color",
           "optional": true,
@@ -1572,7 +1572,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 253
+            "line": 248
           },
           "name": "icon",
           "optional": true,
@@ -1589,7 +1589,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 245
+            "line": 240
           },
           "name": "preset",
           "optional": true,
@@ -1606,7 +1606,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 255
+            "line": 250
           },
           "name": "shape",
           "optional": true,
@@ -1629,7 +1629,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 92
+        "line": 91
       },
       "name": "ConnectionOptions",
       "properties": [
@@ -1642,7 +1642,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 94
+            "line": 93
           },
           "name": "detail",
           "optional": true,
@@ -1659,7 +1659,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 98
+            "line": 97
           },
           "name": "icon",
           "optional": true,
@@ -1676,7 +1676,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 96
+            "line": 95
           },
           "name": "kind",
           "optional": true,
@@ -1693,7 +1693,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 100
+            "line": 99
           },
           "name": "muted",
           "optional": true,
@@ -1720,7 +1720,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 962
+          "line": 937
         },
         "parameters": [
           {
@@ -1734,7 +1734,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 961
+        "line": 936
       },
       "name": "Container",
       "symbolId": "flowconsole-sdk:Container"
@@ -1755,7 +1755,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1021
+          "line": 996
         },
         "parameters": [
           {
@@ -1769,7 +1769,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1017
+        "line": 992
       },
       "name": "Database",
       "properties": [
@@ -1781,7 +1781,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1019
+            "line": 994
           },
           "name": "engine",
           "optional": true,
@@ -1805,7 +1805,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 844
+        "line": 825
       },
       "name": "DatabaseArgs",
       "properties": [
@@ -1817,7 +1817,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 845
+            "line": 826
           },
           "name": "engine",
           "optional": true,
@@ -1840,7 +1840,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 361
+        "line": 354
       },
       "name": "DeploymentOptions",
       "properties": [
@@ -1853,7 +1853,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 365
+            "line": 358
           },
           "name": "cpu",
           "optional": true,
@@ -1870,7 +1870,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 367
+            "line": 360
           },
           "name": "memory",
           "optional": true,
@@ -1887,7 +1887,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 363
+            "line": 356
           },
           "name": "replicas",
           "optional": true,
@@ -1909,7 +1909,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 392
+        "line": 385
       },
       "name": "DeploymentRecord",
       "properties": [
@@ -1921,7 +1921,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 395
+            "line": 388
           },
           "name": "relationKind",
           "type": {
@@ -1936,7 +1936,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 393
+            "line": 386
           },
           "name": "source",
           "type": {
@@ -1951,7 +1951,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 394
+            "line": 387
           },
           "name": "target",
           "type": {
@@ -1966,7 +1966,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 396
+            "line": 389
           },
           "name": "options",
           "optional": true,
@@ -2001,7 +2001,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1273
+          "line": 1244
         },
         "parameters": [
           {
@@ -2015,7 +2015,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1272
+        "line": 1243
       },
       "name": "DesktopApp",
       "symbolId": "flowconsole-sdk:DesktopApp"
@@ -2031,7 +2031,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 26
+        "line": 25
       },
       "name": "ElementDto",
       "properties": [
@@ -2043,7 +2043,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 27
+            "line": 26
           },
           "name": "id",
           "type": {
@@ -2058,7 +2058,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 28
+            "line": 27
           },
           "name": "kind",
           "type": {
@@ -2073,7 +2073,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 29
+            "line": 28
           },
           "name": "name",
           "type": {
@@ -2088,7 +2088,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 30
+            "line": 29
           },
           "name": "description",
           "optional": true,
@@ -2104,7 +2104,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 32
+            "line": 31
           },
           "name": "parentId",
           "optional": true,
@@ -2120,7 +2120,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 33
+            "line": 32
           },
           "name": "properties",
           "optional": true,
@@ -2141,7 +2141,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 34
+            "line": 33
           },
           "name": "tags",
           "optional": true,
@@ -2162,7 +2162,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 31
+            "line": 30
           },
           "name": "technology",
           "optional": true,
@@ -2185,7 +2185,7 @@
       "kind": "enum",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 114
+        "line": 111
       },
       "members": [
         {
@@ -2344,7 +2344,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1811
+        "line": 1773
       },
       "name": "EmitOptions",
       "properties": [
@@ -2358,7 +2358,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1818
+            "line": 1780
           },
           "name": "filePath",
           "optional": true,
@@ -2376,7 +2376,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1820
+            "line": 1782
           },
           "name": "indent",
           "optional": true,
@@ -2394,7 +2394,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1816
+            "line": 1778
           },
           "name": "to",
           "optional": true,
@@ -2416,7 +2416,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 373
+        "line": 366
       },
       "name": "ExposeOptions",
       "properties": [
@@ -2429,7 +2429,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 375
+            "line": 368
           },
           "name": "path",
           "optional": true,
@@ -2456,7 +2456,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 986
+          "line": 961
         },
         "parameters": [
           {
@@ -2470,7 +2470,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 983
+        "line": 958
       },
       "name": "External",
       "properties": [
@@ -2481,7 +2481,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 984
+            "line": 959
           },
           "name": "vendor",
           "optional": true,
@@ -2505,7 +2505,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 840
+        "line": 821
       },
       "name": "ExternalArgs",
       "properties": [
@@ -2517,7 +2517,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 841
+            "line": 822
           },
           "name": "vendor",
           "optional": true,
@@ -2542,7 +2542,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 407
+          "line": 400
         },
         "parameters": [
           {
@@ -2573,7 +2573,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 402
+        "line": 395
       },
       "methods": [
         {
@@ -2582,7 +2582,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 433
+            "line": 424
           },
           "name": "calls",
           "parameters": [
@@ -2619,7 +2619,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 487
+            "line": 478
           },
           "name": "consumes",
           "parameters": [
@@ -2656,7 +2656,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 463
+            "line": 454
           },
           "name": "dependsOn",
           "parameters": [
@@ -2693,7 +2693,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 524
+            "line": 513
           },
           "name": "emits",
           "parameters": [
@@ -2723,7 +2723,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 499
+            "line": 490
           },
           "name": "executesRequest",
           "parameters": [
@@ -2747,7 +2747,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 445
+            "line": 436
           },
           "name": "getDataFrom",
           "parameters": [
@@ -2786,7 +2786,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 510
+            "line": 501
           },
           "name": "inParallel",
           "parameters": [
@@ -2811,7 +2811,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 516
+            "line": 505
           },
           "name": "opens",
           "parameters": [
@@ -2841,7 +2841,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 475
+            "line": 466
           },
           "name": "produces",
           "parameters": [
@@ -2878,7 +2878,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 520
+            "line": 509
           },
           "name": "publishes",
           "parameters": [
@@ -2908,7 +2908,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 532
+            "line": 521
           },
           "name": "reads",
           "parameters": [
@@ -2938,7 +2938,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 540
+            "line": 529
           },
           "name": "runs",
           "parameters": [
@@ -2963,7 +2963,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 547
+            "line": 536
           },
           "name": "scenario",
           "parameters": [
@@ -2986,7 +2986,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 423
+            "line": 414
           },
           "name": "sendsRequest",
           "parameters": [
@@ -3023,7 +3023,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 429
+            "line": 420
           },
           "name": "sendsRequestTo",
           "parameters": [
@@ -3060,7 +3060,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 528
+            "line": 517
           },
           "name": "subscribes",
           "parameters": [
@@ -3091,7 +3091,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 416
+            "line": 409
           },
           "name": "then",
           "parameters": [
@@ -3114,7 +3114,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 451
+            "line": 442
           },
           "name": "uses",
           "parameters": [
@@ -3151,7 +3151,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 536
+            "line": 525
           },
           "name": "writes",
           "parameters": [
@@ -3194,7 +3194,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 556
+        "line": 545
       },
       "methods": [
         {
@@ -3204,7 +3204,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 618
+            "line": 607
           },
           "name": "reset"
         },
@@ -3215,7 +3215,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 564
+            "line": 553
           },
           "name": "startFlow",
           "parameters": [
@@ -3243,7 +3243,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 611
+            "line": 600
           },
           "name": "deployments",
           "type": {
@@ -3263,7 +3263,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 597
+            "line": 586
           },
           "name": "scenarios",
           "type": {
@@ -3288,7 +3288,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 604
+            "line": 593
           },
           "name": "unnamedFlows",
           "type": {
@@ -3319,7 +3319,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 381
+        "line": 374
       },
       "name": "FlowStep",
       "properties": [
@@ -3331,7 +3331,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 386
+            "line": 379
           },
           "name": "method",
           "type": {
@@ -3346,7 +3346,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 382
+            "line": 375
           },
           "name": "source",
           "type": {
@@ -3361,7 +3361,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 384
+            "line": 377
           },
           "name": "label",
           "optional": true,
@@ -3377,7 +3377,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 385
+            "line": 378
           },
           "name": "options",
           "optional": true,
@@ -3393,7 +3393,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 383
+            "line": 376
           },
           "name": "target",
           "optional": true,
@@ -3419,7 +3419,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 996
+          "line": 971
         },
         "parameters": [
           {
@@ -3433,7 +3433,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 995
+        "line": 970
       },
       "name": "Gateway",
       "symbolId": "flowconsole-sdk:Gateway"
@@ -3453,7 +3453,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1207
+          "line": 1178
         },
         "parameters": [
           {
@@ -3467,7 +3467,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1204
+        "line": 1175
       },
       "name": "GraphqlApi",
       "properties": [
@@ -3478,7 +3478,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1205
+            "line": 1176
           },
           "name": "schema",
           "optional": true,
@@ -3502,7 +3502,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 906
+        "line": 883
       },
       "name": "GraphqlApiArgs",
       "properties": [
@@ -3514,7 +3514,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 907
+            "line": 884
           },
           "name": "schema",
           "optional": true,
@@ -3540,7 +3540,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1197
+          "line": 1168
         },
         "parameters": [
           {
@@ -3554,7 +3554,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1194
+        "line": 1165
       },
       "name": "GrpcApi",
       "properties": [
@@ -3565,7 +3565,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1195
+            "line": 1166
           },
           "name": "proto",
           "optional": true,
@@ -3589,7 +3589,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 902
+        "line": 879
       },
       "name": "GrpcApiArgs",
       "properties": [
@@ -3601,7 +3601,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 903
+            "line": 880
           },
           "name": "proto",
           "optional": true,
@@ -3623,7 +3623,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1682
+        "line": 1647
       },
       "methods": [
         {
@@ -3635,7 +3635,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1693
+            "line": 1658
           },
           "name": "toJson",
           "parameters": [
@@ -3667,7 +3667,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1683
+            "line": 1648
           },
           "name": "entities",
           "type": {
@@ -3687,7 +3687,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1684
+            "line": 1649
           },
           "name": "relationships",
           "type": {
@@ -3707,7 +3707,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1685
+            "line": 1650
           },
           "name": "scenarios",
           "type": {
@@ -3738,7 +3738,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1368
+        "line": 1337
       },
       "name": "InferredRelationship",
       "properties": [
@@ -3750,7 +3750,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1372
+            "line": 1341
           },
           "name": "labels",
           "type": {
@@ -3770,7 +3770,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1371
+            "line": 1340
           },
           "name": "relationKind",
           "type": {
@@ -3785,7 +3785,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1369
+            "line": 1338
           },
           "name": "source",
           "type": {
@@ -3800,7 +3800,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1370
+            "line": 1339
           },
           "name": "target",
           "type": {
@@ -3815,7 +3815,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1373
+            "line": 1342
           },
           "name": "options",
           "optional": true,
@@ -3841,7 +3841,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1164
+          "line": 1137
         },
         "parameters": [
           {
@@ -3855,7 +3855,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1160
+        "line": 1133
       },
       "name": "Ingress",
       "properties": [
@@ -3866,7 +3866,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1161
+            "line": 1134
           },
           "name": "host",
           "optional": true,
@@ -3881,7 +3881,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1162
+            "line": 1135
           },
           "name": "tls",
           "optional": true,
@@ -3905,7 +3905,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 890
+        "line": 869
       },
       "name": "IngressArgs",
       "properties": [
@@ -3917,7 +3917,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 891
+            "line": 870
           },
           "name": "host",
           "optional": true,
@@ -3933,7 +3933,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 892
+            "line": 871
           },
           "name": "tls",
           "optional": true,
@@ -3959,7 +3959,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1259
+          "line": 1230
         },
         "parameters": [
           {
@@ -3973,7 +3973,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1258
+        "line": 1229
       },
       "name": "IosApp",
       "symbolId": "flowconsole-sdk:IosApp"
@@ -3994,7 +3994,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1106
+          "line": 1079
         },
         "parameters": [
           {
@@ -4008,7 +4008,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1102
+        "line": 1075
       },
       "name": "K8sCluster",
       "properties": [
@@ -4019,7 +4019,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1103
+            "line": 1076
           },
           "name": "region",
           "optional": true,
@@ -4034,7 +4034,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1104
+            "line": 1077
           },
           "name": "version",
           "optional": true,
@@ -4058,7 +4058,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 866
+        "line": 845
       },
       "name": "K8sClusterArgs",
       "properties": [
@@ -4070,7 +4070,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 867
+            "line": 846
           },
           "name": "region",
           "optional": true,
@@ -4086,7 +4086,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 868
+            "line": 847
           },
           "name": "version",
           "optional": true,
@@ -4112,7 +4112,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1344
+          "line": 1315
         },
         "parameters": [
           {
@@ -4126,7 +4126,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1343
+        "line": 1314
       },
       "name": "Kafka",
       "symbolId": "flowconsole-sdk:Kafka"
@@ -4146,7 +4146,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1118
+          "line": 1091
         },
         "parameters": [
           {
@@ -4160,7 +4160,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1114
+        "line": 1087
       },
       "name": "ManagedDatabase",
       "properties": [
@@ -4171,7 +4171,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1116
+            "line": 1089
           },
           "name": "engine",
           "optional": true,
@@ -4186,7 +4186,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1115
+            "line": 1088
           },
           "name": "provider",
           "optional": true,
@@ -4210,7 +4210,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 871
+        "line": 850
       },
       "name": "ManagedDatabaseArgs",
       "properties": [
@@ -4222,7 +4222,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 873
+            "line": 852
           },
           "name": "engine",
           "optional": true,
@@ -4238,7 +4238,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 872
+            "line": 851
           },
           "name": "provider",
           "optional": true,
@@ -4264,7 +4264,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1319
+          "line": 1290
         },
         "parameters": [
           {
@@ -4278,7 +4278,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1318
+        "line": 1289
       },
       "name": "Memcached",
       "symbolId": "flowconsole-sdk:Memcached"
@@ -4298,7 +4298,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 971
+          "line": 946
         },
         "parameters": [
           {
@@ -4312,7 +4312,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 970
+        "line": 945
       },
       "name": "Module",
       "symbolId": "flowconsole-sdk:Module"
@@ -4332,7 +4332,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1296
+          "line": 1267
         },
         "parameters": [
           {
@@ -4346,7 +4346,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1295
+        "line": 1266
       },
       "name": "Mongo",
       "symbolId": "flowconsole-sdk:Mongo"
@@ -4366,7 +4366,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1289
+          "line": 1260
         },
         "parameters": [
           {
@@ -4380,7 +4380,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1288
+        "line": 1259
       },
       "name": "Mysql",
       "symbolId": "flowconsole-sdk:Mysql"
@@ -4400,7 +4400,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 949
+          "line": 924
         },
         "parameters": [
           {
@@ -4414,7 +4414,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 948
+        "line": 923
       },
       "name": "Namespace",
       "symbolId": "flowconsole-sdk:Namespace"
@@ -4434,7 +4434,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1351
+          "line": 1322
         },
         "parameters": [
           {
@@ -4448,7 +4448,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1350
+        "line": 1321
       },
       "name": "Nats",
       "symbolId": "flowconsole-sdk:Nats"
@@ -4467,7 +4467,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1224
+          "line": 1195
         },
         "parameters": [
           {
@@ -4481,7 +4481,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1223
+        "line": 1194
       },
       "name": "NextApp",
       "symbolId": "flowconsole-sdk:NextApp"
@@ -4501,7 +4501,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1282
+          "line": 1253
         },
         "parameters": [
           {
@@ -4515,7 +4515,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1281
+        "line": 1252
       },
       "name": "Postgres",
       "symbolId": "flowconsole-sdk:Postgres"
@@ -4535,7 +4535,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1358
+          "line": 1329
         },
         "parameters": [
           {
@@ -4549,7 +4549,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1357
+        "line": 1328
       },
       "name": "Pulsar",
       "symbolId": "flowconsole-sdk:Pulsar"
@@ -4570,7 +4570,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1055
+          "line": 1030
         },
         "parameters": [
           {
@@ -4584,7 +4584,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1051
+        "line": 1026
       },
       "name": "Queue",
       "properties": [
@@ -4596,7 +4596,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1053
+            "line": 1028
           },
           "name": "engine",
           "optional": true,
@@ -4620,7 +4620,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 852
+        "line": 833
       },
       "name": "QueueArgs",
       "properties": [
@@ -4632,7 +4632,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 853
+            "line": 834
           },
           "name": "engine",
           "optional": true,
@@ -4658,7 +4658,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1328
+          "line": 1299
         },
         "parameters": [
           {
@@ -4672,7 +4672,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1327
+        "line": 1298
       },
       "name": "Rabbit",
       "symbolId": "flowconsole-sdk:Rabbit"
@@ -4692,7 +4692,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1217
+          "line": 1188
         },
         "parameters": [
           {
@@ -4706,7 +4706,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1216
+        "line": 1187
       },
       "name": "ReactApp",
       "symbolId": "flowconsole-sdk:ReactApp"
@@ -4726,7 +4726,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1312
+          "line": 1283
         },
         "parameters": [
           {
@@ -4740,7 +4740,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1311
+        "line": 1282
       },
       "name": "Redis",
       "symbolId": "flowconsole-sdk:Redis"
@@ -4756,7 +4756,7 @@
       "kind": "enum",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 168
+        "line": 165
       },
       "members": [
         {
@@ -4851,7 +4851,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 40
+        "line": 39
       },
       "name": "RelationshipDto",
       "properties": [
@@ -4863,7 +4863,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 41
+            "line": 40
           },
           "name": "id",
           "type": {
@@ -4878,7 +4878,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 44
+            "line": 43
           },
           "name": "kind",
           "type": {
@@ -4893,7 +4893,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 42
+            "line": 41
           },
           "name": "sourceId",
           "type": {
@@ -4908,7 +4908,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 43
+            "line": 42
           },
           "name": "targetId",
           "type": {
@@ -4923,7 +4923,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 45
+            "line": 44
           },
           "name": "label",
           "optional": true,
@@ -4939,7 +4939,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 47
+            "line": 46
           },
           "name": "properties",
           "optional": true,
@@ -4960,7 +4960,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 46
+            "line": 45
           },
           "name": "technology",
           "optional": true,
@@ -4987,7 +4987,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1186
+          "line": 1157
         },
         "parameters": [
           {
@@ -5001,7 +5001,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1182
+        "line": 1153
       },
       "name": "RestApi",
       "properties": [
@@ -5012,7 +5012,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1183
+            "line": 1154
           },
           "name": "baseUrl",
           "optional": true,
@@ -5027,7 +5027,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1184
+            "line": 1155
           },
           "name": "openapi",
           "optional": true,
@@ -5051,7 +5051,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 897
+        "line": 874
       },
       "name": "RestApiArgs",
       "properties": [
@@ -5063,7 +5063,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 898
+            "line": 875
           },
           "name": "baseUrl",
           "optional": true,
@@ -5079,7 +5079,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 899
+            "line": 876
           },
           "name": "openapi",
           "optional": true,
@@ -5102,7 +5102,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1707
+        "line": 1672
       },
       "methods": [
         {
@@ -5112,7 +5112,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1713
+            "line": 1678
           },
           "name": "buildSnapshot",
           "parameters": [
@@ -5143,7 +5143,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1720
+            "line": 1685
           },
           "name": "emit",
           "parameters": [
@@ -5163,7 +5163,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1727
+            "line": 1692
           },
           "name": "resetRuntime",
           "static": true
@@ -5175,7 +5175,7 @@
           },
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1734
+            "line": 1699
           },
           "name": "runtime",
           "returns": {
@@ -5204,7 +5204,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1130
+          "line": 1103
         },
         "parameters": [
           {
@@ -5218,7 +5218,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1126
+        "line": 1099
       },
       "name": "Serverless",
       "properties": [
@@ -5229,7 +5229,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1128
+            "line": 1101
           },
           "name": "provider",
           "optional": true,
@@ -5244,7 +5244,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1127
+            "line": 1100
           },
           "name": "runtime",
           "optional": true,
@@ -5268,7 +5268,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 876
+        "line": 855
       },
       "name": "ServerlessArgs",
       "properties": [
@@ -5280,7 +5280,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 878
+            "line": 857
           },
           "name": "provider",
           "optional": true,
@@ -5296,7 +5296,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 877
+            "line": 856
           },
           "name": "runtime",
           "optional": true,
@@ -5318,7 +5318,7 @@
       "kind": "enum",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 229
+        "line": 224
       },
       "members": [
         {
@@ -5383,7 +5383,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 939
+          "line": 914
         },
         "parameters": [
           {
@@ -5397,7 +5397,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 936
+        "line": 911
       },
       "name": "SoftwareSystem",
       "properties": [
@@ -5408,7 +5408,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 937
+            "line": 912
           },
           "name": "domain",
           "optional": true,
@@ -5432,7 +5432,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 836
+        "line": 817
       },
       "name": "SoftwareSystemArgs",
       "properties": [
@@ -5444,7 +5444,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 837
+            "line": 818
           },
           "name": "domain",
           "optional": true,
@@ -5470,7 +5470,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1335
+          "line": 1306
         },
         "parameters": [
           {
@@ -5484,7 +5484,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1334
+        "line": 1305
       },
       "name": "Sqs",
       "symbolId": "flowconsole-sdk:Sqs"
@@ -5500,7 +5500,7 @@
       "kind": "enum",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 213
+        "line": 208
       },
       "members": [
         {
@@ -5558,7 +5558,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1245
+          "line": 1216
         },
         "parameters": [
           {
@@ -5572,7 +5572,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1244
+        "line": 1215
       },
       "name": "SvelteApp",
       "symbolId": "flowconsole-sdk:SvelteApp"
@@ -5593,7 +5593,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1086
+          "line": 1061
         },
         "parameters": [
           {
@@ -5607,7 +5607,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1082
+        "line": 1057
       },
       "name": "Topic",
       "properties": [
@@ -5619,7 +5619,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1084
+            "line": 1059
           },
           "name": "partitions",
           "optional": true,
@@ -5643,7 +5643,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 860
+        "line": 841
       },
       "name": "TopicArgs",
       "properties": [
@@ -5655,7 +5655,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 861
+            "line": 842
           },
           "name": "partitions",
           "optional": true,
@@ -5682,7 +5682,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 922
+          "line": 897
         },
         "parameters": [
           {
@@ -5696,7 +5696,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 919
+        "line": 894
       },
       "name": "User",
       "properties": [
@@ -5707,7 +5707,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 920
+            "line": 895
           },
           "name": "role",
           "optional": true,
@@ -5731,7 +5731,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 832
+        "line": 813
       },
       "name": "UserArgs",
       "properties": [
@@ -5743,7 +5743,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 833
+            "line": 814
           },
           "name": "role",
           "optional": true,
@@ -5769,7 +5769,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1142
+          "line": 1115
         },
         "parameters": [
           {
@@ -5783,7 +5783,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1138
+        "line": 1111
       },
       "name": "Vm",
       "properties": [
@@ -5794,7 +5794,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1139
+            "line": 1112
           },
           "name": "os",
           "optional": true,
@@ -5809,7 +5809,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 1140
+            "line": 1113
           },
           "name": "provider",
           "optional": true,
@@ -5833,7 +5833,7 @@
       "kind": "interface",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 881
+        "line": 860
       },
       "name": "VmArgs",
       "properties": [
@@ -5845,7 +5845,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 882
+            "line": 861
           },
           "name": "os",
           "optional": true,
@@ -5861,7 +5861,7 @@
           "immutable": true,
           "locationInModule": {
             "filename": "flowconsole-sdk.ts",
-            "line": 883
+            "line": 862
           },
           "name": "provider",
           "optional": true,
@@ -5886,7 +5886,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1231
+          "line": 1202
         },
         "parameters": [
           {
@@ -5900,7 +5900,7 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1230
+        "line": 1201
       },
       "name": "VueApp",
       "symbolId": "flowconsole-sdk:VueApp"
@@ -5920,7 +5920,7 @@
         },
         "locationInModule": {
           "filename": "flowconsole-sdk.ts",
-          "line": 1005
+          "line": 980
         },
         "parameters": [
           {
@@ -5934,12 +5934,12 @@
       "kind": "class",
       "locationInModule": {
         "filename": "flowconsole-sdk.ts",
-        "line": 1004
+        "line": 979
       },
       "name": "Worker",
       "symbolId": "flowconsole-sdk:Worker"
     }
   },
   "version": "2.0.0",
-  "fingerprint": "E2j6i687P6rfc4UL6KKC7PFbcWRZ+bu1J79VcA6pdFY="
+  "fingerprint": "ccO9B+kfXf3dTghKH7Oz2xtbmsmL2AOI1CkYV4ybifI="
 }
