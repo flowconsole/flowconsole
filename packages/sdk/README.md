@@ -367,7 +367,7 @@ const snapshot = buildSnapshot(entities);
 2. Build TypeScript: `pnpm --filter @flowconsole/sdk build`
 3. Generate packages: `pnpm --filter @flowconsole/sdk package`
 
-Artifacts are written to `src/sdk/dist/` with language-specific subdirectories (dotnet, java, python, go).
+Artifacts are written to `packages/sdk/dist/` with language-specific subdirectories (dotnet, java, python, go).
 
 ## Python Package
 

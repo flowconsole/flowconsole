@@ -72,7 +72,7 @@ function getDownloadBaseUrl() {
   if (match) {
     return `https://github.com/${match[1]}/releases/download`;
   }
-  return "https://github.com/AhmadMayo/flowconsole/releases/download";
+  return "https://github.com/flowconsole/flowconsole/releases/download";
 }
 
 function fetch(url, maxRedirects = 5) {
