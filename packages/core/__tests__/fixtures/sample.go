@@ -1,6 +1,6 @@
 package main
 
-import . "github.com/slackmaster9999/flowconsole"
+import . "github.com/flowconsole/flowconsole"
 
 user := NewUser(&UserArgs{
     Name:        "user",

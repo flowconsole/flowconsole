@@ -8,7 +8,7 @@ import { Icons } from "@/components/shared/icons";
 
 export default async function HeroLanding() {
   const { stargazers_count: stars } = await fetch(
-    "https://api.github.com/slackmaster9999/flowconsole",
+    "https://api.github.com/flowconsole/flowconsole",
     {
       ...(env.GITHUB_OAUTH_TOKEN && {
         headers: {

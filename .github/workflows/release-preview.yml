@@ -77,7 +77,7 @@ jobs:
           fi
           TAG="v0.0.0-preview"
           TMP="$(mktemp -d)"
-          git clone "https://x-access-token:${GO_SDK_PUSH_TOKEN}@github.com/slackmaster9999/go-flowconsole.git" "$TMP"
+          git clone "https://x-access-token:${GO_SDK_PUSH_TOKEN}@github.com/flowconsole/go-flowconsole.git" "$TMP"
           git -C "$TMP" config user.name "github-actions[bot]"
           git -C "$TMP" config user.email "github-actions[bot]@users.noreply.github.com"
           git -C "$TMP" reset --hard

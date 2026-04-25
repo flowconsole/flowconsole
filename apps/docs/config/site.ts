@@ -11,7 +11,7 @@ export const siteConfig: SiteConfig = {
   ogImage: `${site_url}/_static/og.jpg`,
   links: {
     twitter: "https://x.com/flowconsole",
-    github: "https://github.com/slackmaster9999/flowconsole",
+    github: "https://github.com/flowconsole/flowconsole",
   }
 };
 
