@@ -3,7 +3,7 @@ packages:
   - packages/web
   - apps/docs
 
-  - src/core
+  - packages/core
   - src/sdk
 
   - cli-npm
