@@ -764,7 +764,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
 
-  cli-npm: {}
+  packages/cli: {}
 
   packages/core:
     dependencies:

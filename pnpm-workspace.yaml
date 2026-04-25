@@ -6,7 +6,7 @@ packages:
   - packages/core
   - packages/sdk
 
-  - cli-npm
+  - packages/cli
 
   - apps/app
   - packages/ui
