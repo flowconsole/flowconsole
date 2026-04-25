@@ -1,7 +1,7 @@
 packages:
   - src/app
   - src/web
-  - src/docs
+  - apps/docs
 
   - src/core
   - src/sdk
