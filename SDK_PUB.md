@@ -4,7 +4,7 @@ Plan for publishing `@flowconsole/sdk` to language-specific registries beyond np
 
 ## Prerequisites
 
-The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` command generates packages for each target language in `src/sdk/dist/`.
+The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` command generates packages for each target language in `packages/sdk/dist/`.
 
 ## Target Registries
 
@@ -12,7 +12,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
 
 **Package**: `flowconsole-sdk` (import as `flowconsole`)
 
-**Artifacts**: `src/sdk/dist/python/` — `.whl` and `.tar.gz`
+**Artifacts**: `packages/sdk/dist/python/` — `.whl` and `.tar.gz`
 
 **GitHub Action**:
 ```yaml
@@ -21,7 +21,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
     python-version: '3.11'
 - uses: pypa/gh-action-pypi-publish@release/v1
   with:
-    packages-dir: src/sdk/dist/python/
+    packages-dir: packages/sdk/dist/python/
     password: ${{ secrets.PYPI_API_TOKEN }}
 ```
 
@@ -31,7 +31,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
 
 **Package**: `flowconsole.sdk:sdk`
 
-**Artifacts**: `src/sdk/dist/java/` — Maven project with JAR
+**Artifacts**: `packages/sdk/dist/java/` — Maven project with JAR
 
 **GitHub Action**:
 ```yaml
@@ -44,7 +44,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
     server-password: MAVEN_PASSWORD
     gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
     gpg-passphrase: GPG_PASSPHRASE
-- run: cd src/sdk/dist/java && mvn deploy -P release
+- run: cd packages/sdk/dist/java && mvn deploy -P release
   env:
     MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
     MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
@@ -62,7 +62,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
 
 **Package**: `FlowConsole.Sdk` (namespace `FlowConsole`)
 
-**Artifacts**: `src/sdk/dist/dotnet/*.nupkg`
+**Artifacts**: `packages/sdk/dist/dotnet/*.nupkg`
 
 **GitHub Action**:
 ```yaml
@@ -70,7 +70,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
   with:
     dotnet-version: '8.0.x'
 - run: |
-    dotnet nuget push src/sdk/dist/dotnet/**/*.nupkg \
+    dotnet nuget push packages/sdk/dist/dotnet/**/*.nupkg \
       --api-key ${{ secrets.NUGET_API_KEY }} \
       --source https://api.nuget.org/v3/index.json
 ```
@@ -81,7 +81,7 @@ The SDK uses **jsii** for multi-language code generation. The `jsii-pacmak` comm
 
 **Module**: `github.com/slackmaster9999/flowconsole` (package `flowconsole`)
 
-**Artifacts**: `src/sdk/dist/go/flowconsole/` — complete Go module with `go.mod`
+**Artifacts**: `packages/sdk/dist/go/flowconsole/` — complete Go module with `go.mod`
 
 **Publishing approach**: Go modules are published by pushing source code to the module path repository. Options:
 1. Push `dist/go/` contents to a dedicated Go repository

@@ -12,48 +12,49 @@ FlowConsole is an architecture-as-code tool that lets developers model system ar
 # Install dependencies (from repo root or any workspace)
 pnpm install
 
-# Development (run from src/app or src/docs)
+# Development (run from apps/app or apps/docs)
 pnpm dev
 
 # Build
-pnpm build                    # Build current package
-pnpm --filter flowconsole build  # Build core package specifically
+pnpm build                              # Build current package
+pnpm --filter @flowconsole/web build    # Build core package specifically
 
 # Linting
 pnpm lint                     # Run ESLint
 pnpm lint:fix                 # ESLint with auto-fix
 
 # Testing
-pnpm test:unit                # Run Vitest unit tests
-pnpm test:coverage            # Unit tests with coverage report
-pnpm test:e2e                 # Playwright E2E tests (builds app first)
+pnpm test:unit                # Run Vitest unit tests across all packages
+pnpm test:e2e                 # Playwright E2E (apps/app)
 
-# Run single test file
-pnpm --filter flowconsole vitest run --config ../../vitest.config.ts tests/unit/<filename>.test.ts
+# Run single test file (in any package)
+pnpm --filter @flowconsole/web vitest run tests/unit/<filename>.test.ts
 ```
 
 ## Workspace Structure
 
-- **src/core** (`flowconsole`) - Core library with DSL, diagram rendering, and React components
-- **src/app** (`flowconsole-app`) - Playground/demo application (Vite + React)
-- **src/docs** (`flowconsole-docs`) - Documentation site (Next.js)
-- **src/sdk** (`@flowconsole/sdk` v2.0.0) - Typed architecture-as-code SDK with jsii multi-language support (TypeScript, C#, Java, Python, Go). 13 base element classes, 6 deployment classes, 23 convenience wrappers. Three-layer API: Topology (elements + belongsTo), Flows (fluent interaction chains with automatic relationship inference), Deployment (infrastructure targets). `SoftwareSystem` (not `System`) due to C# reserved name. Key exports: `buildSnapshot()`, `getRuntime()`
-- **src/cli** — removed (v1 npm CLI deprecated; replaced by .NET self-contained binary `fc` — see `oss/backend/src/FlowConsole.Cli/`)
+- **apps/app** (`app`) - Product SPA (Vite + React 19, the authenticated workspace UI)
+- **apps/docs** (`flowconsole-docs`) - Documentation + marketing site (Next.js)
+- **packages/web** (`@flowconsole/web`) - React diagram components, layout pipeline, Monaco workbench
+- **packages/core** (`@flowconsole/core`) - Core DSL parsers and shared utilities
+- **packages/sdk** (`@flowconsole/sdk` v2.0.0) - Typed architecture-as-code SDK with jsii multi-language support (TypeScript, C#, Java, Python, Go). 13 base element classes, 6 deployment classes, 23 convenience wrappers. Three-layer API: Topology (elements + belongsTo), Flows (fluent interaction chains with automatic relationship inference), Deployment (infrastructure targets). `SoftwareSystem` (not `System`) due to C# reserved name. Key exports: `buildSnapshot()`, `getRuntime()`
+- **packages/ui** (`@flowconsole/ui`) - Shared shadcn/Radix UI primitives (consumed by apps/app and apps/docs)
+- **packages/cli** (`@flowconsole/cli`) - npm-wrapper that distributes the .NET self-contained `fc` CLI binary (source in `backend/src/FlowConsole.Cli/`)
 
 ## Architecture
 
-### DSL and Runtime (`src/web/languages/typescript/`)
+### DSL and Runtime (`packages/web/languages/typescript/`)
 - `dsl.ts` - TypeScript type declarations injected into the Monaco editor for autocompletion
 - `diagramRuntime.ts` - `DiagramRuntime` class that tracks entities and connections; `FlowBuilder` handles chained flow definitions
 - `evaluateDiagramCode.ts` - Evaluates user code with runtime injection to produce `DiagramIntermediateModel`
 - `modelToReactflowMapper.ts` - Converts intermediate model to ReactFlow nodes/edges
 
-### Core Components (`src/web/components/`)
+### Core Components (`packages/web/components/`)
 - `Workbench/CodeDiagramWorkbench` - Monaco editor with live preview, debounced code evaluation
 - `ArchitectureDiagram.tsx` - ReactFlow-based renderer with graphviz-wasm auto-layout
 - `NavigationPanel/` - Flow and scope navigation controls for rendered diagrams
 
-### Diagram Infrastructure (`src/web/diagram/`, `src/web/reactflow/`)
+### Diagram Infrastructure (`packages/web/diagram/`, `packages/web/reactflow/`)
 - Custom ReactFlow nodes and edges with animation support
 - `graphvizLayoutService.ts` — legacy graphviz-wasm layout (used as fallback)
 - 10 registered nodeTypes in `diagram/registry.ts`: element (rectangle), person, database, queue, storage, boundary, circle, hexagon, cloud, container
@@ -61,7 +62,7 @@ pnpm --filter flowconsole vitest run --config ../../vitest.config.ts tests/unit/
 - SVG-based shapes (circle, hexagon, cloud) render via absolutely-positioned `<svg>` under content; rectangular shapes (service, database, queue, etc.) use CSS only
 - Preset styles (`theme.ts`): highlighted, critical, deprecated, new, external — each maps to borderColor/backgroundColor/opacity overrides
 
-### Constraint-Based Auto-Layout Pipeline (`src/web/diagram/layout/`)
+### Constraint-Based Auto-Layout Pipeline (`packages/web/diagram/layout/`)
 
 8-stage pipeline: Graph Analysis → Strategy Selection → Semantic Ranking → Constraint Building → Shape Sizing → ELK Positioning → Edge Routing → Cola Refinement → Quality Scoring.
 
@@ -144,14 +145,14 @@ cd .. && pnpm validate:rules:all
 
 ## Testing Conventions
 
-- Unit tests: `tests/unit/` using Vitest + React Testing Library
-- E2E tests: `tests/e2e/` using Playwright (runs against built app on port 4173)
+- Unit tests: per-package `tests/unit/` using Vitest + React Testing Library (e.g. `packages/web/tests/unit/`, `apps/app/tests/unit/`)
+- E2E tests: `apps/app/tests/e2e/` using Playwright
 - Backend tests: `backend/tests/` using xUnit + NSubstitute + FluentAssertions
-- Test config: `vitest.config.ts` (root), `playwright.config.ts` (root)
+- Test config: per-package `vitest.config.ts` and `playwright.config.ts` (no root configs)
 
 ## Code Style
 
 - TypeScript/React with functional components and hooks
-- UI: Mantine components + custom CSS variables for theming
+- UI: shadcn/Radix primitives from `@flowconsole/ui` (`packages/ui/`)
 - Linting: ESLint with typescript-eslint, react-hooks, and react-refresh plugins
-- Prefer existing patterns in `src/core` for state management (useMemo/useCallback)
+- Prefer existing patterns in `@flowconsole/core` (`packages/core/`) for state management (useMemo/useCallback)
