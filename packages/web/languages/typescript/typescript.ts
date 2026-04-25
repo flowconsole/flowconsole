@@ -1,4 +1,4 @@
-import sdkDeclarationsSource from '../../../sdk/dist/flowconsole-sdk.d.ts?raw';
+import sdkDeclarationsSource from '../../../../src/sdk/dist/flowconsole-sdk.d.ts?raw';
 import { codeSamples, defaultSampleId } from './samples';
 import type { LanguageDefinition } from '../types';
 import { evaluateDiagramCode } from './evaluateDiagramCode';

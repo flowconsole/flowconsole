@@ -79,7 +79,7 @@ importers:
         version: link:../../frontend/shared
       '@flowconsole/web':
         specifier: workspace:*
-        version: link:../../src/web
+        version: link:../../packages/web
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.10.0(react-hook-form@7.69.0(react@19.2.4))
@@ -455,7 +455,7 @@ importers:
         version: link:../../src/core
       '@flowconsole/web':
         specifier: workspace:*
-        version: link:../../src/web
+        version: link:../../packages/web
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.10.0(react-hook-form@7.69.0(react@19.2.3))
@@ -907,6 +907,142 @@ importers:
         specifier: ^0.9.1
         version: 0.9.9(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
+  packages/web:
+    dependencies:
+      '@flowconsole/sdk':
+        specifier: workspace:*
+        version: link:../../src/sdk
+      '@react-hookz/web':
+        specifier: ^25.1.1
+        version: 25.2.0(js-cookie@3.0.5)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@tabler/icons-react':
+        specifier: ^3.35.0
+        version: 3.41.1(react@19.2.1)
+      d3-shape:
+        specifier: ^3.2.0
+        version: 3.2.0
+      elkjs:
+        specifier: ^0.11.0
+        version: 0.11.1
+      fast-equals:
+        specifier: ^5.3.2
+        version: 5.3.3
+      graphology:
+        specifier: ^0.26.0
+        version: 0.26.0(graphology-types@0.24.8)
+      graphology-components:
+        specifier: ^1.5.4
+        version: 1.5.4(graphology-types@0.24.8)
+      graphology-dag:
+        specifier: ^0.4.1
+        version: 0.4.1(graphology-types@0.24.8)
+      graphology-types:
+        specifier: ^0.24.8
+        version: 0.24.8
+      graphviz-wasm:
+        specifier: ^3.0.2
+        version: 3.0.2
+      monaco-editor:
+        specifier: ^0.55.1
+        version: 0.55.1
+      remeda:
+        specifier: ^2.32.0
+        version: 2.33.7
+      type-fest:
+        specifier: ^5.1.0
+        version: 5.6.0
+      webcola:
+        specifier: ^3.4.0
+        version: 3.4.0
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.36.0
+        version: 9.39.1
+      '@monaco-editor/react':
+        specifier: ^4.7.0
+        version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@playwright/test':
+        specifier: ^1.56.1
+        version: 1.59.1
+      '@testing-library/jest-dom':
+        specifier: ^6.9.1
+        version: 6.9.1
+      '@testing-library/react':
+        specifier: ^16.3.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@testing-library/user-event':
+        specifier: ^14.6.1
+        version: 14.6.1(@testing-library/dom@10.4.1)
+      '@types/d3-shape':
+        specifier: ^3.1.7
+        version: 3.1.7
+      '@types/node':
+        specifier: ^24.6.0
+        version: 24.10.2
+      '@types/react':
+        specifier: ^19.1.16
+        version: 19.2.10
+      '@types/react-dom':
+        specifier: ^19.1.9
+        version: 19.2.3(@types/react@19.2.10)
+      '@vitejs/plugin-react':
+        specifier: ^5.0.4
+        version: 5.1.2(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
+      '@vitest/coverage-v8':
+        specifier: ^4.0.10
+        version: 4.0.15(vitest@4.1.5)
+      '@xyflow/react':
+        specifier: ^12.9.2
+        version: 12.10.0(@types/react@19.2.10)(immer@11.1.4)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      '@xyflow/system':
+        specifier: ^0.0.72
+        version: 0.0.72
+      eslint:
+        specifier: ^9.36.0
+        version: 9.39.1(jiti@2.6.1)
+      eslint-plugin-react-hooks:
+        specifier: ^5.2.0
+        version: 5.2.0(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-react-refresh:
+        specifier: ^0.4.22
+        version: 0.4.24(eslint@9.39.1(jiti@2.6.1))
+      globals:
+        specifier: ^16.4.0
+        version: 16.5.0
+      jsdom:
+        specifier: ^27.2.0
+        version: 27.3.0(postcss@8.5.6)
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
+      postcss-simple-vars:
+        specifier: ^7.0.1
+        version: 7.0.1(postcss@8.5.6)
+      react:
+        specifier: 19.2.1
+        version: 19.2.1
+      react-dom:
+        specifier: 19.2.1
+        version: 19.2.1(react@19.2.1)
+      react-router-dom:
+        specifier: ^7.9.5
+        version: 7.14.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.45.0
+        version: 8.49.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
+      vite:
+        specifier: ^7.1.7
+        version: 7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
+      vite-plugin-dts:
+        specifier: ^4.5.4
+        version: 4.5.4(@types/node@24.10.2)(rollup@4.53.3)(typescript@5.9.3)(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
+      vitest:
+        specifier: ^4.0.10
+        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(@vitest/coverage-v8@4.0.15)(jsdom@27.3.0(postcss@8.5.6))(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
+
   src/app:
     dependencies:
       '@flowconsole/core':
@@ -914,7 +1050,7 @@ importers:
         version: link:../core
       '@flowconsole/web':
         specifier: workspace:*
-        version: link:../web
+        version: link:../../packages/web
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -1076,142 +1212,6 @@ importers:
       vitest:
         specifier: ^4.0.15
         version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@28.1.0)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
-
-  src/web:
-    dependencies:
-      '@flowconsole/sdk':
-        specifier: workspace:*
-        version: link:../sdk
-      '@react-hookz/web':
-        specifier: ^25.1.1
-        version: 25.2.0(js-cookie@3.0.5)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      '@tabler/icons-react':
-        specifier: ^3.35.0
-        version: 3.35.0(react@19.2.1)
-      d3-shape:
-        specifier: ^3.2.0
-        version: 3.2.0
-      elkjs:
-        specifier: ^0.11.0
-        version: 0.11.1
-      fast-equals:
-        specifier: ^5.3.2
-        version: 5.3.3
-      graphology:
-        specifier: ^0.26.0
-        version: 0.26.0(graphology-types@0.24.8)
-      graphology-components:
-        specifier: ^1.5.4
-        version: 1.5.4(graphology-types@0.24.8)
-      graphology-dag:
-        specifier: ^0.4.1
-        version: 0.4.1(graphology-types@0.24.8)
-      graphology-types:
-        specifier: ^0.24.8
-        version: 0.24.8
-      graphviz-wasm:
-        specifier: ^3.0.2
-        version: 3.0.2
-      monaco-editor:
-        specifier: ^0.55.1
-        version: 0.55.1
-      remeda:
-        specifier: ^2.32.0
-        version: 2.32.0
-      type-fest:
-        specifier: ^5.1.0
-        version: 5.3.1
-      webcola:
-        specifier: ^3.4.0
-        version: 3.4.0
-    devDependencies:
-      '@eslint/js':
-        specifier: ^9.36.0
-        version: 9.39.1
-      '@monaco-editor/react':
-        specifier: ^4.7.0
-        version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      '@playwright/test':
-        specifier: ^1.56.1
-        version: 1.57.0
-      '@testing-library/jest-dom':
-        specifier: ^6.9.1
-        version: 6.9.1
-      '@testing-library/react':
-        specifier: ^16.3.0
-        version: 16.3.0(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      '@testing-library/user-event':
-        specifier: ^14.6.1
-        version: 14.6.1(@testing-library/dom@10.4.1)
-      '@types/d3-shape':
-        specifier: ^3.1.7
-        version: 3.1.7
-      '@types/node':
-        specifier: ^24.6.0
-        version: 24.10.2
-      '@types/react':
-        specifier: ^19.1.16
-        version: 19.2.7
-      '@types/react-dom':
-        specifier: ^19.1.9
-        version: 19.2.3(@types/react@19.2.7)
-      '@vitejs/plugin-react':
-        specifier: ^5.0.4
-        version: 5.1.2(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
-      '@vitest/coverage-v8':
-        specifier: ^4.0.10
-        version: 4.0.15(vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@27.3.0(postcss@8.5.6))(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
-      '@xyflow/react':
-        specifier: ^12.9.2
-        version: 12.10.0(@types/react@19.2.7)(immer@11.1.4)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      '@xyflow/system':
-        specifier: ^0.0.72
-        version: 0.0.72
-      eslint:
-        specifier: ^9.36.0
-        version: 9.39.1(jiti@2.6.1)
-      eslint-plugin-react-hooks:
-        specifier: ^5.2.0
-        version: 5.2.0(eslint@9.39.1(jiti@2.6.1))
-      eslint-plugin-react-refresh:
-        specifier: ^0.4.22
-        version: 0.4.24(eslint@9.39.1(jiti@2.6.1))
-      globals:
-        specifier: ^16.4.0
-        version: 16.5.0
-      jsdom:
-        specifier: ^27.2.0
-        version: 27.3.0(postcss@8.5.6)
-      postcss:
-        specifier: ^8.5.6
-        version: 8.5.6
-      postcss-simple-vars:
-        specifier: ^7.0.1
-        version: 7.0.1(postcss@8.5.6)
-      react:
-        specifier: 19.2.1
-        version: 19.2.1
-      react-dom:
-        specifier: 19.2.1
-        version: 19.2.1(react@19.2.1)
-      react-router-dom:
-        specifier: ^7.9.5
-        version: 7.10.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      typescript-eslint:
-        specifier: ^8.45.0
-        version: 8.49.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
-      vite:
-        specifier: ^7.1.7
-        version: 7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
-      vite-plugin-dts:
-        specifier: ^4.5.4
-        version: 4.5.4(@types/node@24.10.2)(rollup@4.53.3)(typescript@5.9.3)(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
-      vitest:
-        specifier: ^4.0.10
-        version: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@27.3.0(postcss@8.5.6))(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
 
 packages:
 
@@ -14634,6 +14634,11 @@ snapshots:
       '@tabler/icons': 3.35.0
       react: 19.2.1
 
+  '@tabler/icons-react@3.41.1(react@19.2.1)':
+    dependencies:
+      '@tabler/icons': 3.41.1
+      react: 19.2.1
+
   '@tabler/icons-react@3.41.1(react@19.2.4)':
     dependencies:
       '@tabler/icons': 3.41.1
@@ -14691,6 +14696,16 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.7
       '@types/react-dom': 19.2.3(@types/react@19.2.7)
+
+  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)':
+    dependencies:
+      '@babel/runtime': 7.28.6
+      '@testing-library/dom': 10.4.1
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+    optionalDependencies:
+      '@types/react': 19.2.10
+      '@types/react-dom': 19.2.3(@types/react@19.2.10)
 
   '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
@@ -15360,7 +15375,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/coverage-v8@4.0.15(vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@27.3.0(postcss@8.5.6))(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))':
+  '@vitest/coverage-v8@4.0.15(vitest@4.1.5)':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
       '@vitest/utils': 4.0.15
@@ -15373,7 +15388,7 @@ snapshots:
       obug: 2.1.1
       std-env: 3.10.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@27.3.0(postcss@8.5.6))(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
+      vitest: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(@vitest/coverage-v8@4.0.15)(jsdom@27.3.0(postcss@8.5.6))(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
     transitivePeerDependencies:
       - supports-color
 
@@ -15435,6 +15450,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 6.4.2(@types/node@20.19.27)(jiti@1.21.7)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
+
+  '@vitest/mocker@4.1.5(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))':
+    dependencies:
+      '@vitest/spy': 4.1.5
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
 
   '@vitest/pretty-format@4.0.15':
     dependencies:
@@ -20046,6 +20069,12 @@ snapshots:
       react-dom: 19.2.1(react@19.2.1)
       react-router: 7.10.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
 
+  react-router-dom@7.14.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+    dependencies:
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+      react-router: 7.14.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
+
   react-router-dom@7.14.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
     dependencies:
       react: 19.2.4
@@ -20053,6 +20082,14 @@ snapshots:
       react-router: 7.14.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
   react-router@7.10.1(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
+    dependencies:
+      cookie: 1.1.1
+      react: 19.2.1
+      set-cookie-parser: 2.7.2
+    optionalDependencies:
+      react-dom: 19.2.1(react@19.2.1)
+
+  react-router@7.14.2(react-dom@19.2.1(react@19.2.1))(react@19.2.1):
     dependencies:
       cookie: 1.1.1
       react: 19.2.1
@@ -21893,45 +21930,6 @@ snapshots:
       - tsx
       - yaml
 
-  vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@27.3.0(postcss@8.5.6))(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2):
-    dependencies:
-      '@vitest/expect': 4.0.17
-      '@vitest/mocker': 4.0.17(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
-      '@vitest/pretty-format': 4.0.17
-      '@vitest/runner': 4.0.17
-      '@vitest/snapshot': 4.0.17
-      '@vitest/spy': 4.0.17
-      '@vitest/utils': 4.0.17
-      es-module-lexer: 1.7.0
-      expect-type: 1.3.0
-      magic-string: 0.30.21
-      obug: 2.1.1
-      pathe: 2.0.3
-      picomatch: 4.0.3
-      std-env: 3.10.0
-      tinybench: 2.9.0
-      tinyexec: 1.0.2
-      tinyglobby: 0.2.15
-      tinyrainbow: 3.0.3
-      vite: 7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.0
-      '@types/node': 24.10.2
-      jsdom: 27.3.0(postcss@8.5.6)
-    transitivePeerDependencies:
-      - jiti
-      - less
-      - lightningcss
-      - msw
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - terser
-      - tsx
-      - yaml
-
   vitest@4.0.17(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@28.1.0)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2):
     dependencies:
       '@vitest/expect': 4.0.17
@@ -21997,6 +21995,36 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@types/node': 20.19.27
       jsdom: 28.1.0
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(@vitest/coverage-v8@4.0.15)(jsdom@27.3.0(postcss@8.5.6))(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      '@vitest/expect': 4.1.5
+      '@vitest/mocker': 4.1.5(vite@7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
+      '@vitest/pretty-format': 4.1.5
+      '@vitest/runner': 4.1.5
+      '@vitest/snapshot': 4.1.5
+      '@vitest/spy': 4.1.5
+      '@vitest/utils': 4.1.5
+      es-module-lexer: 2.0.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.1
+      pathe: 2.0.3
+      picomatch: 4.0.3
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.0.2
+      tinyglobby: 0.2.15
+      tinyrainbow: 3.1.0
+      vite: 7.2.7(@types/node@24.10.2)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      '@types/node': 24.10.2
+      '@vitest/coverage-v8': 4.0.15(vitest@4.1.5)
+      jsdom: 27.3.0(postcss@8.5.6)
     transitivePeerDependencies:
       - msw
 

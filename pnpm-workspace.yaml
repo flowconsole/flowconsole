@@ -1,6 +1,6 @@
 packages:
   - src/app
-  - src/web
+  - packages/web
   - apps/docs
 
   - src/core
