@@ -10,15 +10,17 @@
     "test": "vitest run"
   },
   "keywords": [],
-  "author": {
-    "name": "Vladimir Golubev",
-    "email": "v@flowconsole.tech"
-  },
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
   "repository": {
-    "url": "https://github.com/slackmaster9999/flowconsole.git",
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
     "directory": "packages/sdk"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
   "exports": {
     ".": {
       "types": "./dist/flowconsole-sdk.d.ts",

@@ -2,9 +2,16 @@
   "name": "flowconsole-docs",
   "version": "1.0.0",
   "private": true,
-  "author": {
-    "name": "vmgolubev",
-    "url": "https://x.com/vmgolubev"
+  "license": "Apache-2.0",
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "apps/docs"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
   },
   "scripts": {
     "dev": "next dev",

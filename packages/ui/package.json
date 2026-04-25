@@ -2,6 +2,18 @@
   "name": "@flowconsole/ui",
   "version": "0.0.1",
   "private": true,
+  "description": "FlowConsole shared UI components",
+  "license": "Apache-2.0",
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "packages/ui"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
   "peerDependencies": {
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0",

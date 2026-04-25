@@ -41,8 +41,17 @@
     "test:watch": "vitest --config vitest.config.ts"
   },
   "keywords": [],
-  "author": "",
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
   "packageManager": "pnpm@10.19.0",
   "dependencies": {
     "@ast-grep/lang-csharp": "^0.0.5",

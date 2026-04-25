@@ -1,6 +1,17 @@
 {
-  "name": "oss",
+  "name": "flowconsole",
   "private": true,
+  "description": "FlowConsole — Architecture as Code platform",
+  "license": "Apache-2.0",
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
   "scripts": {
     "build": "pnpm run build:workspace",
     "build:workspace": "pnpm -r --filter '!flowconsole-docs' build",

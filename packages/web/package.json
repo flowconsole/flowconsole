@@ -4,7 +4,17 @@
   "version": "1.0.1",
   "type": "module",
   "license": "Apache-2.0",
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
   "description": "FlowConsole React components for architecture diagrams",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "packages/web"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
   "main": "dist/flowconsole-web.umd.cjs",
   "module": "dist/flowconsole-web.js",
   "types": "dist/index.d.ts",
