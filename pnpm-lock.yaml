@@ -69,16 +69,14 @@ importers:
         specifier: ^4.0.15
         version: 4.0.15(@opentelemetry/api@1.9.0)(@types/node@24.10.2)(jiti@2.6.1)(jsdom@28.1.0)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2)
 
-  cli-npm: {}
-
-  frontend/app:
+  apps/app:
     dependencies:
       '@flowconsole/sdk':
         specifier: workspace:*
         version: link:../../src/sdk
       '@flowconsole/ui':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../frontend/shared
       '@flowconsole/web':
         specifier: workspace:*
         version: link:../../src/web
@@ -431,6 +429,8 @@ importers:
       vitest:
         specifier: ^4.1.0
         version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@20.19.27)(jsdom@28.1.0)(vite@6.4.2(@types/node@20.19.27)(jiti@2.6.1)(sugarss@5.0.1(postcss@8.5.6))(terser@5.44.1)(yaml@2.8.2))
+
+  cli-npm: {}
 
   frontend/shared:
     dependencies:
@@ -14313,7 +14313,7 @@ snapshots:
 
   '@reduxjs/toolkit@2.11.2(react-redux@9.2.0(@types/react@19.2.10)(react@19.2.4)(redux@5.0.1))(react@19.2.4)':
     dependencies:
-      '@standard-schema/spec': 1.0.0
+      '@standard-schema/spec': 1.1.0
       '@standard-schema/utils': 0.3.0
       immer: 11.1.4
       redux: 5.0.1
@@ -15408,12 +15408,12 @@ snapshots:
 
   '@vitest/expect@4.0.17':
     dependencies:
-      '@standard-schema/spec': 1.0.0
+      '@standard-schema/spec': 1.1.0
       '@types/chai': 5.2.3
       '@vitest/spy': 4.0.17
       '@vitest/utils': 4.0.17
       chai: 6.2.1
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/expect@4.1.5':
     dependencies:
@@ -15462,7 +15462,7 @@ snapshots:
 
   '@vitest/pretty-format@4.0.17':
     dependencies:
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/pretty-format@4.1.5':
     dependencies:
@@ -15516,7 +15516,7 @@ snapshots:
   '@vitest/utils@4.0.17':
     dependencies:
       '@vitest/pretty-format': 4.0.17
-      tinyrainbow: 3.0.3
+      tinyrainbow: 3.1.0
 
   '@vitest/utils@4.1.5':
     dependencies:

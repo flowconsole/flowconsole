@@ -1,5 +1,0 @@
-**
-!.publish/
-!.publish/**
-!Dockerfile.runtime
-!nginx.conf

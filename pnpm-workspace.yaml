@@ -8,7 +8,7 @@ packages:
 
   - cli-npm
 
-  - frontend/app
+  - apps/app
   - frontend/shared
 
 onlyBuiltDependencies:
