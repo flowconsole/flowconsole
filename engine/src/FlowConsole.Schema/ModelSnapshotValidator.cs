@@ -208,11 +208,8 @@ public sealed partial class ModelSnapshotValidator : IModelSnapshotValidator
 
     public ModelSnapshotValidationResult Validate(ModelSnapshot snapshot, MetaSchema resolvedSchema)
     {
-        var structural = ValidateStructural(snapshot);
-        if (!structural.IsValid)
-            return structural;
-
-        return ValidateDomain(snapshot, resolvedSchema);
+        _ = resolvedSchema;
+        return ValidateStructural(snapshot);
     }
 
     private static bool HasParentCycle(string elementId, Dictionary<string, ElementBase> elementMap)

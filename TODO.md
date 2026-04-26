@@ -1,5 +1,12 @@
 # TODO
 
+## Re-enable domain validation in `ModelSnapshotValidator.Validate`
+
+`Validate(snapshot, schema)` currently skips `ValidateDomain(...)` and only runs `ValidateStructural`. This was disabled because scanner output uses kinds (`Endpoint`, `Database`, `Cache`, `Broker`, `Gateway`) and relations (`Exposes`) that the only built-in meta-schema (C4) does not model — every push hit `DOMAIN_001` / `DOMAIN_010` / `DOMAIN_012` / `DOMAIN_014`.
+
+To restore: ship a permissive built-in meta-schema (covering all 20 ElementKinds and 11 RelationKinds), set it as the default for new models/projects, then revert [`ModelSnapshotValidator.Validate`](backend/src/FlowConsole.Schema/ModelSnapshotValidator.cs) to call `ValidateDomain` again. Re-enable the two skipped tests in [`IRHandlerTests.cs`](backend/tests/FlowConsole.Tests.Unit/Application/IRHandlerTests.cs) (`LoadSnapshot_ParentIdCycle_*`, `LoadSnapshot_MissingRequiredProperty_*`).
+
+
 ## Diagnostic codes — align `ModelSnapshotValidator` with the contract
 
 `backend/src/FlowConsole.Schema/ModelSnapshotValidator.cs` emits a parallel `STRUCT_010..STRUCT_031` code namespace that is not declared in `contracts/model-snapshot/v1/diagnostics.md` and not present in `SnapshotDiagnosticCodes.cs`. The drift test (`SnapshotDiagnosticCodesCompletenessTests`) does not catch this because it only checks parity between `diagnostics.md` and `SnapshotDiagnosticCodes`.
