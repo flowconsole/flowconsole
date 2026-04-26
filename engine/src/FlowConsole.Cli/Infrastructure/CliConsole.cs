@@ -63,6 +63,18 @@ public static class CliConsole
     public static void DetailBlock(string content) =>
         CreateStderr().Markup($"[grey]{Markup.Escape(content)}[/]");
 
+    /// <summary>
+    /// Render Spectre-markup text to stdout when TTY (with colors) or write a stripped
+    /// plain version when redirected to file/pipe. Multi-line content preserved.
+    /// </summary>
+    public static void MarkupBlockStdout(string markupText)
+    {
+        if (Console.IsOutputRedirected)
+            Console.Out.Write(Markup.Remove(markupText));
+        else
+            CreateStdout().Markup(markupText);
+    }
+
     public static void Heading(string message) =>
         CreateStderr().MarkupLine($"[bold]{Markup.Escape(message)}[/]");
 

@@ -1,12 +1,13 @@
 using System.Text;
 using FlowConsole.Cli.Infrastructure;
 using FlowConsole.Rules.Core.Execution;
+using Spectre.Console;
 
 namespace FlowConsole.Cli.Formatters;
 
 /// <summary>
-/// Human-readable colored output via Spectre.Console markup (rendered to plain text).
-/// Groups findings by severity, shows summary.
+/// Human-readable findings output. Emits Spectre.Console markup; the routing layer
+/// decides whether to render colors (TTY) or strip them (file/pipe).
 /// </summary>
 internal sealed class HumanFormatter : IFindingsFormatter
 {
@@ -16,46 +17,45 @@ internal sealed class HumanFormatter : IFindingsFormatter
 
         if (result.Findings.Count == 0 && result.Errors.Count == 0)
         {
-            sb.AppendLine($"All rules passed ({result.PassedCount} rules, 0 findings)");
+            sb.AppendLine($"[bold green]✓[/] All rules passed ({result.PassedCount} rules, 0 findings)");
             return sb.ToString();
         }
 
-        // Group findings by severity
         var grouped = result.Findings
             .GroupBy(f => f.Severity)
             .OrderByDescending(g => SharedHelpers.SeverityOrder(g.Key));
 
         foreach (var group in grouped)
         {
-            var icon = SeverityIcon(group.Key);
+            var (icon, color) = SeverityStyle(group.Key);
             foreach (var finding in group)
             {
-                sb.AppendLine($"{icon} [{group.Key}] {finding.RuleId}: {finding.Message}");
+                sb.AppendLine($"[{color}]{icon}[/] [[{group.Key}]] [bold]{Markup.Escape(finding.RuleId)}[/]: {Markup.Escape(finding.Message)}");
                 if (finding.ElementIds.Count > 0)
-                    sb.AppendLine($"    elements: {string.Join(", ", finding.ElementIds)}");
+                    sb.AppendLine($"    [grey]elements: {Markup.Escape(string.Join(", ", finding.ElementIds))}[/]");
             }
         }
 
         if (result.Errors.Count > 0)
         {
             sb.AppendLine();
-            sb.AppendLine("Errors:");
+            sb.AppendLine("[bold red]Errors:[/]");
             foreach (var error in result.Errors)
-                sb.AppendLine($"  [{error.Code}] {error.RuleId}: {error.Message}");
+                sb.AppendLine($"  [[{Markup.Escape(error.Code)}]] [bold]{Markup.Escape(error.RuleId)}[/]: {Markup.Escape(error.Message)}");
         }
 
         sb.AppendLine();
-        sb.AppendLine($"Summary: {result.RuleCount} rules, {result.PassedCount} passed, {result.FailedCount} failed, {result.Findings.Count} findings, {result.Errors.Count} errors");
+        sb.AppendLine($"[bold]Summary:[/] {result.RuleCount} rules, [bold green]{result.PassedCount} passed[/], [bold red]{result.FailedCount} failed[/], {result.Findings.Count} findings, {result.Errors.Count} errors");
 
         return sb.ToString();
     }
 
-    private static string SeverityIcon(string severity) => severity switch
+    private static (string Icon, string Color) SeverityStyle(string severity) => severity switch
     {
-        "critical" => "X",
-        "error" => "E",
-        "warning" => "W",
-        "info" => "I",
-        _ => "?"
+        "critical" => ("X", "bold red"),
+        "error"    => ("E", "bold red"),
+        "warning"  => ("W", "bold yellow"),
+        "info"     => ("I", "bold cyan"),
+        _          => ("?", "grey"),
     };
 }

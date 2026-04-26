@@ -272,7 +272,15 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         // Write output
         if (settings.Output is not null)
         {
-            await _atomicWriter.WriteAsync(settings.Output, output, ct).ConfigureAwait(false);
+            // File output: strip Spectre markup so the file stays plain text.
+            var plain = formatter is FlowConsole.Cli.Formatters.HumanFormatter
+                ? Spectre.Console.Markup.Remove(output)
+                : output;
+            await _atomicWriter.WriteAsync(settings.Output, plain, ct).ConfigureAwait(false);
+        }
+        else if (formatter is FlowConsole.Cli.Formatters.HumanFormatter)
+        {
+            CliConsole.MarkupBlockStdout(output);
         }
         else
         {

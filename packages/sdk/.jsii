@@ -4,13 +4,14 @@
     "name": "FlowConsole",
     "roles": [
       "author"
-    ]
+    ],
+    "url": "https://flowconsole.tech"
   },
   "description": "FlowConsole SDK",
   "docs": {
     "stability": "stable"
   },
-  "homepage": "https://github.com/flowconsole/flowconsole.git",
+  "homepage": "https://flowconsole.tech",
   "jsiiVersion": "5.9.23 (build 29252a0)",
   "keywords": [],
   "license": "Apache-2.0",
@@ -5941,5 +5942,5 @@
     }
   },
   "version": "2.0.0",
-  "fingerprint": "ccO9B+kfXf3dTghKH7Oz2xtbmsmL2AOI1CkYV4ybifI="
+  "fingerprint": "LvObuffNmooSWlBfrcrOGumBTYdyFqVK4wN4ume+ln0="
 }
