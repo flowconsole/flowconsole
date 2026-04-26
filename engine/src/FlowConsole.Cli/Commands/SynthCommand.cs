@@ -68,7 +68,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
         // Validate flag dependencies
         if (settings.RequireConfirm && !settings.DiffAgainstLive)
         {
-            Console.Error.WriteLine("error: --require-confirm requires --diff-against-live.");
+            CliConsole.Error("--require-confirm requires --diff-against-live.");
             return 2;
         }
 
@@ -94,28 +94,28 @@ internal sealed class SynthCommand : Command<SynthSettings>
         if (command is null)
         {
             var hint = EntrypointDetector.SuggestSynthCommand(cwd);
-            Console.Error.WriteLine("error: synth.command not configured in .flowconsole.yaml and --command not provided.");
-            Console.Error.WriteLine();
-            Console.Error.WriteLine("Add to your .flowconsole.yaml:");
-            Console.Error.WriteLine();
-            Console.Error.WriteLine("  synth:");
-            Console.Error.WriteLine($"    {hint}");
-            Console.Error.WriteLine();
-            Console.Error.WriteLine("Or use: fc synth --command \"<your-command>\"");
-            Console.Error.WriteLine();
-            Console.Error.WriteLine("See https://flowconsole.tech/docs/sdk/synth for details.");
+            CliConsole.Error("synth.command not configured in .flowconsole.yaml and --command not provided.");
+            CliConsole.Info("");
+            CliConsole.Info("Add to your .flowconsole.yaml:");
+            CliConsole.Info("");
+            CliConsole.Info("  synth:");
+            CliConsole.Info($"    {hint}");
+            CliConsole.Info("");
+            CliConsole.Info("Or use: fc synth --command \"<your-command>\"");
+            CliConsole.Info("");
+            CliConsole.Info("See https://flowconsole.tech/docs/sdk/synth for details.");
             return 2;
         }
 
         if (!Directory.Exists(cwd))
         {
-            Console.Error.WriteLine($"error: working directory does not exist: {cwd}");
+            CliConsole.Error($"working directory does not exist: {cwd}");
             return 2;
         }
 
         // Shell out to user's toolchain
         if (settings.Verbose)
-            Console.Error.WriteLine($"Running: {command} (in {cwd})");
+            CliConsole.Info($"Running: {command} (in {cwd})");
 
         int exitCode;
         string stdout;
@@ -126,27 +126,27 @@ internal sealed class SynthCommand : Command<SynthSettings>
         }
         catch (OperationCanceledException)
         {
-            Console.Error.WriteLine("Synth cancelled.");
+            CliConsole.Info("Synth cancelled.");
             return 130;
         }
 
         // Output limit exceeded
         if (exitCode == -1)
         {
-            Console.Error.WriteLine("error: synth command output exceeded 10 MB limit.");
+            CliConsole.Error("synth command output exceeded 10 MB limit.");
             return 3;
         }
 
         // Non-zero exit from subprocess
         if (exitCode != 0)
         {
-            Console.Error.WriteLine($"error: synth command exited with code {exitCode}.");
+            CliConsole.Error($"synth command exited with code {exitCode}.");
             return 3;
         }
 
         if (string.IsNullOrWhiteSpace(stdout))
         {
-            Console.Error.WriteLine("error: synth command produced no output.");
+            CliConsole.Error("synth command produced no output.");
             return 3;
         }
 
@@ -158,7 +158,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"error: synth output is not valid JSON: {ex.Message}");
+            CliConsole.Error($"synth output is not valid JSON: {ex.Message}");
             return 3;
         }
 
@@ -176,11 +176,11 @@ internal sealed class SynthCommand : Command<SynthSettings>
                 ct).ConfigureAwait(false);
 
             if (settings.Verbose && outputPath is not null)
-                Console.Error.WriteLine($"Output: {outputPath}");
+                CliConsole.Info($"Output: {outputPath}");
         }
         catch (OperationCanceledException)
         {
-            Console.Error.WriteLine("Synth cancelled during output write.");
+            CliConsole.Info("Synth cancelled during output write.");
             return 130;
         }
 
@@ -196,18 +196,18 @@ internal sealed class SynthCommand : Command<SynthSettings>
 
             if (string.IsNullOrEmpty(apiUrl))
             {
-                Console.Error.WriteLine("error: api_url not configured in .flowconsole.yaml (required for --diff-against-live).");
+                CliConsole.Error("api_url not configured in .flowconsole.yaml (required for --diff-against-live).");
                 return 2;
             }
 
             if (string.IsNullOrEmpty(modelId))
             {
-                Console.Error.WriteLine("error: model_id not configured in .flowconsole.yaml (required for --diff-against-live).");
+                CliConsole.Error("model_id not configured in .flowconsole.yaml (required for --diff-against-live).");
                 return 2;
             }
 
             if (settings.Verbose)
-                Console.Error.WriteLine($"Fetching live snapshot from {apiUrl} (model: {modelId})...");
+                CliConsole.Info($"Fetching live snapshot from {apiUrl} (model: {modelId})...");
 
             LiveDiffFetcher.FetchResult fetchResult;
             try
@@ -216,13 +216,13 @@ internal sealed class SynthCommand : Command<SynthSettings>
             }
             catch (OperationCanceledException)
             {
-                Console.Error.WriteLine("Diff cancelled.");
+                CliConsole.Info("Diff cancelled.");
                 return 130;
             }
 
             if (!fetchResult.Success)
             {
-                Console.Error.WriteLine($"error: {fetchResult.ErrorMessage}");
+                CliConsole.Error($"{fetchResult.ErrorMessage}");
                 return 4; // network/auth error
             }
 

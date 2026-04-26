@@ -1,4 +1,5 @@
 using System.Security;
+using FlowConsole.Cli.Infrastructure;
 using FlowConsole.Cli.Serialization;
 using FlowConsole.Core.Entities;
 using FlowConsole.Core.ValueObjects;
@@ -64,7 +65,7 @@ internal sealed class ScannerDispatcher
 
         if (scanners == DetectedScanners.ModelSnapshot)
         {
-            Console.Error.WriteLine("Input appears to be a ModelSnapshot JSON file. Use `fc fmt` instead — it is the first-class command for formatting and normalizing snapshots.");
+            CliConsole.Info("Input appears to be a ModelSnapshot JSON file. Use `fc fmt` instead — it is the first-class command for formatting and normalizing snapshots.");
             return DispatchResult.IdentityMode();
         }
 

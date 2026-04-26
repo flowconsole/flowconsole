@@ -91,21 +91,21 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         // Validate --fail-on value
         if (!SharedHelpers.IsValidSeverity(settings.FailOn))
         {
-            Console.Error.WriteLine($"error: unrecognized --fail-on value '{settings.FailOn}'. Valid: info, warning, error, critical");
+            CliConsole.Error($"unrecognized --fail-on value '{settings.FailOn}'. Valid: info, warning, error, critical");
             return 2;
         }
 
         // Validate --severity value
         if (settings.Severity is not null && !SharedHelpers.IsValidSeverity(settings.Severity))
         {
-            Console.Error.WriteLine($"error: unrecognized --severity value '{settings.Severity}'. Valid: info, warning, error, critical");
+            CliConsole.Error($"unrecognized --severity value '{settings.Severity}'. Valid: info, warning, error, critical");
             return 2;
         }
 
         // Watch mode incompatible with stdin
         if (settings.Watch && settings.Snapshot == "-")
         {
-            Console.Error.WriteLine("error: --watch is incompatible with stdin input '-'");
+            CliConsole.Error("--watch is incompatible with stdin input '-'");
             return 2;
         }
 
@@ -113,7 +113,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         var snapshotPath = ResolveSnapshotPath(settings.Snapshot);
         if (snapshotPath is null && settings.Snapshot != "-")
         {
-            Console.Error.WriteLine("error: snapshot not found. Run `fc scan` first or pass path explicitly.");
+            CliConsole.Error("snapshot not found. Run `fc scan` first or pass path explicitly.");
             return 2;
         }
 
@@ -159,7 +159,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         }
         else
         {
-            Console.Error.WriteLine("error: snapshot file not found");
+            CliConsole.Error("snapshot file not found");
             return 2;
         }
 
@@ -171,7 +171,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"error: invalid JSON in snapshot: {ex.Message}");
+            CliConsole.Error($"invalid JSON in snapshot: {ex.Message}");
             return 2;
         }
 
@@ -190,7 +190,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         }
         catch (NotSupportedException ex)
         {
-            Console.Error.WriteLine($"error: {ex.Message}");
+            CliConsole.Error($"{ex.Message}");
             return 2;
         }
 
@@ -204,7 +204,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             var builtIn = _builtInRuleLoader.GetBuiltInRules();
             if (builtIn is null || builtIn.Rules.Count == 0)
             {
-                Console.Error.WriteLine("warning: no rules found (no rules directory and no built-in rules available)");
+                CliConsole.Warn("no rules found (no rules directory and no built-in rules available)");
                 return 0;
             }
             ruleFiles = builtIn;
@@ -214,9 +214,9 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             // If any user rule file failed to parse, exit with error code 2 per exit code contract
             if (hasIngestErrors)
             {
-                Console.Error.WriteLine(ruleFiles.Rules.Count == 0
-                    ? "error: all rule files failed to parse"
-                    : "error: one or more rule files failed to parse");
+                CliConsole.Error(ruleFiles.Rules.Count == 0
+                    ? "all rule files failed to parse"
+                    : "one or more rule files failed to parse");
                 return 2;
             }
             // Merge with built-in rules
@@ -228,7 +228,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         {
             if (!Enum.TryParse<FlowConsole.Rules.Core.Model.RuleTarget>(settings.Target, ignoreCase: true, out var targetFilter))
             {
-                Console.Error.WriteLine($"error: unrecognized --target value '{settings.Target}'. Valid: model, actual, diff");
+                CliConsole.Error($"unrecognized --target value '{settings.Target}'. Valid: model, actual, diff");
                 return 2;
             }
             ruleFiles = new FlowConsoleRuleFile(
@@ -264,7 +264,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         }
         catch (ArgumentException ex)
         {
-            Console.Error.WriteLine($"error: {ex.Message}");
+            CliConsole.Error($"{ex.Message}");
             return 2;
         }
         var output = formatter.Format(result, settings.IncludeTrace);
@@ -317,7 +317,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             {
                 hasIngestErrors = true;
                 foreach (var diag in result.Diagnostics.Where(d => d.Level == FlowConsole.Rules.Core.Diagnostics.DiagnosticLevel.Error))
-                    Console.Error.WriteLine($"error: [{diag.Code}] {diag.Message} ({filePath})");
+                    CliConsole.Error($"[{diag.Code}] {diag.Message} ({filePath})");
             }
         }
 

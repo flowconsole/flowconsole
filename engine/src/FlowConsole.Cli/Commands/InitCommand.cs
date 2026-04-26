@@ -104,7 +104,7 @@ internal sealed class InitCommand : Command<InitSettings>
         var configPath = Path.Combine(targetDir, FlowConsoleYaml);
         if (File.Exists(configPath) && !settings.Force)
         {
-            Console.Error.WriteLine($"{FlowConsoleYaml} already exists. Use --force to overwrite.");
+            CliConsole.Info($"{FlowConsoleYaml} already exists. Use --force to overwrite.");
             return 2;
         }
         var configContent = DefaultConfig;
@@ -143,7 +143,7 @@ internal sealed class InitCommand : Command<InitSettings>
             AppendReadmeHints(targetDir);
         }
 
-        Console.WriteLine($"Initialized FlowConsole project in {targetDir}");
+        CliConsole.Success($"Initialized FlowConsole project in {targetDir}");
         Console.WriteLine($"  {FlowConsoleYaml} - configuration");
         Console.WriteLine($"  {RulesDir}/ - validation rules ({CountFiles(rulesDir, "*.yaml")} rules)");
         Console.WriteLine($"  {FlowConsoleDir}/ - workspace (gitignored)");

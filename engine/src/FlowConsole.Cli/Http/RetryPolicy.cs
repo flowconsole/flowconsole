@@ -1,4 +1,5 @@
 using System.Net;
+using FlowConsole.Cli.Infrastructure;
 
 namespace FlowConsole.Cli.Http;
 
@@ -39,7 +40,7 @@ internal sealed class RetryPolicy
                 {
                     var delay = Delays[attempt - 1];
                     if (verbose)
-                        Console.Error.WriteLine($"  retry {attempt}/{Delays.Length} after {delay.TotalSeconds}s...");
+                        CliConsole.Detail($"  retry {attempt}/{Delays.Length} after {delay.TotalSeconds}s...");
                     await Task.Delay(delay, ct).ConfigureAwait(false);
                 }
 
@@ -74,7 +75,7 @@ internal sealed class RetryPolicy
                         lastResponse?.Dispose();
                         lastResponse = null;
                         if (verbose)
-                            Console.Error.WriteLine($"  circuit breaker: {consecutive5xx} consecutive 5xx, aborting");
+                            CliConsole.Detail($"  circuit breaker: {consecutive5xx} consecutive 5xx, aborting");
                         return response;
                     }
                 }

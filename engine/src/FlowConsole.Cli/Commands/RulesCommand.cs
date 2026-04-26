@@ -32,7 +32,7 @@ internal sealed class RulesListCommand : Command<RulesListSettings>
         var builtIn = _builtInRuleLoader.GetBuiltInRules();
         if (builtIn is null || builtIn.Rules.Count == 0)
         {
-            Console.Error.WriteLine("No built-in rules found.");
+            CliConsole.Info("No built-in rules found.");
             return 0;
         }
 
@@ -77,7 +77,7 @@ internal sealed class RulesExportCommand : Command<RulesExportSettings>
 
         if (resourceNames.Count == 0)
         {
-            Console.Error.WriteLine("No built-in rule files found.");
+            CliConsole.Info("No built-in rule files found.");
             return 0;
         }
 

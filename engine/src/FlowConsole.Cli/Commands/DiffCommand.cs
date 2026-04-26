@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using FlowConsole.Cli.Diff;
 using FlowConsole.Cli.Formatters;
+using FlowConsole.Cli.Infrastructure;
 using FlowConsole.Cli.Settings;
 using Spectre.Console.Cli;
 
@@ -40,26 +41,26 @@ internal sealed class DiffCommand : Command<DiffSettings>
         // Validate format
         if (!ValidFormats.Contains(settings.Format, StringComparer.OrdinalIgnoreCase))
         {
-            Console.Error.WriteLine($"error: invalid format '{settings.Format}'. Must be one of: human, json, markdown");
+            CliConsole.Error($"invalid format '{settings.Format}'. Must be one of: human, json, markdown");
             return 2;
         }
 
         // Validate --only filter
         if (settings.Only is not null && !ValidOnlyValues.Contains(settings.Only, StringComparer.OrdinalIgnoreCase))
         {
-            Console.Error.WriteLine($"error: invalid --only value '{settings.Only}'. Must be one of: added, removed, changed");
+            CliConsole.Error($"invalid --only value '{settings.Only}'. Must be one of: added, removed, changed");
             return 2;
         }
 
         // Read before file
         if (!File.Exists(settings.BeforePath))
         {
-            Console.Error.WriteLine($"error: 'before' file not found: {settings.BeforePath}");
+            CliConsole.Error($"'before' file not found: {settings.BeforePath}");
             return 2;
         }
         if (!File.Exists(settings.AfterPath))
         {
-            Console.Error.WriteLine($"error: 'after' file not found: {settings.AfterPath}");
+            CliConsole.Error($"'after' file not found: {settings.AfterPath}");
             return 2;
         }
 
@@ -70,7 +71,7 @@ internal sealed class DiffCommand : Command<DiffSettings>
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Console.Error.WriteLine($"error: cannot read 'before' file: {ex.Message}");
+            CliConsole.Error($"cannot read 'before' file: {ex.Message}");
             return 2;
         }
 
@@ -80,7 +81,7 @@ internal sealed class DiffCommand : Command<DiffSettings>
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Console.Error.WriteLine($"error: cannot read 'after' file: {ex.Message}");
+            CliConsole.Error($"cannot read 'after' file: {ex.Message}");
             return 2;
         }
 
@@ -91,7 +92,7 @@ internal sealed class DiffCommand : Command<DiffSettings>
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"error: invalid JSON in 'before' file: {ex.Message}");
+            CliConsole.Error($"invalid JSON in 'before' file: {ex.Message}");
             return 2;
         }
 
@@ -105,7 +106,7 @@ internal sealed class DiffCommand : Command<DiffSettings>
             }
             catch (JsonException ex)
             {
-                Console.Error.WriteLine($"error: invalid JSON in 'after' file: {ex.Message}");
+                CliConsole.Error($"invalid JSON in 'after' file: {ex.Message}");
                 return 2;
             }
 
@@ -117,7 +118,7 @@ internal sealed class DiffCommand : Command<DiffSettings>
 
         if (diff.IsEmpty)
         {
-            Console.Error.WriteLine("No differences found.");
+            CliConsole.Info("No differences found.");
             return 0;
         }
 
@@ -141,10 +142,10 @@ internal sealed class DiffCommand : Command<DiffSettings>
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                Console.Error.WriteLine($"error: cannot write output file: {ex.Message}");
+                CliConsole.Error($"cannot write output file: {ex.Message}");
                 return 2;
             }
-            Console.Error.WriteLine($"Diff written to {settings.OutputPath}");
+            CliConsole.Info($"Diff written to {settings.OutputPath}");
         }
         else
         {

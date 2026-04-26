@@ -70,8 +70,8 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         // Refuse --api-key on CLI args (secrets hygiene)
         if (!string.IsNullOrEmpty(settings.ApiKey))
         {
-            Console.Error.WriteLine("error: --api-key is refused on CLI args (API keys leak into CI logs).");
-            Console.Error.WriteLine("       Use FLOWCONSOLE_API_KEY environment variable instead.");
+            CliConsole.Error("--api-key is refused on CLI args (API keys leak into CI logs).");
+            CliConsole.Info("       Use FLOWCONSOLE_API_KEY environment variable instead.");
             return 2;
         }
 
@@ -83,7 +83,7 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             ?? (configFile is not null ? ConfigDiscovery.ReadTopLevelValue(configFile, "model_id") : null);
         if (string.IsNullOrEmpty(modelId))
         {
-            Console.Error.WriteLine("error: --model is required (or set model_id in .flowconsole.yaml).");
+            CliConsole.Error("--model is required (or set model_id in .flowconsole.yaml).");
             return 2;
         }
 
@@ -100,13 +100,13 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         {
             if (string.IsNullOrEmpty(apiKey))
             {
-                Console.Error.WriteLine("error: FLOWCONSOLE_API_KEY environment variable is required for push.");
+                CliConsole.Error("FLOWCONSOLE_API_KEY environment variable is required for push.");
                 return 2;
             }
 
             if (string.IsNullOrEmpty(apiUrl))
             {
-                Console.Error.WriteLine("error: --api-url is required (or set FLOWCONSOLE_API_URL env or api_url in .flowconsole.yaml).");
+                CliConsole.Error("--api-url is required (or set FLOWCONSOLE_API_URL env or api_url in .flowconsole.yaml).");
                 return 2;
             }
         }
@@ -114,7 +114,7 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         // Read and validate snapshot file
         if (!File.Exists(settings.SnapshotPath))
         {
-            Console.Error.WriteLine($"error: snapshot file not found: {settings.SnapshotPath}");
+            CliConsole.Error($"snapshot file not found: {settings.SnapshotPath}");
             return 2;
         }
 
@@ -125,7 +125,7 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Console.Error.WriteLine($"error: cannot read snapshot file: {ex.Message}");
+            CliConsole.Error($"cannot read snapshot file: {ex.Message}");
             return 2;
         }
 
@@ -136,7 +136,7 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"error: invalid JSON in snapshot file: {ex.Message}");
+            CliConsole.Error($"invalid JSON in snapshot file: {ex.Message}");
             return 2;
         }
 
@@ -146,7 +146,7 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
 
         if (sourcePartitions.Count == 0)
         {
-            Console.Error.WriteLine("warning: snapshot contains no elements.");
+            CliConsole.Warn("snapshot contains no elements.");
             return 0;
         }
 
@@ -154,12 +154,12 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         if (settings.DryRun)
         {
             var displayUrl = apiUrl ?? "<not configured>";
-            Console.Error.WriteLine($"Dry run: would push {sourcePartitions.Count} source partition(s) to {displayUrl}");
-            Console.Error.WriteLine($"  Model: {modelId}");
-            Console.Error.WriteLine($"  Endpoint: PUT /api/v1/models/{modelId}/ir");
+            CliConsole.Info($"Dry run: would push {sourcePartitions.Count} source partition(s) to {displayUrl}");
+            CliConsole.Info($"  Model: {modelId}");
+            CliConsole.Info($"  Endpoint: PUT /api/v1/models/{modelId}/ir");
             foreach (var (source, json) in sourcePartitions)
             {
-                Console.Error.WriteLine($"\n--- Source: {source} ---");
+                CliConsole.Info($"\n--- Source: {source} ---");
                 Console.Out.WriteLine(json);
             }
             return 0;
@@ -170,7 +170,7 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         foreach (var (source, json) in sourcePartitions)
         {
             if (settings.Verbose)
-                Console.Error.WriteLine($"Pushing source partition: {source}...");
+                CliConsole.Info($"Pushing source partition: {source}...");
 
             FlowConsoleApiClient.PushResult result;
             try
@@ -180,24 +180,24 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             }
             catch (HttpRequestException ex)
             {
-                Console.Error.WriteLine($"error: network error pushing source '{source}': {ex.Message}");
+                CliConsole.Error($"network error pushing source '{source}': {ex.Message}");
                 return 4;
             }
             catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
             {
-                Console.Error.WriteLine($"error: request timed out pushing source '{source}': {ex.Message}");
+                CliConsole.Error($"request timed out pushing source '{source}': {ex.Message}");
                 return 4;
             }
 
             if (result.Warnings is { Count: > 0 })
             {
                 foreach (var w in result.Warnings)
-                    Console.Error.WriteLine($"warning: {w}");
+                    CliConsole.Warn(w);
             }
 
             if (!result.Success)
             {
-                Console.Error.WriteLine($"error: push failed for source '{source}': {result.ErrorMessage}");
+                CliConsole.Error($"push failed for source '{source}': {result.ErrorMessage}");
                 allSuccess = false;
 
                 // Auth/schema errors are fatal — don't continue with other partitions
@@ -210,18 +210,18 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             var versionMsg = result.ModelVersion is not null
                 ? $"Model version: {result.ModelVersion}"
                 : "success";
-            Console.Error.WriteLine($"Pushed [{source}]. {versionMsg}");
+            CliConsole.Info($"Pushed [{source}]. {versionMsg}");
         }
 
         if (!allSuccess)
         {
-            Console.Error.WriteLine("error: one or more source partitions failed.");
+            CliConsole.Error("one or more source partitions failed.");
             return 4;
         }
 
         // Print final receipt for last partition's model version
         var lastResult = sourcePartitions.Count == 1 ? "Pushed." : $"Pushed {sourcePartitions.Count} source partition(s).";
-        Console.WriteLine(lastResult);
+        CliConsole.Success(lastResult);
         return 0;
     }
 

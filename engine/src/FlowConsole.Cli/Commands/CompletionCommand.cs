@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Reflection;
+using FlowConsole.Cli.Infrastructure;
 using FlowConsole.Cli.Settings;
 using Spectre.Console.Cli;
 
@@ -28,8 +29,8 @@ internal sealed class CompletionCommand : Command<CompletionSettings>
 
         if (!ShellResourceMap.TryGetValue(shell, out var resourceName))
         {
-            Console.Error.WriteLine($"Unknown shell: {settings.Shell}");
-            Console.Error.WriteLine("Supported shells: bash, zsh, fish, pwsh");
+            CliConsole.Info($"Unknown shell: {settings.Shell}");
+            CliConsole.Info("Supported shells: bash, zsh, fish, pwsh");
             return 2;
         }
 
@@ -37,7 +38,7 @@ internal sealed class CompletionCommand : Command<CompletionSettings>
         using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
         {
-            Console.Error.WriteLine($"Completion script not found for {shell}");
+            CliConsole.Info($"Completion script not found for {shell}");
             return 5;
         }
 

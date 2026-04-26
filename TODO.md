@@ -26,6 +26,10 @@ Steps:
 3. Update `IRValidatorTests` (currently asserts on `STRUCT_012`, `STRUCT_015`, `STRUCT_016`, `STRUCT_022`, `STRUCT_023`).
 4. Extend `SnapshotDiagnosticCodesCompletenessTests` to also scan `ModelSnapshotValidator.cs` (or a per-validator catalog) so future drift is caught.
 
-## JsonSchemaValidator — `pattern` keyword mapping
+### JsonSchemaValidator — `pattern` keyword mapping
 
 `JsonSchemaValidator.Classify` ([line 197](backend/src/FlowConsole.Schema/ModelSnapshot/JsonSchemaValidator.cs#L197)) lacks a `"pattern"` branch. Pattern violations from the embedded schema fall into the default `_ => SNAPSHOT_SCHEMA_INVALID_TYPE`, but the canonical code is `SNAPSHOT_SCHEMA_INVALID_ID_PATTERN`. Add a `"pattern" =>` branch.
+
+## CLI output — cargo-style aligned action verbs
+
+Add `CliConsole.Action(verb, message)` helper (right-padded green-bold verb, cargo-style: `   Pushed model v3`) and apply only in commands with multi-step output (`scan`, `push` per-source split, `synth` build/diff/confirm, `validate` rules+format). Single-result commands keep `✓` glyph form. Skip until a multi-step command actually needs it — avoid cargo-cargo-cult.

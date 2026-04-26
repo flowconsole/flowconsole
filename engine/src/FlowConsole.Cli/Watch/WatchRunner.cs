@@ -1,3 +1,5 @@
+using FlowConsole.Cli.Infrastructure;
+
 namespace FlowConsole.Cli.Watch;
 
 /// <summary>
@@ -62,7 +64,7 @@ internal sealed class WatchRunner : IDisposable
             _rulesDirWatcher.Deleted += OnFileChanged;
         }
 
-        Console.Error.WriteLine($"Watching for changes... (Ctrl-C to exit)");
+        CliConsole.Info($"Watching for changes... (Ctrl-C to exit)");
 
         // Wait for cancellation
         try
@@ -109,7 +111,7 @@ internal sealed class WatchRunner : IDisposable
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Watch error: {ex.Message}");
+                CliConsole.Info($"Watch error: {ex.Message}");
             }
             finally
             {

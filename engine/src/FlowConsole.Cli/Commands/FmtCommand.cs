@@ -61,7 +61,7 @@ internal sealed class FmtCommand : Command<FmtSettings>
         {
             if (!int.TryParse(settings.Indent, out var parsed) || parsed is not (2 or 4))
             {
-                Console.Error.WriteLine("error: --indent must be 2, 4, or tab");
+                CliConsole.Error("--indent must be 2, 4, or tab");
                 return 2;
             }
             indentSpaces = parsed;
@@ -80,7 +80,7 @@ internal sealed class FmtCommand : Command<FmtSettings>
             inputPath = Path.GetFullPath(settings.Snapshot);
             if (!File.Exists(inputPath))
             {
-                Console.Error.WriteLine($"File not found: {inputPath}");
+                CliConsole.Info($"File not found: {inputPath}");
                 return 2;
             }
             inputJson = await File.ReadAllTextAsync(inputPath, ct).ConfigureAwait(false);
@@ -94,7 +94,7 @@ internal sealed class FmtCommand : Command<FmtSettings>
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"Invalid JSON: {ex.Message}");
+            CliConsole.Info($"Invalid JSON: {ex.Message}");
             return 2;
         }
 
@@ -109,9 +109,9 @@ internal sealed class FmtCommand : Command<FmtSettings>
 
                 if (errors.Count > 0)
                 {
-                    Console.Error.WriteLine("Schema validation errors:");
+                    CliConsole.Info("Schema validation errors:");
                     foreach (var err in errors)
-                        Console.Error.WriteLine($"  [{err.Code}] {err.Message} (at {err.Path})");
+                        CliConsole.Info($"  [{err.Code}] {err.Message} (at {err.Path})");
                     return 2;
                 }
             }
@@ -125,7 +125,7 @@ internal sealed class FmtCommand : Command<FmtSettings>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Normalization failed: {ex.Message}");
+            CliConsole.Info($"Normalization failed: {ex.Message}");
             return 2;
         }
 
@@ -144,7 +144,7 @@ internal sealed class FmtCommand : Command<FmtSettings>
                 return 0;
             }
 
-            Console.Error.WriteLine(isStdin
+            CliConsole.Info(isStdin
                 ? "Input is not in canonical format."
                 : $"{inputPath} is not in canonical format.");
             return 1;
@@ -179,7 +179,7 @@ internal sealed class FmtCommand : Command<FmtSettings>
         }
         catch (OperationCanceledException)
         {
-            Console.Error.WriteLine("Format cancelled during output write.");
+            CliConsole.Info("Format cancelled during output write.");
             return 130;
         }
 

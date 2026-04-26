@@ -74,15 +74,15 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         // Refuse --api-key on CLI args (secrets hygiene)
         if (!string.IsNullOrEmpty(settings.ApiKey))
         {
-            Console.Error.WriteLine("error: --api-key is refused on CLI args (API keys leak into CI logs).");
-            Console.Error.WriteLine("       Use FLOWCONSOLE_API_KEY environment variable instead.");
+            CliConsole.Error("--api-key is refused on CLI args (API keys leak into CI logs).");
+            CliConsole.Info("       Use FLOWCONSOLE_API_KEY environment variable instead.");
             return 2;
         }
 
         // Validate --source if provided
         if (settings.Source is not null && !ValidSources.Contains(settings.Source))
         {
-            Console.Error.WriteLine($"error: --source must be one of: push, pull_request, schedule, manual (got '{settings.Source}').");
+            CliConsole.Error($"--source must be one of: push, pull_request, schedule, manual (got '{settings.Source}').");
             return 2;
         }
 
@@ -94,7 +94,7 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
             ?? (configFile is not null ? ConfigDiscovery.ReadTopLevelValue(configFile, "model_id") : null);
         if (string.IsNullOrEmpty(modelId))
         {
-            Console.Error.WriteLine("error: --model is required (or set model_id in .flowconsole.yaml).");
+            CliConsole.Error("--model is required (or set model_id in .flowconsole.yaml).");
             return 2;
         }
 
@@ -111,13 +111,13 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         {
             if (string.IsNullOrEmpty(apiKey))
             {
-                Console.Error.WriteLine("error: FLOWCONSOLE_API_KEY environment variable is required for push.");
+                CliConsole.Error("FLOWCONSOLE_API_KEY environment variable is required for push.");
                 return 2;
             }
 
             if (string.IsNullOrEmpty(apiUrl))
             {
-                Console.Error.WriteLine("error: --api-url is required (or set FLOWCONSOLE_API_URL env or api_url in .flowconsole.yaml).");
+                CliConsole.Error("--api-url is required (or set FLOWCONSOLE_API_URL env or api_url in .flowconsole.yaml).");
                 return 2;
             }
         }
@@ -125,7 +125,7 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         // Read and validate findings file
         if (!File.Exists(settings.FindingsPath))
         {
-            Console.Error.WriteLine($"error: findings file not found: {settings.FindingsPath}");
+            CliConsole.Error($"findings file not found: {settings.FindingsPath}");
             return 2;
         }
 
@@ -136,7 +136,7 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Console.Error.WriteLine($"error: cannot read findings file: {ex.Message}");
+            CliConsole.Error($"cannot read findings file: {ex.Message}");
             return 2;
         }
 
@@ -148,7 +148,7 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"error: invalid JSON in findings file: {ex.Message}");
+            CliConsole.Error($"invalid JSON in findings file: {ex.Message}");
             return 2;
         }
 
@@ -156,15 +156,15 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         if (settings.DryRun)
         {
             var displayUrl = apiUrl ?? "<not configured>";
-            Console.Error.WriteLine($"Dry run: would push findings to {displayUrl}");
-            Console.Error.WriteLine($"  Model: {modelId}");
-            Console.Error.WriteLine($"  Endpoint: POST /api/v1/models/{modelId}/validation-runs");
+            CliConsole.Info($"Dry run: would push findings to {displayUrl}");
+            CliConsole.Info($"  Model: {modelId}");
+            CliConsole.Info($"  Endpoint: POST /api/v1/models/{modelId}/validation-runs");
             Console.Out.WriteLine(requestJson);
             return 0;
         }
 
         if (settings.Verbose)
-            Console.Error.WriteLine($"Pushing findings to {apiUrl}/api/v1/models/{modelId}/validation-runs...");
+            CliConsole.Info($"Pushing findings to {apiUrl}/api/v1/models/{modelId}/validation-runs...");
 
         FlowConsoleApiClient.FindingsPushResult result;
         try
@@ -174,25 +174,25 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         }
         catch (HttpRequestException ex)
         {
-            Console.Error.WriteLine($"error: network error pushing findings: {ex.Message}");
+            CliConsole.Error($"network error pushing findings: {ex.Message}");
             return 4;
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            Console.Error.WriteLine($"error: request timed out pushing findings: {ex.Message}");
+            CliConsole.Error($"request timed out pushing findings: {ex.Message}");
             return 4;
         }
 
         if (!result.Success)
         {
-            Console.Error.WriteLine($"error: push findings failed: {result.ErrorMessage}");
+            CliConsole.Error($"push findings failed: {result.ErrorMessage}");
             return 4;
         }
 
         var idMsg = result.ValidationRunId is not null
             ? $"Validation run ID: {result.ValidationRunId}"
             : "success";
-        Console.WriteLine($"Findings pushed. {idMsg}");
+        CliConsole.Success($"Findings pushed. {idMsg}");
         return 0;
     }
 

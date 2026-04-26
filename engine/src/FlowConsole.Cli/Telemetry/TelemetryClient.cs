@@ -45,7 +45,7 @@ internal sealed class TelemetryClient
         if (_state.HasBeenPrompted())
             return;
 
-        Console.Error.Write(FirstRunBanner.Text);
+        FlowConsole.Cli.Infrastructure.CliConsole.DetailBlock(FirstRunBanner.Text);
         _state.MarkPrompted();
     }
 

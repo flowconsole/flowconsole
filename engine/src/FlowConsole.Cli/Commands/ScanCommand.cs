@@ -77,7 +77,7 @@ internal sealed class ScanCommand : Command<ScanSettings>
         }
         catch (OperationCanceledException)
         {
-            Console.Error.WriteLine("Scan cancelled.");
+            CliConsole.Info("Scan cancelled.");
             return 130;
         }
 
@@ -85,9 +85,9 @@ internal sealed class ScanCommand : Command<ScanSettings>
         foreach (var diag in result.Diagnostics)
         {
             if (diag.Severity == ScanDiagnosticSeverity.Error)
-                Console.Error.WriteLine($"error: [{diag.Code}] {diag.Message}{(diag.FilePath is not null ? $" ({diag.FilePath})" : "")}");
+                CliConsole.Error($"[{diag.Code}] {diag.Message}{(diag.FilePath is not null ? $" ({diag.FilePath})" : "")}");
             else if (diag.Severity == ScanDiagnosticSeverity.Warning)
-                Console.Error.WriteLine($"warning: [{diag.Code}] {diag.Message}{(diag.FilePath is not null ? $" ({diag.FilePath})" : "")}");
+                CliConsole.Warn($"[{diag.Code}] {diag.Message}{(diag.FilePath is not null ? $" ({diag.FilePath})" : "")}");
         }
 
         if (result.IsIdentityMode)
@@ -119,19 +119,19 @@ internal sealed class ScanCommand : Command<ScanSettings>
                 .ToList();
 
             foreach (var w in kindWarnings)
-                Console.Error.WriteLine($"warning: [{w.Code}] {w.Message} (at {w.Path})");
+                CliConsole.Warn($"[{w.Code}] {w.Message} (at {w.Path})");
 
             if (criticalErrors.Count > 0)
             {
-                Console.Error.WriteLine("Internal error: scan output failed schema validation:");
+                CliConsole.Error("Internal error: scan output failed schema validation:");
                 foreach (var err in criticalErrors)
-                    Console.Error.WriteLine($"  [{err.Code}] {err.Message} (at {err.Path})");
+                    CliConsole.Info($"  [{err.Code}] {err.Message} (at {err.Path})");
                 return 5;
             }
         }
         else
         {
-            Console.Error.WriteLine("warning: schema validation unavailable, output may contain errors");
+            CliConsole.Warn("schema validation unavailable, output may contain errors");
         }
 
         // Build human summary
@@ -146,15 +146,19 @@ internal sealed class ScanCommand : Command<ScanSettings>
                 settings.Output,
                 "snapshots",
                 "json",
-                summary,
+                humanSummary: null,
                 ct).ConfigureAwait(false);
 
-            if (outputPath is not null && !Console.IsOutputRedirected)
-                Console.WriteLine($"Output: {outputPath}");
+            if (!Console.IsOutputRedirected)
+            {
+                CliConsole.Success(summary);
+                if (outputPath is not null)
+                    CliConsole.Detail($"written {outputPath}");
+            }
         }
         catch (OperationCanceledException)
         {
-            Console.Error.WriteLine("Scan cancelled during output write.");
+            CliConsole.Info("Scan cancelled during output write.");
             return 130;
         }
 

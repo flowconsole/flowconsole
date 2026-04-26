@@ -219,9 +219,9 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
     {
         var prefix = status switch
         {
-            CheckStatus.Pass => "\u2713", // checkmark
-            CheckStatus.Warn => "\u26a0", // warning
-            CheckStatus.Fail => "\u2717", // X mark
+            CheckStatus.Pass => "✓", // checkmark
+            CheckStatus.Warn => "⚠", // warning
+            CheckStatus.Fail => "✗", // X mark
             _ => "?"
         };
         Console.WriteLine($"  {prefix} {message}");

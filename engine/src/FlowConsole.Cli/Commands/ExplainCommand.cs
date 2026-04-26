@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using FlowConsole.Cli.Infrastructure;
 using FlowConsole.Cli.Settings;
 using FlowConsole.Rules.Core.Compiled;
 using FlowConsole.Rules.Engine.Default;
@@ -43,7 +44,7 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
         var builtIn = _builtInRuleLoader.GetBuiltInRules();
         if (builtIn is null)
         {
-            Console.Error.WriteLine("error: no built-in rules loaded");
+            CliConsole.Error("no built-in rules loaded");
             return 5;
         }
 
@@ -52,8 +53,8 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
 
         if (rule is null)
         {
-            Console.Error.WriteLine($"error: rule '{ruleId}' not found");
-            Console.Error.WriteLine($"hint: use `fc rules list` to see available rules");
+            CliConsole.Error($"rule '{ruleId}' not found");
+            CliConsole.Info($"hint: use `fc rules list` to see available rules");
             return 2;
         }
 
@@ -114,13 +115,13 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
     {
         if (!File.Exists(settings.FindingFile))
         {
-            Console.Error.WriteLine($"error: findings file not found: {settings.FindingFile}");
+            CliConsole.Error($"findings file not found: {settings.FindingFile}");
             return 2;
         }
 
         if (!int.TryParse(settings.RuleIdOrIndex, out var index) || index < 1)
         {
-            Console.Error.WriteLine("error: --finding mode requires a 1-based finding index as the first argument");
+            CliConsole.Error("--finding mode requires a 1-based finding index as the first argument");
             return 2;
         }
 
@@ -131,7 +132,7 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"error: cannot read findings file: {ex.Message}");
+            CliConsole.Error($"cannot read findings file: {ex.Message}");
             return 2;
         }
 
@@ -142,7 +143,7 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
         }
         catch (JsonException ex)
         {
-            Console.Error.WriteLine($"error: invalid JSON in findings file: {ex.Message}");
+            CliConsole.Error($"invalid JSON in findings file: {ex.Message}");
             return 2;
         }
 
@@ -151,14 +152,14 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
             if (!doc.RootElement.TryGetProperty("findings", out var findingsArr) ||
                 findingsArr.ValueKind != JsonValueKind.Array)
             {
-                Console.Error.WriteLine("error: findings file does not contain a 'findings' array");
+                CliConsole.Error("findings file does not contain a 'findings' array");
                 return 2;
             }
 
             var count = findingsArr.GetArrayLength();
             if (index > count)
             {
-                Console.Error.WriteLine($"error: finding index {index} out of range (1-{count})");
+                CliConsole.Error($"finding index {index} out of range (1-{count})");
                 return 2;
             }
 

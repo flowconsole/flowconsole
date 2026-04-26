@@ -1,3 +1,4 @@
+using FlowConsole.Cli.Infrastructure;
 using FlowConsole.Cli.Settings;
 using FlowConsole.Cli.Telemetry;
 using Spectre.Console.Cli;
@@ -21,7 +22,7 @@ internal sealed class TelemetryOnCommand : Command<TelemetryOnSettings>
     public override int Execute(CommandContext context, TelemetryOnSettings settings)
     {
         _state.SetStatus("on");
-        Console.Error.WriteLine("Telemetry enabled.");
+        CliConsole.Info("Telemetry enabled.");
         return 0;
     }
 }
@@ -38,7 +39,7 @@ internal sealed class TelemetryOffCommand : Command<TelemetryOffSettings>
     public override int Execute(CommandContext context, TelemetryOffSettings settings)
     {
         _state.SetStatus("off");
-        Console.Error.WriteLine("Telemetry disabled.");
+        CliConsole.Info("Telemetry disabled.");
         return 0;
     }
 }
