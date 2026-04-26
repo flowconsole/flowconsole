@@ -1,5 +1,17 @@
 # TODO
 
+## SDK ↔ scanner output — canonical-id matching gap
+
+`CanonicalMatcher` ([line 53-57](backend/src/FlowConsole.Application/Canonical/CanonicalMatcher.cs#L53-L57)) requires `kind` parity for strategies 1–3. SDK convenience classes pick architecture-level kinds (`RestApi` → `Application`, `Rabbit` → `Queue`) while the scanner emits runtime/infra kinds (`Service` for web apps, `Broker` for RabbitMQ). End result: SDK's Git-source elements never match scanner's CodeScan-source elements — drift on the backend stays split. Workarounds: (a) populate `Aliases` in the SDK model with scanner ids (e.g. `["csharp:Basket.API"]`) so strategy #4 catches it, or (b) loosen the matcher to consider kind-class equivalence (Service ≡ Application for runtime web apps). Pick (a) for the eShop demo, (b) for general fix.
+
+## SDK — `buildSnapshot` ergonomics
+
+Today users must hand-collect every component into a `Component[]` and pass it to `Sdk.BuildSnapshot(entities)`. Add a no-arg / roots-only mode that auto-discovers descendants by walking the `belongsTo` tree from the supplied roots (matching the CDK/Pulumi pattern). Stand-alone elements (free `User`, `External`) still need to be passed when they have no `belongsTo` parent. Affects [`packages/sdk/flowconsole-sdk.ts`](packages/sdk/flowconsole-sdk.ts) — `buildSnapshot` signature + tree walk; remember to bump SDK version + repack jsii bindings.
+
+## SDK — `Sdk.Emit` is broken in C# (jsii async-static)
+
+`Sdk.emit()` is `public static async` ([`flowconsole-sdk.ts:1685`](packages/sdk/flowconsole-sdk.ts#L1685)). jsii's .NET runtime throws `Async static methods are currently not supported` when invoked from C#. Workaround used in [`cli-test/arch/Program.cs`](cli-test/arch/Program.cs): call `snapshot.ToJson(2)` and `Console.Out.WriteLine` directly. Fix: rewrite the wrapper as sync (`process.stdout.write` is sync anyway; only the file-write branch is async, push that off to a separate `EmitToFile` method).
+
 ## Re-enable domain validation in `ModelSnapshotValidator.Validate`
 
 `Validate(snapshot, schema)` currently skips `ValidateDomain(...)` and only runs `ValidateStructural`. This was disabled because scanner output uses kinds (`Endpoint`, `Database`, `Cache`, `Broker`, `Gateway`) and relations (`Exposes`) that the only built-in meta-schema (C4) does not model — every push hit `DOMAIN_001` / `DOMAIN_010` / `DOMAIN_012` / `DOMAIN_014`.

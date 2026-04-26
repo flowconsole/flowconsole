@@ -14,7 +14,8 @@ internal sealed class TelemetryState
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        TypeInfoResolver = TelemetryJsonContext.Default
     };
 
     private readonly string _stateFilePath;
@@ -108,18 +109,10 @@ internal sealed class TelemetryState
     }
 
     private void Save(StateData data)
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(_stateFilePath);
-            if (dir is not null && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-            File.WriteAllText(_stateFilePath, JsonSerializer.Serialize(data, JsonOptions));
-        }
-        catch
-        {
-            // Silently ignore write failures — telemetry is best-effort
-        }
+        var dir = Path.GetDirectoryName(_stateFilePath);
+        if (dir is not null && !Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+        File.WriteAllText(_stateFilePath, JsonSerializer.Serialize(data, JsonOptions));
     }
 
     internal static string GetDefaultStateFilePath()
@@ -145,4 +138,13 @@ internal sealed class TelemetryState
         [JsonPropertyName("prompted_at")]
         public string? PromptedAt { get; set; }
     }
+}
+
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(TelemetryState.StateData))]
+internal sealed partial class TelemetryJsonContext : JsonSerializerContext
+{
 }

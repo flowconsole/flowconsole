@@ -133,12 +133,24 @@ public static class ConfigDiscovery
         if (!trimmedLine.StartsWith(key, StringComparison.OrdinalIgnoreCase))
             return null;
 
-        var value = trimmedLine[key.Length..].Trim().Trim('"', '\'');
+        var raw = trimmedLine[key.Length..].TrimStart();
+        if (raw.Length == 0)
+            return null;
 
-        // Strip inline YAML comments
-        var commentIdx = value.IndexOf(" #", StringComparison.Ordinal);
-        if (commentIdx >= 0)
-            value = value[..commentIdx].TrimEnd();
+        string value;
+        if (raw[0] is '"' or '\'')
+        {
+            var quote = raw[0];
+            var end = raw.IndexOf(quote, 1);
+            if (end < 0)
+                return null;
+            value = raw[1..end];
+        }
+        else
+        {
+            var commentIdx = raw.IndexOf(" #", StringComparison.Ordinal);
+            value = (commentIdx >= 0 ? raw[..commentIdx] : raw).TrimEnd();
+        }
 
         return string.IsNullOrEmpty(value) ? null : value;
     }
