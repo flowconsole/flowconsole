@@ -171,17 +171,17 @@ describe('toJson() byte-stability', () => {
 
 describe('computeRelationshipId', () => {
   const testCases = [
-    { srcId: 'webapp', tgtId: 'api', kind: RelationKind.CALLS, expected: 'webapp--calls-->api' },
-    { srcId: 'api', tgtId: 'db', kind: RelationKind.USES, expected: 'api--uses-->db' },
-    { srcId: 'api', tgtId: 'redis', kind: RelationKind.DEPENDS_ON, expected: 'api--dependsOn-->redis' },
-    { srcId: 'chart', tgtId: 'wkld', kind: RelationKind.CONTAINS, expected: 'chart--contains-->wkld' },
-    { srcId: 'svc', tgtId: 'wkld', kind: RelationKind.DEPLOYED_ON, expected: 'svc--deployedOn-->wkld' },
-    { srcId: 'root', tgtId: 'api', kind: RelationKind.EXPOSES, expected: 'root--exposes-->api' },
-    { srcId: 'app', tgtId: 'events', kind: RelationKind.PRODUCES, expected: 'app--produces-->events' },
-    { srcId: 'worker', tgtId: 'queue', kind: RelationKind.CONSUMES, expected: 'worker--consumes-->queue' },
-    { srcId: 'mod', tgtId: 'iface', kind: RelationKind.IMPLEMENTS, expected: 'mod--implements-->iface' },
-    { srcId: 'app', tgtId: 'lib', kind: RelationKind.IMPORTS, expected: 'app--imports-->lib' },
-    { srcId: 'gw', tgtId: 'svc', kind: RelationKind.ROUTES_TO, expected: 'gw--routesTo-->svc' },
+    { srcId: 'webapp', tgtId: 'api', kind: RelationKind.CALLS, expected: 'webapp_calls_api' },
+    { srcId: 'api', tgtId: 'db', kind: RelationKind.USES, expected: 'api_uses_db' },
+    { srcId: 'api', tgtId: 'redis', kind: RelationKind.DEPENDS_ON, expected: 'api_dependsOn_redis' },
+    { srcId: 'chart', tgtId: 'wkld', kind: RelationKind.CONTAINS, expected: 'chart_contains_wkld' },
+    { srcId: 'svc', tgtId: 'wkld', kind: RelationKind.DEPLOYED_ON, expected: 'svc_deployedOn_wkld' },
+    { srcId: 'root', tgtId: 'api', kind: RelationKind.EXPOSES, expected: 'root_exposes_api' },
+    { srcId: 'app', tgtId: 'events', kind: RelationKind.PRODUCES, expected: 'app_produces_events' },
+    { srcId: 'worker', tgtId: 'queue', kind: RelationKind.CONSUMES, expected: 'worker_consumes_queue' },
+    { srcId: 'mod', tgtId: 'iface', kind: RelationKind.IMPLEMENTS, expected: 'mod_implements_iface' },
+    { srcId: 'app', tgtId: 'lib', kind: RelationKind.IMPORTS, expected: 'app_imports_lib' },
+    { srcId: 'gw', tgtId: 'svc', kind: RelationKind.ROUTES_TO, expected: 'gw_routesTo_svc' },
   ];
 
   it.each(testCases)(
@@ -236,12 +236,12 @@ describe('Flow emission', () => {
 
     // First step: webapp calls api
     expect(flow.steps[0].sourceElementId).toBe('webapp');
-    expect(flow.steps[0].relationshipId).toBe('webapp--calls-->api');
+    expect(flow.steps[0].relationshipId).toBe('webapp_calls_api');
     expect(flow.steps[0].label).toBe('POST /login');
 
     // Second step: api sendsRequest db (Database target → Uses)
     expect(flow.steps[1].sourceElementId).toBe('api');
-    expect(flow.steps[1].relationshipId).toBe('api--uses-->db');
+    expect(flow.steps[1].relationshipId).toBe('api_uses_db');
     expect(flow.steps[1].label).toBe('SELECT user');
   });
 
@@ -359,11 +359,11 @@ describe('Cross-source ID compatibility', () => {
     // Relationship ID in relationships array
     const rel = dto.relationships.find(r => r.sourceId === 'webapp' && r.targetId === 'api');
     expect(rel).toBeDefined();
-    expect(rel!.id).toBe('webapp--calls-->api');
+    expect(rel!.id).toBe('webapp_calls_api');
 
     // Same ID appears in flow step
     const step = dto.flows![0].steps[0];
-    expect(step.relationshipId).toBe('webapp--calls-->api');
+    expect(step.relationshipId).toBe('webapp_calls_api');
 
     // Both IDs match — dedup will work naturally
     expect(rel!.id).toBe(step.relationshipId);
@@ -436,7 +436,7 @@ describe('ModelSnapshotDto structure', () => {
 
     const rel = dto.relationships.find(r => r.sourceId === 'a' && r.targetId === 'b');
     expect(rel).toBeDefined();
-    expect(rel!.id).toBe('a--calls-->b');
+    expect(rel!.id).toBe('a_calls_b');
     expect(rel!.kind).toBe('Calls');
   });
 
@@ -473,7 +473,7 @@ describe('Mixed edge and action steps in flow', () => {
 
     // Edge step: webapp → api
     expect(flow.steps[0].sourceElementId).toBe('webapp');
-    expect(flow.steps[0].relationshipId).toBe('webapp--calls-->api');
+    expect(flow.steps[0].relationshipId).toBe('webapp_calls_api');
 
     // Action step: api executes internally
     expect(flow.steps[1].sourceElementId).toBe('api');
@@ -482,6 +482,6 @@ describe('Mixed edge and action steps in flow', () => {
 
     // Edge step: api → db (Database target → Uses)
     expect(flow.steps[2].sourceElementId).toBe('api');
-    expect(flow.steps[2].relationshipId).toBe('api--uses-->db');
+    expect(flow.steps[2].relationshipId).toBe('api_uses_db');
   });
 });

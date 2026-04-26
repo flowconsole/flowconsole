@@ -1372,17 +1372,14 @@ export function relationKindToConventionString(kind: RelationKind): string {
 
 /**
  * Compute deterministic relationship ID matching backend scanner convention.
- * Format: "{srcId}--{kindConvention}-->{tgtId}"
- *
- * MUST match production scanners:
- * - HelmConceptProjector.cs:61   → "{chart}--contains-->{workload}"
- * - CSharpConceptProjector.cs:85 → "{root}--exposes-->{api}"
+ * Format: "{srcId}_{kindConvention}_{tgtId}".
+ * Must match the scanner projectors (CSharpConceptProjector, HelmConceptProjector).
  */
 export function computeRelationshipId(source: Component, target: Component, kind: RelationKind): string {
   const srcId = source.id ?? source.name ?? '';
   const tgtId = target.id ?? target.name ?? '';
   const relName = relationKindToConventionString(kind);
-  return `${srcId}--${relName}-->${tgtId}`;
+  return `${srcId}_${relName}_${tgtId}`;
 }
 
 /**
@@ -1437,7 +1434,7 @@ function mapInferredToDto(rel: InferredRelationship): RelationshipDto {
   const tgtId = rel.target.id;
   const kindStr = relationKindToConventionString(rel.relationKind);
   const dto: RelationshipDto = {
-    id: `${srcId}--${kindStr}-->${tgtId}`,
+    id: `${srcId}_${kindStr}_${tgtId}`,
     sourceId: srcId,
     targetId: tgtId,
     kind: rel.relationKind,
