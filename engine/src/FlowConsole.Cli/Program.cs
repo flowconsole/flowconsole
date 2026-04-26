@@ -145,9 +145,13 @@ app.Configure(config =>
     });
 });
 
-// Resolve telemetry services for pre/post hooks
-var sp = registrar.BuildServiceProvider();
-var telemetryClient = sp.GetRequiredService<TelemetryClient>();
+// Resolve telemetry services for pre/post hooks.
+var bootstrapProvider = services.BuildServiceProvider();
+var telemetryState = bootstrapProvider.GetRequiredService<TelemetryState>();
+var telemetryClient = bootstrapProvider.GetRequiredService<TelemetryClient>();
+services.AddSingleton(telemetryState);
+services.AddSingleton(telemetryClient);
+
 var noTelemetryFlag = args.Any(a => a == "--no-telemetry");
 var verbose = args.Any(a => a == "--verbose");
 

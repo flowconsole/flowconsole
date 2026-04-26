@@ -38,14 +38,19 @@
     }
   },
   "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$",
+      "description": "Stable identifier — letters, digits, and `_`, `.`, `:`, `-`. Must start with a letter, digit, or underscore."
+    },
     "Element": {
       "type": "object",
       "required": ["id", "kind", "name"],
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/Identifier",
           "description": "Unique element identifier within the snapshot"
         },
         "kind": {
@@ -66,7 +71,7 @@
           "description": "Technology, framework, or language"
         },
         "parentId": {
-          "type": "string",
+          "$ref": "#/$defs/Identifier",
           "description": "Parent element ID for hierarchical models"
         },
         "source": {
@@ -178,18 +183,15 @@
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/Identifier",
           "description": "Unique relationship identifier within the snapshot"
         },
         "sourceId": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/Identifier",
           "description": "Source element ID"
         },
         "targetId": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/Identifier",
           "description": "Target element ID"
         },
         "kind": {
@@ -237,8 +239,7 @@
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/Identifier",
           "description": "Unique flow identifier within the snapshot"
         },
         "name": {
@@ -263,12 +264,14 @@
       "additionalProperties": false,
       "properties": {
         "sourceElementId": {
-          "type": "string",
-          "minLength": 1,
+          "$ref": "#/$defs/Identifier",
           "description": "Source element ID for this step"
         },
         "relationshipId": {
-          "type": ["string", "null"],
+          "oneOf": [
+            { "$ref": "#/$defs/Identifier" },
+            { "type": "null" }
+          ],
           "description": "Relationship ID for edge steps; null for action steps"
         },
         "label": {

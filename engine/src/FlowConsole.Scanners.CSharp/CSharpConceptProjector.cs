@@ -76,13 +76,14 @@ public static class CSharpConceptProjector
                         canonicalId: apiCanonicalId,
                         properties: new Dictionary<string, string>
                         {
+                            ["httpMethod"] = "*",
                             ["confidence"] = boundary.Confidence.ToString(),
                             ["inferenceConfidence"] = boundary.Confidence.ToString(),
                         }), AppHostPriority);
 
                     AddRelation(relations, RelationshipFactory.Create(
                         RelationKind.Exposes,
-                        new RelationshipId($"{rootCanonicalId}--exposes-->{apiCanonicalId}"),
+                        new RelationshipId($"{rootCanonicalId}_exposes_{apiCanonicalId}"),
                         new ElementId(rootCanonicalId),
                         new ElementId(apiCanonicalId),
                         ElementSource.CodeScan,
@@ -109,7 +110,7 @@ public static class CSharpConceptProjector
                     {
                         AddRelation(relations, RelationshipFactory.Create(
                             MapAspireResourceRelationKind(aspireMatch.ResourceKind),
-                            new RelationshipId($"{rootCanonicalId}--{MapAspireResourceRelationKind(aspireMatch.ResourceKind)}-->{aspireMatch.ResourceId}"),
+                            new RelationshipId($"{rootCanonicalId}_{MapAspireResourceRelationKind(aspireMatch.ResourceKind).ToString().ToLowerInvariant()}_{aspireMatch.ResourceId}"),
                             new ElementId(rootCanonicalId),
                             new ElementId(aspireMatch.ResourceId),
                             ElementSource.CodeScan,
@@ -128,7 +129,7 @@ public static class CSharpConceptProjector
                         var targetCanonicalId = $"csharp:{resolvedBoundary.RootProjectName}";
                         AddRelation(relations, RelationshipFactory.Create(
                             RelationKind.Calls,
-                            new RelationshipId($"{rootCanonicalId}--calls-->{targetCanonicalId}"),
+                            new RelationshipId($"{rootCanonicalId}_calls_{targetCanonicalId}"),
                             new ElementId(rootCanonicalId),
                             new ElementId(targetCanonicalId),
                             ElementSource.CodeScan,
@@ -159,7 +160,7 @@ public static class CSharpConceptProjector
 
                         AddRelation(relations, RelationshipFactory.Create(
                             RelationKind.Calls,
-                            new RelationshipId($"{rootCanonicalId}--calls-->{externalId}"),
+                            new RelationshipId($"{rootCanonicalId}_calls_{externalId}"),
                             new ElementId(rootCanonicalId),
                             new ElementId(externalId),
                             ElementSource.CodeScan,
@@ -174,9 +175,23 @@ public static class CSharpConceptProjector
             foreach (var owned in boundary.OwnedProjects)
             {
                 var ownedCanonicalId = $"csharp:{owned}";
+
+                AddElement(elements, ElementFactory.Create(
+                    ElementKind.Module,
+                    new ElementId(ownedCanonicalId),
+                    owned,
+                    ElementSource.CodeScan,
+                    technology: "C#/.NET",
+                    canonicalId: ownedCanonicalId,
+                    properties: new Dictionary<string, string>
+                    {
+                        ["confidence"] = boundary.Confidence.ToString(),
+                        ["inferenceConfidence"] = boundary.Confidence.ToString(),
+                    }), CodeDerivedPriority);
+
                 AddRelation(relations, RelationshipFactory.Create(
                     RelationKind.Contains,
-                    new RelationshipId($"{rootCanonicalId}--contains-->{ownedCanonicalId}"),
+                    new RelationshipId($"{rootCanonicalId}_contains_{ownedCanonicalId}"),
                     new ElementId(rootCanonicalId),
                     new ElementId(ownedCanonicalId),
                     ElementSource.CodeScan,
@@ -243,7 +258,7 @@ public static class CSharpConceptProjector
             var relationKind = link.LinkKind == AspireLinkKind.Calls ? RelationKind.Calls : RelationKind.DependsOn;
             AddRelation(relations, RelationshipFactory.Create(
                 relationKind,
-                new RelationshipId($"{link.SourceResourceId}--{relationKind}-->{link.TargetResourceId}"),
+                new RelationshipId($"{link.SourceResourceId}_{relationKind.ToString().ToLowerInvariant()}_{link.TargetResourceId}"),
                 new ElementId(link.SourceResourceId),
                 new ElementId(link.TargetResourceId),
                 ElementSource.CodeScan,
@@ -273,18 +288,10 @@ public static class CSharpConceptProjector
         int priority)
     {
         var key = relation.Id.Value;
-        if (relations.TryGetValue(key, out var existing) && existing.Priority > priority)
-            return;
-
-        if (relations.TryGetValue(key, out existing) && existing.Priority == priority)
+        if (relations.TryGetValue(key, out var existing))
         {
-            if (priority == AppHostPriority)
-            {
-                relations[key] = (relation, priority);
+            if (existing.Priority >= priority)
                 return;
-            }
-
-            key = $"{key}|dup:{relations.Count}";
         }
 
         relations[key] = (relation, priority);

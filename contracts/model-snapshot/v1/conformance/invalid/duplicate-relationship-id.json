@@ -1,0 +1,13 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "CodeScan",
+  "elements": [
+    { "id": "svc-a", "kind": "Service", "name": "Service A" },
+    { "id": "svc-b", "kind": "Service", "name": "Service B" }
+  ],
+  "relationships": [
+    { "id": "r-1", "sourceId": "svc-a", "targetId": "svc-b", "kind": "Calls" },
+    { "id": "r-1", "sourceId": "svc-a", "targetId": "svc-b", "kind": "Calls" }
+  ]
+}

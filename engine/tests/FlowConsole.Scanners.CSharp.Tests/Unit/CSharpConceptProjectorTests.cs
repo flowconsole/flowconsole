@@ -436,9 +436,38 @@ public sealed class CSharpConceptProjectorTests
         var externals = concepts.Where(c => c.Kind == ElementKind.External).ToList();
         Assert.Single(externals);
 
-        // Two calls relations to same external
         var calls = relations.Where(r => r.Kind == RelationKind.Calls).ToList();
-        Assert.Equal(2, calls.Count);
+        Assert.Single(calls);
+        Assert.Equal($"csharp:Api_calls_{externals[0].Id.Value}", calls[0].Id.Value);
+    }
+
+    [Fact]
+    public void Project_MultipleOutboundEvidenceToSameInternalTarget_DeduplicatesToSingleCall()
+    {
+        var boundaries = new List<ApplicationBoundary>
+        {
+            MakeBoundary("WebApp", RuntimeCandidateKind.WebApplication),
+            MakeBoundary("Catalog.API", RuntimeCandidateKind.WebApplication),
+        };
+
+        var outbound = new Dictionary<string, IReadOnlyList<EvidenceRecord>>
+        {
+            ["WebApp"] =
+            [
+                MakeOutbound("WebApp", "HttpClient:Catalog.API"),
+                MakeOutbound("WebApp", "HttpClient:Catalog.API"),
+                MakeOutbound("WebApp", "ConfigEndpointHint:Catalog.API"),
+            ],
+        };
+
+        var (_, relations) = CSharpConceptProjector.Project(
+            boundaries,
+            new Dictionary<string, IReadOnlyList<EvidenceRecord>>(),
+            outbound);
+
+        var calls = relations.Where(r => r.Kind == RelationKind.Calls).ToList();
+        Assert.Single(calls);
+        Assert.Equal("csharp:WebApp_calls_csharp:Catalog.API", calls[0].Id.Value);
     }
 
     [Fact]

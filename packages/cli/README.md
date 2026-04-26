@@ -10,7 +10,14 @@ npm wrapper for the FlowConsole CLI (`fc`) — architecture-as-code scanning, va
 npm install -g @flowconsole/cli
 ```
 
-After installation, the `fc` command is available globally.
+After installation, two equivalent commands are available globally:
+
+| Command | When to use |
+|---------|-------------|
+| `fcon` | Short alias without the shell-builtin conflict. Recommended when scripting in zsh/bash. |
+| `flowconsole` | Explicit, fully-qualified name. Best for CI scripts and documentation where readability matters more than brevity. |
+
+All resolve to the same underlying binary.
 
 ## Platform Support
 

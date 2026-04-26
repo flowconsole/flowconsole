@@ -58,7 +58,7 @@ public static class HelmConceptProjector
             // Chart contains workload
             relationships.Add(RelationshipFactory.Create(
                 RelationKind.Contains,
-                new RelationshipId($"{chartCanonicalId}--contains-->{workloadCanonicalId}"),
+                new RelationshipId($"{chartCanonicalId}_contains_{workloadCanonicalId}"),
                 new ElementId(chartCanonicalId),
                 new ElementId(workloadCanonicalId),
                 ElementSource.InfraScan,
@@ -86,7 +86,7 @@ public static class HelmConceptProjector
                 // Service deployedOn workload
                 relationships.Add(RelationshipFactory.Create(
                     RelationKind.DeployedOn,
-                    new RelationshipId($"{serviceCanonicalId}--deployedOn-->{workloadCanonicalId}"),
+                    new RelationshipId($"{serviceCanonicalId}_deployedOn_{workloadCanonicalId}"),
                     new ElementId(serviceCanonicalId),
                     new ElementId(workloadCanonicalId),
                     ElementSource.InfraScan,
@@ -124,7 +124,7 @@ public static class HelmConceptProjector
 
                 relationships.Add(RelationshipFactory.Create(
                     RelationKind.DependsOn,
-                    new RelationshipId($"{chartCanonicalId}--dependsOn-->{depCanonicalId}"),
+                    new RelationshipId($"{chartCanonicalId}_dependsOn_{depCanonicalId}"),
                     new ElementId(chartCanonicalId),
                     new ElementId(depCanonicalId),
                     ElementSource.InfraScan,

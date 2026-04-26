@@ -63,7 +63,7 @@ internal sealed class FlowConsoleApiClient
                 413 => new PushResult(false, statusCode, null, "Payload too large (413). Snapshot exceeds server size limit.", null),
                 422 => ParseSchemaVersionError(statusCode, body),
                 429 => new PushResult(false, statusCode, null, "Rate limited (429). Try again later.", null),
-                _ => new PushResult(false, statusCode, null, $"Server error ({statusCode}): {TruncateBody(body)}", null)
+                _ => new PushResult(false, statusCode, null, $"Server error ({statusCode}): {body}", null)
             };
         }
     }
@@ -110,9 +110,9 @@ internal sealed class FlowConsoleApiClient
                 403 => new FindingsPushResult(false, statusCode, null, "Access denied (403). Check API key permissions."),
                 404 => new FindingsPushResult(false, statusCode, null, "Model not found (404). Check --model ID."),
                 413 => new FindingsPushResult(false, statusCode, null, "Payload too large (413). Findings exceed server size limit."),
-                422 => new FindingsPushResult(false, statusCode, null, $"Validation error (422): {TruncateBody(body)}"),
+                422 => new FindingsPushResult(false, statusCode, null, $"Validation error (422): {body}"),
                 429 => new FindingsPushResult(false, statusCode, null, "Rate limited (429). Try again later."),
-                _ => new FindingsPushResult(false, statusCode, null, $"Server error ({statusCode}): {TruncateBody(body)}")
+                _ => new FindingsPushResult(false, statusCode, null, $"Server error ({statusCode}): {body}")
             };
         }
     }
@@ -165,7 +165,7 @@ internal sealed class FlowConsoleApiClient
         }
         catch (JsonException) { }
 
-        return new PushResult(false, statusCode, null, $"Validation error (422): {TruncateBody(body)}", null);
+        return new PushResult(false, statusCode, null, $"Validation error (422): {body}", null);
     }
 
     private static string? ExtractValidationRunId(HttpResponseMessage response, string body)
@@ -191,6 +191,4 @@ internal sealed class FlowConsoleApiClient
         return null;
     }
 
-    private static string TruncateBody(string body) =>
-        body.Length > 200 ? body[..200] + "..." : body;
 }

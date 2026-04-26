@@ -45,6 +45,7 @@ Each diagnostic has the following shape:
 | `SNAPSHOT_SCHEMA_KIND_DISCRIMINATOR_INVALID` | error | Element.kind is not a valid ElementKind value | Use one of: Class, Interface, Endpoint, Function, Producer, Consumer, Deployment, Database, Queue, Cache, Ingress, Namespace, Broker, Topic, Service, Application, Module, External, Gateway, Worker |
 | `SNAPSHOT_SCHEMA_KIND_PROPERTIES_REQUIRED_MISSING` | error | Per-kind required property is missing from Properties dict | E.g. Endpoint requires httpMethod, Topic requires partitions |
 | `SNAPSHOT_SCHEMA_FIELD_MISSING` | error | Top-level `$schema` field is absent | Add `"$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json"` |
+| `SNAPSHOT_SCHEMA_INVALID_ID_PATTERN` | error | Identifier (id, sourceId, targetId, parentId) does not match `^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$` | Use only letters, digits, `_`, `.`, `:`, `-`. First character must be letter, digit, or `_` |
 
 ### Version phase
 
@@ -60,6 +61,7 @@ Each diagnostic has the following shape:
 |------|-------|-------------|------|
 | `SNAPSHOT_REF_UNRESOLVED` | error | Relationship references an element ID not present in elements array | Ensure all sourceId/targetId values match an element id |
 | `SNAPSHOT_REF_DUPLICATE_ID` | error | Two or more elements share the same id | Element IDs must be unique within a snapshot |
+| `SNAPSHOT_REF_DUPLICATE_RELATIONSHIP_ID` | error | Two or more relationships share the same id | Relationship IDs must be unique within a snapshot |
 
 ### Flow phase (semantic validation for flows)
 

@@ -8,8 +8,8 @@
     { "id": "db", "kind": "Database", "name": "Main Database", "technology": "PostgreSQL" }
   ],
   "relationships": [
-    { "id": "webapp--calls-->api", "sourceId": "webapp", "targetId": "api", "kind": "Calls", "technology": "HTTP" },
-    { "id": "api--calls-->db", "sourceId": "api", "targetId": "db", "kind": "Calls", "technology": "Npgsql" }
+    { "id": "webapp_calls_api", "sourceId": "webapp", "targetId": "api", "kind": "Calls", "technology": "HTTP" },
+    { "id": "api_calls_db", "sourceId": "api", "targetId": "db", "kind": "Calls", "technology": "Npgsql" }
   ],
   "flows": [
     {
@@ -17,9 +17,9 @@
       "name": "User Login Flow",
       "description": "User authenticates via the web app",
       "steps": [
-        { "sourceElementId": "webapp", "relationshipId": "webapp--calls-->api", "label": "POST /auth/login" },
+        { "sourceElementId": "webapp", "relationshipId": "webapp_calls_api", "label": "POST /auth/login" },
         { "sourceElementId": "api", "relationshipId": null, "label": "validates credentials" },
-        { "sourceElementId": "api", "relationshipId": "api--calls-->db", "label": "SELECT user WHERE email=?" }
+        { "sourceElementId": "api", "relationshipId": "api_calls_db", "label": "SELECT user WHERE email=?" }
       ]
     }
   ]

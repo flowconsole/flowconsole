@@ -92,10 +92,17 @@ function runSemanticChecks(data) {
       }
     }
 
-    // Reference phase: unresolved relationship targets
+    // Reference phase: unresolved relationship targets + duplicate relationship ids
     if (Array.isArray(data.relationships)) {
+      const relIds = new Set();
       for (let i = 0; i < data.relationships.length; i++) {
         const rel = data.relationships[i];
+        if (rel && rel.id) {
+          if (relIds.has(rel.id)) {
+            errors.push(`reference: duplicate relationship id '${rel.id}' at /relationships/${i}`);
+          }
+          relIds.add(rel.id);
+        }
         if (rel && rel.sourceId && !ids.has(rel.sourceId)) {
           errors.push(`reference: relationship source '${rel.sourceId}' not found at /relationships/${i}/sourceId`);
         }

@@ -10,15 +10,14 @@ namespace FlowConsole.Cli.Infrastructure;
 internal sealed class TypeRegistrar : ITypeRegistrar
 {
     private readonly IServiceCollection _services;
-    private ServiceProvider? _provider;
 
     public TypeRegistrar(IServiceCollection services)
     {
         _services = services;
     }
 
-    public ITypeResolver Build() =>
-        new TypeResolver(_provider ?? _services.BuildServiceProvider());
+     public ITypeResolver Build() =>
+        new TypeResolver(_services.BuildServiceProvider());
 
 #pragma warning disable IL2067 // Spectre.Console.Cli ITypeRegistrar does not annotate its parameters
     public void Register(Type service, Type implementation) =>
@@ -30,17 +29,6 @@ internal sealed class TypeRegistrar : ITypeRegistrar
 
     public void RegisterLazy(Type service, Func<object> factory) =>
         _services.AddSingleton(service, _ => factory());
-
-    /// <summary>
-    /// Build the underlying ServiceProvider for direct service resolution
-    /// (used by Program.cs to resolve telemetry services outside Spectre command pipeline).
-    /// The same provider instance is reused when Spectre calls Build().
-    /// </summary>
-    public ServiceProvider BuildServiceProvider()
-    {
-        _provider ??= _services.BuildServiceProvider();
-        return _provider;
-    }
 }
 
 internal sealed class TypeResolver : ITypeResolver, IDisposable

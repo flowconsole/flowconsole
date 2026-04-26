@@ -36,4 +36,5 @@ tmp/
 *.sln
 *.sw?
 .VSCodeCounter/
-company/
+packages/cli/binaries/*
+packages/cli/*.tgz
