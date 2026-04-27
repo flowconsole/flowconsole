@@ -32,7 +32,7 @@ internal sealed class TelemetryClient
     }
 
     /// <summary>
-    /// Session ID for this process invocation (random UUID, fresh per fc run).
+    /// Session ID for this process invocation (random UUID, fresh per fcon run).
     /// </summary>
     internal string SessionId => _sessionId;
 

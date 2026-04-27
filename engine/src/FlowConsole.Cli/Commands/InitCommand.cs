@@ -39,7 +39,7 @@ internal sealed class InitCommand : Command<InitSettings>
         fail_on: error
         api_url: http://localhost:5555
         synth:
-          command: ""              # REQUIRED for fc synth — set to your build command:
+          command: ""              # REQUIRED for fcon synth — set to your build command:
                                    #   "node main.ts"  for TS projects
                                    #   "dotnet run --project ./arch"  for C# projects
           # output: "stdout"       # optional (default=stdout)
@@ -153,9 +153,9 @@ internal sealed class InitCommand : Command<InitSettings>
 
         Console.WriteLine();
         Console.WriteLine("Next steps:");
-        Console.WriteLine("  fc scan ./src          # scan your source code");
-        Console.WriteLine("  fc validate            # run validation rules");
-        Console.WriteLine("  fc doctor              # check environment health");
+        Console.WriteLine("  fcon scan ./src          # scan your source code");
+        Console.WriteLine("  fcon validate            # run validation rules");
+        Console.WriteLine("  fcon doctor              # check environment health");
 
         return 0;
     }
@@ -176,7 +176,7 @@ internal sealed class InitCommand : Command<InitSettings>
                 fail_on: error
                 api_url: http://localhost:5555
                 synth:
-                  command: ""              # REQUIRED for fc synth — set to your build command:
+                  command: ""              # REQUIRED for fcon synth — set to your build command:
                                            #   "node main.ts"  for TS projects
                                            #   "dotnet run --project ./arch"  for C# projects
                   # output: "stdout"       # optional (default=stdout)
@@ -283,13 +283,13 @@ internal sealed class InitCommand : Command<InitSettings>
 
             ```bash
             # Scan source code
-            fc scan ./src
+            fcon scan ./src
 
             # Validate against rules
-            fc validate
+            fcon validate
 
             # Check environment
-            fc doctor
+            fcon doctor
             ```
             """.Replace("            ", "");
 

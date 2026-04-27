@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <InternalsVisibleTo Include="FlowConsole.Tests.Unit" />
-    <InternalsVisibleTo Include="fc" />
+    <InternalsVisibleTo Include="fcon" />
     <InternalsVisibleTo Include="FlowConsole.Cli.Tests" />
   </ItemGroup>
 

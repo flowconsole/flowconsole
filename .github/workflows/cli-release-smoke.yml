@@ -38,29 +38,29 @@ jobs:
       - name: Install @flowconsole/cli
         run: npm install -g @flowconsole/cli@${{ inputs.cli_version }}
 
-      - name: Smoke test - fc --version
+      - name: Smoke test - fcon --version
         shell: bash
         run: |
-          VERSION=$(fc --version)
+          VERSION=$(fcon --version)
           echo "Reported version: $VERSION"
           [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
 
-      - name: Smoke test - fc --help
-        run: fc --help
+      - name: Smoke test - fcon --help
+        run: fcon --help
 
-      - name: Smoke test - fc scan --help
-        run: fc scan --help
+      - name: Smoke test - fcon scan --help
+        run: fcon scan --help
 
-      - name: Smoke test - fc validate --help
-        run: fc validate --help
+      - name: Smoke test - fcon validate --help
+        run: fcon validate --help
 
-      - name: Smoke test - fc push --help
-        run: fc push --help
+      - name: Smoke test - fcon push --help
+        run: fcon push --help
 
-      - name: Smoke test - fc diff --help
-        run: fc diff --help
+      - name: Smoke test - fcon diff --help
+        run: fcon diff --help
 
-      - name: Smoke test - fc telemetry status
+      - name: Smoke test - fcon telemetry status
         env:
           DO_NOT_TRACK: '1'
-        run: fc telemetry status
+        run: fcon telemetry status

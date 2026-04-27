@@ -77,7 +77,7 @@ internal static class SnapshotSerializer
     }
 
     /// <summary>
-    /// Normalizes an existing JSON string to canonical format (for fc fmt).
+    /// Normalizes an existing JSON string to canonical format (for fcon fmt).
     /// Parses, sorts elements by id, relationships by source+target+kind, reorders keys.
     /// </summary>
     public static string Normalize(string json, int indent = 2, bool useTabs = false)

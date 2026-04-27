@@ -29,7 +29,7 @@
           },
           "path": {
             "type": "string",
-            "description": "JSON Pointer (RFC 6901) to the problematic node"
+            "description": "JSON Pointer (Rfcon 6901) to the problematic node"
           },
           "message": {
             "type": "string"

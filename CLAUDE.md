@@ -36,7 +36,7 @@ pnpm --filter @flowconsole/web vitest run tests/unit/<filename>.test.ts
 - **packages/web** (`@flowconsole/web`) - React diagram components, layout pipeline, Monaco workbench
 - **packages/sdk** (`@flowconsole/sdk` v2.0.0) - Typed architecture-as-code SDK with jsii multi-language support (TypeScript, C#, Java, Python, Go). 13 base element classes, 6 deployment classes, 23 convenience wrappers. Three-layer API: Topology (elements + belongsTo), Flows (fluent interaction chains with automatic relationship inference), Deployment (infrastructure targets). `SoftwareSystem` (not `System`) due to C# reserved name. Key exports: `buildSnapshot()`, `getRuntime()`
 - **packages/ui** (`@flowconsole/ui`) - Shared shadcn/Radix UI primitives (consumed by apps/docs)
-- **packages/cli** (`@flowconsole/cli`) - npm-wrapper that distributes the .NET self-contained `fc` CLI binary (source in `engine/src/FlowConsole.Cli/`)
+- **packages/cli** (`@flowconsole/cli`) - npm-wrapper that distributes the .NET self-contained `fcon` CLI binary (source in `engine/src/FlowConsole.Cli/`)
 
 ## Architecture
 
@@ -68,7 +68,7 @@ Two .NET projects implement the v1alpha1 rule engine:
 
 ## Engine — Scanners
 
-- **engine/src/FlowConsole.Scanners.Helm** — Helm chart scanner shared library. Parses Chart.yaml + templates/ to produce typed Elements/Relationships (Deployment, Service, Ingress, ConfigMap, etc.). Implements `IInfraScanner`. Used by the CLI (`fc scan` auto-detects via Chart.yaml).
+- **engine/src/FlowConsole.Scanners.Helm** — Helm chart scanner shared library. Parses Chart.yaml + templates/ to produce typed Elements/Relationships (Deployment, Service, Ingress, ConfigMap, etc.). Implements `IInfraScanner`. Used by the CLI (`fcon scan` auto-detects via Chart.yaml).
 
 Rule file contract: `contracts/rules/v1alpha1/` — JSON Schema, expression language spec, types, helpers, diagnostics, conformance suite (50+ fixtures).
 

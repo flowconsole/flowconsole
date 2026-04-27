@@ -33,7 +33,7 @@ internal sealed class TelemetryState
     /// <summary>
     /// Returns true if telemetry is enabled considering state file + environment overrides.
     /// Opt-out mechanisms (any one stops send):
-    ///   1. fc telemetry off (state file status=off)
+    ///   1. fcon telemetry off (state file status=off)
     ///   2. FLOWCONSOLE_TELEMETRY=off env
     ///   3. DO_NOT_TRACK=1 env
     ///   4. --no-telemetry flag (checked by caller)

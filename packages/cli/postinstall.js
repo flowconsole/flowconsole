@@ -122,8 +122,8 @@ async function downloadAndVerify(rid, version) {
   const tag = `cli-v${version}`;
   const isWindows = rid.startsWith("win-");
   const archiveExt = isWindows ? "zip" : "tar.gz";
-  const archiveName = `fc-${rid}.${archiveExt}`;
-  const checksumName = `fc-${rid}.sha256`;
+  const archiveName = `fcon-${rid}.${archiveExt}`;
+  const checksumName = `fcon-${rid}.sha256`;
 
   const archiveUrl = `${baseUrl}/${tag}/${archiveName}`;
   const checksumUrl = `${baseUrl}/${tag}/${checksumName}`;
@@ -229,7 +229,7 @@ async function main() {
   const binDir = path.join(__dirname, "binaries", rid);
 
   // Check if already downloaded
-  const binaryName = rid.startsWith("win-") ? "fc.exe" : "fc";
+  const binaryName = rid.startsWith("win-") ? "fcon.exe" : "fcon";
   const binaryPath = path.join(binDir, binaryName);
   if (fs.existsSync(binaryPath)) {
     console.log(`FlowConsole CLI binary already exists at ${binaryPath}`);

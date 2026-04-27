@@ -1,6 +1,6 @@
 #compdef fc
 
-# zsh completion for fc (FlowConsole CLI)
+# zsh completion for fcon (FlowConsole CLI)
 
 _fc() {
     local -a commands
@@ -30,7 +30,7 @@ _fc() {
 
     case $state in
         command)
-            _describe -t commands 'fc command' commands
+            _describe -t commands 'fcon command' commands
             ;;
         args)
             case $words[1] in
@@ -86,4 +86,4 @@ _fc() {
     esac
 }
 
-_fc "$@"
+_fcon "$@"

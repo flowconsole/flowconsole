@@ -18,8 +18,8 @@ Provider: PostHog (https://posthog.com/privacy)
 Endpoint: POST https://app.posthog.com/capture/ (direct — no FlowConsole backend)
 Note: public capture keys are not a trust boundary. We treat this data as advisory
       only and never as a basis for contract/SLA/support decisions.
-To disable permanently, run:  fc telemetry off
-Read the full policy:         fc telemetry status --verbose
+To disable permanently, run:  fcon telemetry off
+Read the full policy:         fcon telemetry status --verbose
 
 """;
 }

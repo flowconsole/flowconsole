@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>fc</AssemblyName>
+    <AssemblyName>fcon</AssemblyName>
     <RootNamespace>FlowConsole.Cli</RootNamespace>
     <PublishAot>false</PublishAot>
     <PublishSingleFile>true</PublishSingleFile>
@@ -19,7 +19,7 @@
   <!-- NuGet tool packaging (framework-dependent secondary distribution channel) -->
   <PropertyGroup>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>fc</ToolCommandName>
+    <ToolCommandName>fcon</ToolCommandName>
     <PackageId>FlowConsole.Cli</PackageId>
     <Version>0.2.0-alpha</Version>
     <Authors>FlowConsole</Authors>

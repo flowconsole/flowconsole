@@ -93,7 +93,7 @@ public sealed class TelemetryCommandTests : IDisposable
         // First invocation — banner should appear
         var stderr1 = CaptureStderr(() => client.ShowBannerIfNeeded());
         stderr1.Should().Contain("FlowConsole CLI (fc) sends anonymous usage stats");
-        stderr1.Should().Contain("fc telemetry off");
+        stderr1.Should().Contain("fcon telemetry off");
 
         // Second invocation — banner should be silent
         var stderr2 = CaptureStderr(() => client.ShowBannerIfNeeded());
@@ -205,7 +205,7 @@ public sealed class TelemetryCommandTests : IDisposable
         var handler2 = new TelemetryMockHandler(HttpStatusCode.OK);
         var client2 = CreateTelemetryClient(handler2, state);
 
-        // Different TelemetryClient instances simulate different fc invocations
+        // Different TelemetryClient instances simulate different fcon invocations
         client1.SessionId.Should().NotBe(client2.SessionId);
     }
 

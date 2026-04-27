@@ -20,7 +20,7 @@ Each diagnostic has the following shape:
 - `code: string` — stable diagnostic code (see catalog below);
 - `phase: "schema" | "version" | "reference" | "limit"` — phase where the issue was detected;
 - `level: "error" | "warning"` — severity;
-- `path: string` — JSON Pointer (RFC 6901) to the problematic node;
+- `path: string` — JSON Pointer (Rfcon 6901) to the problematic node;
 - `message: string` — human-readable message;
 - `hint?: string` — short remediation suggestion.
 

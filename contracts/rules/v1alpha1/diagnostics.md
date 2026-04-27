@@ -25,7 +25,7 @@
 - `code: string` — стабильный код ошибки или предупреждения (см. каталог ниже);
 - `phase: "parse" | "schema" | "semantic" | "expression" | "normalize" | "runtime"` — фаза, на которой найдено нарушение;
 - `level: "error" | "warning"` — severity самого diagnostic;
-- `path: string` — **JSON Pointer (RFC 6901)** до проблемного узла в canonical JSON-like представлении документа (например, `/rules/0/assert`, `/rules/2/subject/kinds/1`);
+- `path: string` — **JSON Pointer (Rfcon 6901)** до проблемного узла в canonical JSON-like представлении документа (например, `/rules/0/assert`, `/rules/2/subject/kinds/1`);
 - `sourceRange?: SourceRange` — привязка к исходному тексту YAML/JSON (заполняется parse-фазой, пробрасывается через все фазы);
 - `message: string` — human-readable сообщение;
 - `hint?: string` — короткая подсказка по исправлению;

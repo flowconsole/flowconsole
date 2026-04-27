@@ -101,7 +101,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
             CliConsole.Info("  synth:");
             CliConsole.Info($"    {hint}");
             CliConsole.Info("");
-            CliConsole.Info("Or use: fc synth --command \"<your-command>\"");
+            CliConsole.Info("Or use: fcon synth --command \"<your-command>\"");
             CliConsole.Info("");
             CliConsole.Info("See https://flowconsole.tech/docs/sdk/synth for details.");
             return 2;
@@ -150,7 +150,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
             return 3;
         }
 
-        // Normalize the JSON output through canonical order (reuses fc fmt normalization)
+        // Normalize the JSON output through canonical order (reuses fcon fmt normalization)
         string normalized;
         try
         {

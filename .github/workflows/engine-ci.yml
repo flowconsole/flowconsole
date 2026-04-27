@@ -70,29 +70,29 @@ jobs:
         run: |
           dotnet publish engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj -r ${{ matrix.rid }} -c Release -o artifacts/${{ matrix.rid }}
 
-      - name: Smoke test - fc --version
+      - name: Smoke test - fcon --version
         shell: bash
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            FC="artifacts/${{ matrix.rid }}/fc.exe"
+            FC="artifacts/${{ matrix.rid }}/fcon.exe"
           else
-            chmod +x artifacts/${{ matrix.rid }}/fc
-            FC="artifacts/${{ matrix.rid }}/fc"
+            chmod +x artifacts/${{ matrix.rid }}/fcon
+            FC="artifacts/${{ matrix.rid }}/fcon"
           fi
           VERSION=$("$FC" --version)
           echo "Reported version: $VERSION"
           [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
 
-      - name: Smoke test - fc scan
+      - name: Smoke test - fcon scan
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then FC="artifacts/${{ matrix.rid }}/fc.exe"; else FC="artifacts/${{ matrix.rid }}/fc"; fi
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="artifacts/${{ matrix.rid }}/fcon.exe"; else FC="artifacts/${{ matrix.rid }}/fcon"; fi
           "$FC" scan contracts/model-snapshot/v1/conformance/valid/minimal.json
 
-      - name: Smoke test - fc validate
+      - name: Smoke test - fcon validate
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then FC="artifacts/${{ matrix.rid }}/fc.exe"; else FC="artifacts/${{ matrix.rid }}/fc"; fi
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="artifacts/${{ matrix.rid }}/fcon.exe"; else FC="artifacts/${{ matrix.rid }}/fcon"; fi
           "$FC" validate contracts/model-snapshot/v1/conformance/valid/minimal.json
 
   sfa-publish:
@@ -121,7 +121,7 @@ jobs:
       - name: Upload SFA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fc-${{ matrix.rid }}
+          name: fcon-${{ matrix.rid }}
           path: artifacts/${{ matrix.rid }}/
 
   sfa-smoke-test:
@@ -143,40 +143,40 @@ jobs:
       - name: Download SFA artifact
         uses: actions/download-artifact@v4
         with:
-          name: fc-${{ matrix.rid }}
-          path: fc-bin/
+          name: fcon-${{ matrix.rid }}
+          path: fcon-bin/
 
       - name: Make binary executable (Unix)
         if: runner.os != 'Windows'
-        run: chmod +x fc-bin/fc
+        run: chmod +x fcon-bin/fcon
 
-      - name: Smoke test - fc --version
+      - name: Smoke test - fcon --version
         shell: bash
         run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then FC="fc-bin/fc.exe"; else FC="fc-bin/fc"; fi
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="fcon-bin/fcon.exe"; else FC="fcon-bin/fcon"; fi
           VERSION=$("$FC" --version)
           echo "Reported version: $VERSION"
           [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
 
-      - name: Smoke test - fc scan
+      - name: Smoke test - fcon scan
         run: |
-          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} scan contracts/model-snapshot/v1/conformance/valid/minimal.json
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} scan contracts/model-snapshot/v1/conformance/valid/minimal.json
         continue-on-error: false
 
-      - name: Smoke test - fc validate
+      - name: Smoke test - fcon validate
         run: |
-          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} validate contracts/model-snapshot/v1/conformance/valid/minimal.json
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} validate contracts/model-snapshot/v1/conformance/valid/minimal.json
         continue-on-error: false
 
-      - name: Smoke test - fc explain
+      - name: Smoke test - fcon explain
         run: |
-          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} rules list
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} rules list
         continue-on-error: false
 
-      - name: Smoke test - fc fmt
+      - name: Smoke test - fcon fmt
         run: |
           cp contracts/model-snapshot/v1/conformance/valid/minimal.json /tmp/test-fmt.json 2>/dev/null || copy contracts\model-snapshot\v1\conformance\valid\minimal.json %TEMP%\test-fmt.json
-          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} fmt ${{ runner.os == 'Windows' && '%TEMP%\test-fmt.json' || '/tmp/test-fmt.json' }}
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} fmt ${{ runner.os == 'Windows' && '%TEMP%\test-fmt.json' || '/tmp/test-fmt.json' }}
         continue-on-error: false
 
   nuget-pack:

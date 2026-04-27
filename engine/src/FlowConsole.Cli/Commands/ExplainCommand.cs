@@ -54,7 +54,7 @@ internal sealed class ExplainCommand : Command<ExplainSettings>
         if (rule is null)
         {
             CliConsole.Error($"rule '{ruleId}' not found");
-            CliConsole.Info($"hint: use `fc rules list` to see available rules");
+            CliConsole.Info($"hint: use `fcon rules list` to see available rules");
             return 2;
         }
 

@@ -9,7 +9,7 @@ using Spectre.Console.Cli;
 namespace FlowConsole.Cli.Commands;
 
 /// <summary>
-/// Settings for <c>fc push snapshot</c>.
+/// Settings for <c>fcon push snapshot</c>.
 ///
 /// Concurrency: last-writer-wins. Same-source pushes naturally serialize via Postgres
 /// row locks (no torn reads). Different-source pushes (e.g. C# and Helm) run in parallel.

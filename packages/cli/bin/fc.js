@@ -30,7 +30,7 @@ function getBinaryPath() {
   }
 
   const rid = `${platform}-${arch}`;
-  const binaryName = process.platform === "win32" ? "fc.exe" : "fc";
+  const binaryName = process.platform === "win32" ? "fcon.exe" : "fcon";
   const binaryPath = path.join(__dirname, "..", "binaries", rid, binaryName);
 
   if (!fs.existsSync(binaryPath)) {

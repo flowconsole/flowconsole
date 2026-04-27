@@ -27,7 +27,7 @@ This product includes software developed by:
 
 ## CLI Dependencies (.NET)
 
-The `fc` CLI is a self-contained .NET binary distributed via the
+The `fcon` CLI is a self-contained .NET binary distributed via the
 `@flowconsole/cli` npm wrapper. The npm wrapper itself has no runtime
 dependencies (only a postinstall script that downloads the binary).
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bash completion for fc (FlowConsole CLI)
+# bash completion for fcon (FlowConsole CLI)
 
 _fc_completions()
 {

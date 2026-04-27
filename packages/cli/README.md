@@ -1,6 +1,6 @@
 # @flowconsole/cli
 
-npm wrapper for the FlowConsole CLI (`fc`) — architecture-as-code scanning, validation, diff, and push.
+npm wrapper for the FlowConsole CLI (`fcon`) — architecture-as-code scanning, validation, diff, and push.
 
 > **Note:** This package (`@flowconsole/cli@2.x`) replaces the legacy TypeScript CLI (`@flowconsole/cli@1.x`). The new CLI is a .NET self-contained binary distributed via this npm wrapper. `@flowconsole/cli@1.x` is deprecated but remains published on npm.
 
@@ -36,36 +36,36 @@ The `postinstall` script automatically detects your platform and downloads the a
 
 ```bash
 # Scan a project directory
-fc scan ./my-project
+fcon scan ./my-project
 
 # Validate a snapshot against rules
-fc validate snapshot.json rules/
+fcon validate snapshot.json rules/
 
 # Compare two snapshots
-fc diff before.json after.json --format markdown
+fcon diff before.json after.json --format markdown
 
 # Push snapshot to FlowConsole backend
 export FLOWCONSOLE_API_KEY=fcp_your_token_here
-fc push snapshot snapshot.json --model <model-id>
+fcon push snapshot snapshot.json --model <model-id>
 
 # Push validation findings
-fc push findings findings.json --model <model-id>
+fcon push findings findings.json --model <model-id>
 
 # Manage telemetry
-fc telemetry status
-fc telemetry off
+fcon telemetry status
+fcon telemetry off
 
 # CI pipeline example
-fc scan ./project -o snapshot.json && \
-  fc validate snapshot.json rules/ && \
-  fc push snapshot snapshot.json --model <model-id>
+fcon scan ./project -o snapshot.json && \
+  fcon validate snapshot.json rules/ && \
+  fcon push snapshot snapshot.json --model <model-id>
 ```
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `FLOWCONSOLE_API_KEY` | Personal Access Token for `fc push` (required; `--api-key` flag is refused for security) |
+| `FLOWCONSOLE_API_KEY` | Personal Access Token for `fcon push` (required; `--api-key` flag is refused for security) |
 | `FLOWCONSOLE_API_URL` | Backend API URL (default from `.flowconsole.yaml`) |
 | `FLOWCONSOLE_TELEMETRY` | Set to `off` to disable telemetry |
 | `DO_NOT_TRACK` | Set to `1` to disable telemetry (standard) |
@@ -108,9 +108,9 @@ The alpha binaries are unsigned. Windows SmartScreen may show "Windows protected
 - Faster scanning via Tree-sitter native parsers
 - Built-in rule engine with CEL expressions
 - Schema validation against the model-snapshot contract
-- `fc push` for CI/CD integration with PAT authentication
-- `fc diff` for offline snapshot comparison
-- Anonymous telemetry (opt-out via `fc telemetry off`)
+- `fcon push` for CI/CD integration with PAT authentication
+- `fcon diff` for offline snapshot comparison
+- Anonymous telemetry (opt-out via `fcon telemetry off`)
 
 To upgrade: `npm install -g @flowconsole/cli@latest`
 

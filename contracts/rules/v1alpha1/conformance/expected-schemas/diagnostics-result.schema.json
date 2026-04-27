@@ -27,7 +27,7 @@
           },
           "path": {
             "type": "string",
-            "description": "JSON Pointer RFC 6901"
+            "description": "JSON Pointer Rfcon 6901"
           },
           "ruleId": {
             "type": "string"

@@ -68,10 +68,10 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
         }
         catch (Exception ex)
         {
-            // Warn (not critical) — Tree-sitter is only needed for `fc scan`, not for
-            // `fc validate`, `fc fmt`, `fc rules`, etc.
+            // Warn (not critical) — Tree-sitter is only needed for `fcon scan`, not for
+            // `fcon validate`, `fcon fmt`, `fcon rules`, etc.
             PrintCheck(CheckStatus.Warn, $"Tree-sitter native library not available: {ex.Message}");
-            PrintCheck(CheckStatus.Warn, "  `fc scan` will not work; other commands are unaffected");
+            PrintCheck(CheckStatus.Warn, "  `fcon scan` will not work; other commands are unaffected");
             hasWarning = true;
         }
     }
@@ -84,7 +84,7 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
         if (!Directory.Exists(rulesDir))
         {
             PrintCheck(CheckStatus.Warn, $"Rules directory not found: {rulesDir}");
-            PrintCheck(CheckStatus.Warn, "  Run 'fc init' to create default rules");
+            PrintCheck(CheckStatus.Warn, "  Run 'fcon init' to create default rules");
             hasWarning = true;
             return;
         }

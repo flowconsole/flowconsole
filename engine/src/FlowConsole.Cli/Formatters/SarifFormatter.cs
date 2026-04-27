@@ -59,7 +59,7 @@ internal sealed partial class SarifFormatter : IFindingsFormatter
                     {
                         Driver = new SarifToolComponent
                         {
-                            Name = "fc validate",
+                            Name = "fcon validate",
                             Version = VersionCommand.GetVersion(),
                             Rules = ruleDescriptors
                         }

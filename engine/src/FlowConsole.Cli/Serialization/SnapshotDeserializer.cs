@@ -9,7 +9,7 @@ namespace FlowConsole.Cli.Serialization;
 
 /// <summary>
 /// Deserializes a ModelSnapshot wire-format JSON document into domain types.
-/// Used by CLI commands (e.g., --merge-with, fc fmt) to read existing snapshots.
+/// Used by CLI commands (e.g., --merge-with, fcon fmt) to read existing snapshots.
 /// </summary>
 internal static class SnapshotDeserializer
 {

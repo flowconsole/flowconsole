@@ -1,6 +1,6 @@
-# PowerShell completion for fc (FlowConsole CLI)
+# PowerShell completion for fcon (FlowConsole CLI)
 
-Register-ArgumentCompleter -Native -CommandName fc -ScriptBlock {
+Register-ArgumentCompleter -Native -CommandName fcon -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $commands = @{

@@ -1,4 +1,4 @@
-# FlowConsole CLI (`fc`)
+# FlowConsole CLI (`fcon`)
 
 Architecture-as-code scanner and validator for FlowConsole.
 
@@ -20,57 +20,57 @@ dotnet tool install -g FlowConsole.Cli --prerelease
 
 ```bash
 # Initialize project
-fc init
+fcon init
 
 # Scan a C# project
-fc scan ./src/MyProject.csproj
+fcon scan ./src/MyProject.csproj
 
 # Scan a Helm chart (auto-detected via Chart.yaml)
-fc scan ./charts/my-chart
+fcon scan ./charts/my-chart
 
 # Scan a mixed directory (C# + Helm auto-merge)
-fc scan ./project-root
+fcon scan ./project-root
 
 # Force a specific scanner
-fc scan ./path --scanner helm
+fcon scan ./path --scanner helm
 
 # Validate against built-in rules
-fc validate .flowconsole/snapshots/latest.json
+fcon validate .flowconsole/snapshots/latest.json
 
 # Pipeline: scan and validate
-fc scan ./src | fc validate -
+fcon scan ./src | fcon validate -
 
 # Format a snapshot
-fc fmt snapshot.json
+fcon fmt snapshot.json
 
 # List available rules
-fc rules list
+fcon rules list
 
 # Explain a rule
-fc explain <rule-id>
+fcon explain <rule-id>
 
 # Check environment
-fc doctor
+fcon doctor
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `fc scan <input>` | Scan C# projects and Helm charts, emit ModelSnapshot JSON |
-| `fc validate [snapshot] [rules-dir]` | Validate snapshot against rules |
-| `fc fmt <snapshot>` | Normalize and format snapshot JSON |
-| `fc init [dir]` | Initialize `.flowconsole/` project structure |
-| `fc doctor` | Check environment and tool versions |
-| `fc rules list` | List available validation rules |
-| `fc rules export <dir>` | Export built-in rules for customization |
-| `fc explain <rule-id>` | Show rule details and examples |
-| `fc synth [dir]` | Run SDK synthesizer and emit ModelSnapshot |
-| `fc completion <shell>` | Generate shell completion script |
+| `fcon scan <input>` | Scan C# projects and Helm charts, emit ModelSnapshot JSON |
+| `fcon validate [snapshot] [rules-dir]` | Validate snapshot against rules |
+| `fcon fmt <snapshot>` | Normalize and format snapshot JSON |
+| `fcon init [dir]` | Initialize `.flowconsole/` project structure |
+| `fcon doctor` | Check environment and tool versions |
+| `fcon rules list` | List available validation rules |
+| `fcon rules export <dir>` | Export built-in rules for customization |
+| `fcon explain <rule-id>` | Show rule details and examples |
+| `fcon synth [dir]` | Run SDK synthesizer and emit ModelSnapshot |
+| `fcon completion <shell>` | Generate shell completion script |
 
 ## Known Limitations (v0.2.0-alpha)
 
 - C# and Helm scanners available (additional languages planned)
-- `fc synth --diff-against-live` requires a running backend
-- `fc push` not yet available (Phase 3)
+- `fcon synth --diff-against-live` requires a running backend
+- `fcon push` not yet available (Phase 3)
 - Binaries are unsigned during alpha

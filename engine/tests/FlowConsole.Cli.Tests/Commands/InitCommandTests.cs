@@ -112,7 +112,7 @@ public sealed class InitCommandTests : IDisposable
         RunInit(targetDir);
 
         var afterContent = File.ReadAllText(readmePath);
-        afterContent.Should().Be(originalContent, "fc init should NOT mutate README.md by default");
+        afterContent.Should().Be(originalContent, "fcon init should NOT mutate README.md by default");
     }
 
     [Fact]
@@ -126,8 +126,8 @@ public sealed class InitCommandTests : IDisposable
         RunInit(targetDir, updateReadme: true);
 
         var content = File.ReadAllText(readmePath);
-        content.Should().Contain("fc scan");
-        content.Should().Contain("fc validate");
+        content.Should().Contain("fcon scan");
+        content.Should().Contain("fcon validate");
         content.Should().Contain("<!-- flowconsole -->");
     }
 
@@ -232,7 +232,7 @@ public sealed class InitCommandTests : IDisposable
 
         var content = File.ReadAllText(Path.Combine(targetDir, ".flowconsole.yaml"));
         content.Should().Contain("command: \"\"");
-        content.Should().Contain("REQUIRED for fc synth");
+        content.Should().Contain("REQUIRED for fcon synth");
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class InitCommandTests : IDisposable
 
         var content = File.ReadAllText(Path.Combine(targetDir, ".flowconsole.yaml"));
         content.Should().Contain("command: \"\"");
-        content.Should().Contain("REQUIRED for fc synth");
+        content.Should().Contain("REQUIRED for fcon synth");
         // The command value must be empty — auto-detected command should NOT appear as the value
         content.Should().NotContain("command: \"node main.ts\"");
     }
@@ -265,7 +265,7 @@ public sealed class InitCommandTests : IDisposable
         RunInit(targetDir, withExamples: true);
 
         var afterContent = File.ReadAllText(readmePath);
-        afterContent.Should().Be(originalContent, "fc init --with-examples should NOT mutate README.md without --update-readme");
+        afterContent.Should().Be(originalContent, "fcon init --with-examples should NOT mutate README.md without --update-readme");
     }
 
     [Fact]

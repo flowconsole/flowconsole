@@ -113,7 +113,7 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         var snapshotPath = ResolveSnapshotPath(settings.Snapshot);
         if (snapshotPath is null && settings.Snapshot != "-")
         {
-            CliConsole.Error("snapshot not found. Run `fc scan` first or pass path explicitly.");
+            CliConsole.Error("snapshot not found. Run `fcon scan` first or pass path explicitly.");
             return 2;
         }
 

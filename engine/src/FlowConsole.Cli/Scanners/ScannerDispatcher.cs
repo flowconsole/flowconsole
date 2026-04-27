@@ -65,7 +65,7 @@ internal sealed class ScannerDispatcher
 
         if (scanners == DetectedScanners.ModelSnapshot)
         {
-            CliConsole.Info("Input appears to be a ModelSnapshot JSON file. Use `fc fmt` instead — it is the first-class command for formatting and normalizing snapshots.");
+            CliConsole.Info("Input appears to be a ModelSnapshot JSON file. Use `fcon fmt` instead — it is the first-class command for formatting and normalizing snapshots.");
             return DispatchResult.IdentityMode();
         }
 
@@ -117,7 +117,7 @@ internal sealed class ScannerDispatcher
             // in a mixed C#/Helm directory), the top-level Source must be one value. Per-element
             // Source fields are preserved in the serialized JSON, but the backend DtoMapper treats
             // the top-level Source as authoritative and rewrites all items to it. Warn users that
-            // mixed-source output must be split by source before pushing via `fc push`.
+            // mixed-source output must be split by source before pushing via `fcon push`.
             var distinctSources = snapshots.Select(s => s.Source).Distinct().ToList();
             var mergeSource = distinctSources.Count == 1
                 ? distinctSources[0]

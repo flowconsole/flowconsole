@@ -1,15 +1,15 @@
 # FlowConsole Engine
 
-.NET source for the `fc` CLI binary — scanners, rule engine, snapshot schema validation, and contract conformance.
+.NET source for the `fcon` CLI binary — scanners, rule engine, snapshot schema validation, and contract conformance.
 
-This directory builds the self-contained `fc` executable that powers FlowConsole's architecture-as-code workflow: scanning source repositories, evaluating rules against architecture snapshots, and validating snapshot conformance to the public contract.
+This directory builds the self-contained `fcon` executable that powers FlowConsole's architecture-as-code workflow: scanning source repositories, evaluating rules against architecture snapshots, and validating snapshot conformance to the public contract.
 
 ## Layout
 
 ```
 engine/
 ├── src/
-│   ├── FlowConsole.Cli/                    # `fc` entry point (Spectre.Console)
+│   ├── FlowConsole.Cli/                    # `fcon` entry point (Spectre.Console)
 │   ├── FlowConsole.Core/                   # domain types, model
 │   ├── FlowConsole.Shared/                 # shared utilities (FluentResults, etc.)
 │   ├── FlowConsole.Graph/                  # graph algorithms
@@ -42,7 +42,7 @@ dotnet build src/FlowConsole.slnx
 dotnet test src/FlowConsole.slnx --verbosity quiet
 ```
 
-## Publish a self-contained `fc` binary
+## Publish a self-contained `fcon` binary
 
 ```bash
 dotnet publish src/FlowConsole.Cli/FlowConsole.Cli.csproj \
@@ -52,7 +52,7 @@ dotnet publish src/FlowConsole.Cli/FlowConsole.Cli.csproj \
   -p:PublishSingleFile=true \
   -o ./publish
 
-./publish/fc --version
+./publish/fcon --version
 ```
 
 Supported RIDs: `osx-arm64`, `osx-x64`, `linux-x64`, `linux-arm64`, `linux-musl-arm64`, `win-x64`, `win-arm64`.
