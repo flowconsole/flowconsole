@@ -1,0 +1,160 @@
+name: CLI Preview
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'engine/**'
+      - 'packages/cli/**'
+      - '.github/workflows/cli-preview.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: cli-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CLI_PROJECT: engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      cli_version: ${{ steps.compute.outputs.cli_version }}
+      npm_version: ${{ steps.compute.outputs.npm_version }}
+      tag: ${{ steps.compute.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Compute preview version
+        id: compute
+        run: |
+          BASE=$(node -p "require('./packages/cli/package.json').cliVersion.replace(/-.*/, '')")
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          CLI_VERSION="${BASE}-preview.${SHORT_SHA}"
+          NPM_VERSION="2.0.0-preview.${SHORT_SHA}"
+          TAG="cli-v${CLI_VERSION}"
+          echo "cli_version=$CLI_VERSION" >> "$GITHUB_OUTPUT"
+          echo "npm_version=$NPM_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"               >> "$GITHUB_OUTPUT"
+          echo "Preview version: $CLI_VERSION (npm $NPM_VERSION, tag $TAG)"
+
+  sfa-publish:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid: [linux-x64, linux-arm64, osx-x64, osx-arm64, win-x64, win-arm64]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Publish SFA (${{ matrix.rid }})
+        run: |
+          dotnet publish ${{ env.CLI_PROJECT }} \
+            -r ${{ matrix.rid }} \
+            -c Release \
+            -p:Version=${{ needs.version.outputs.cli_version }} \
+            -o artifacts/${{ matrix.rid }}
+
+      - name: Create archive (Unix)
+        if: ${{ !startsWith(matrix.rid, 'win-') }}
+        run: |
+          cd artifacts/${{ matrix.rid }}
+          tar czf ../fcon-${{ matrix.rid }}.tar.gz *
+
+      - name: Create archive (Windows)
+        if: ${{ startsWith(matrix.rid, 'win-') }}
+        run: |
+          cd artifacts/${{ matrix.rid }}
+          zip -r ../fcon-${{ matrix.rid }}.zip *
+
+      - name: Compute SHA-256 checksum
+        run: |
+          cd artifacts
+          if [ -f "fcon-${{ matrix.rid }}.tar.gz" ]; then
+            sha256sum "fcon-${{ matrix.rid }}.tar.gz" > "fcon-${{ matrix.rid }}.sha256"
+          else
+            sha256sum "fcon-${{ matrix.rid }}.zip"    > "fcon-${{ matrix.rid }}.sha256"
+          fi
+
+      - name: Upload SFA artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: fcon-${{ matrix.rid }}
+          path: |
+            artifacts/fcon-${{ matrix.rid }}.tar.gz
+            artifacts/fcon-${{ matrix.rid }}.zip
+            artifacts/fcon-${{ matrix.rid }}.sha256
+
+  github-prerelease:
+    needs: [version, sfa-publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download all SFA artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: release-artifacts/
+          pattern: fcon-*
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          find release-artifacts -name '*.tar.gz' -o -name '*.zip' -o -name '*.sha256' | while read f; do
+            cp "$f" release-assets/
+          done
+          ls -la release-assets/
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ needs.version.outputs.tag }}" \
+            --title "FlowConsole CLI ${{ needs.version.outputs.cli_version }} (preview)" \
+            --notes "Automatic preview build from \`dev\` @ ${GITHUB_SHA:0:7}. Not for production." \
+            --prerelease \
+            --target "${GITHUB_SHA}" \
+            release-assets/*
+
+  npm-publish:
+    needs: [version, github-prerelease]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Bump cliVersion + npm version
+        run: |
+          cd packages/cli
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+            pkg.cliVersion = '${{ needs.version.outputs.cli_version }}';
+            pkg.version    = '${{ needs.version.outputs.npm_version }}';
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          cat package.json | grep -E '"(version|cliVersion)"'
+
+      - name: Publish npm wrapper (next tag)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd packages/cli
+          npm publish --access public --tag next

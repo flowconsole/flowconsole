@@ -1,10 +1,12 @@
 name: Release Preview
 
 on:
-  # Frozen during repo refactor — re-enable push triggers once SDK layout stabilizes.
-  #push:
-  #branches: ['feature/**', dev]
-  # Allows you to run this workflow manually from the Actions tab
+  push:
+    branches: [dev]
+    paths:
+      - 'packages/sdk/**'
+      - 'set-preview-versions.sh'
+      - '.github/workflows/release-preview.yml'
   workflow_dispatch:
 
 concurrency:
