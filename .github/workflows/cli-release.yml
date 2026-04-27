@@ -95,10 +95,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
@@ -117,10 +117,10 @@ jobs:
         rid: [linux-x64, linux-arm64, osx-x64, osx-arm64, win-x64, win-arm64]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
@@ -156,7 +156,7 @@ jobs:
           cat "fcon-${{ matrix.rid }}.sha256"
 
       - name: Upload SFA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: fcon-${{ matrix.rid }}
           path: |
@@ -178,10 +178,10 @@ jobs:
             os: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download SFA artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: fcon-${{ matrix.rid }}
           path: fcon-archive/
@@ -217,9 +217,12 @@ jobs:
           ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} rules list
 
       - name: Smoke test - fcon fmt
+        shell: bash
         run: |
-          cp contracts/model-snapshot/v1/conformance/valid/minimal.json /tmp/test-fmt.json 2>/dev/null || copy contracts\model-snapshot\v1\conformance\valid\minimal.json %TEMP%\test-fmt.json
-          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} fmt ${{ runner.os == 'Windows' && '%TEMP%\test-fmt.json' || '/tmp/test-fmt.json' }}
+          TMP_FMT="${RUNNER_TEMP}/test-fmt.json"
+          cp contracts/model-snapshot/v1/conformance/valid/minimal.json "$TMP_FMT"
+          if [ "$RUNNER_OS" = "Windows" ]; then FC="fcon-bin/fcon.exe"; else FC="fcon-bin/fcon"; fi
+          "$FC" fmt "$TMP_FMT"
 
       - name: Smoke test - fcon synth --help
         run: |
@@ -242,10 +245,10 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download linux-x64 SFA artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: fcon-linux-x64
           path: fcon-archive/
@@ -327,10 +330,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
           dotnet-quality: 'preview'
@@ -353,7 +356,7 @@ jobs:
             --skip-duplicate
 
       - name: Upload NuGet artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: nuget-package
           path: artifacts/nuget/*.nupkg
@@ -363,16 +366,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download all SFA artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: release-artifacts/
           pattern: fcon-*
 
       - name: Download NuGet artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: nuget-package
           path: release-artifacts/nuget/
@@ -445,10 +448,10 @@ jobs:
       npm_version: ${{ steps.bump.outputs.npm_version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
@@ -506,7 +509,7 @@ jobs:
 
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
 
@@ -529,7 +532,7 @@ jobs:
     if: always()
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check npm release gate results
         env:
