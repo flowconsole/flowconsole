@@ -1,0 +1,556 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowconsole.tech/contracts/rules/v1alpha1/rule-file.schema.json",
+  "title": "FlowConsole RuleFile v1alpha1",
+  "description": "Canonical schema for a self-contained FlowConsole rule file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "rules"],
+  "properties": {
+    "apiVersion": {
+      "title": "API Version",
+      "description": "Version of the FlowConsole rule file contract.",
+      "const": "rules.flowconsole.tech/v1alpha1",
+      "examples": ["rules.flowconsole.tech/v1alpha1"]
+    },
+    "kind": {
+      "title": "Kind",
+      "description": "Top-level document kind. For this contract it is always RuleFile.",
+      "const": "RuleFile",
+      "examples": ["RuleFile"]
+    },
+    "rules": {
+      "title": "Rules",
+      "description": "Non-empty list of self-contained rules declared in this file.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/rule"
+      },
+      "examples": [
+        [
+          {
+            "id": "no-shared-db",
+            "name": "Shared DB is forbidden",
+            "kind": "element",
+            "target": "actual",
+            "severity": "error",
+            "blocking": true,
+            "subject": {
+              "entity": "elements",
+              "kinds": ["Database"]
+            },
+            "assert": "count(items) == 0",
+            "message": "No shared databases are allowed"
+          }
+        ]
+      ]
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "title": "Identifier",
+      "description": "Stable identifier used for rule ids and let variable names.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.:-]*$",
+      "examples": ["no-shared-db", "critical_services", "rule.v1"]
+    },
+    "nonEmptyString": {
+      "title": "Non-Empty String",
+      "description": "String value that must not be empty.",
+      "type": "string",
+      "minLength": 1
+    },
+    "stringArray": {
+      "title": "String Array",
+      "description": "Non-empty array of unique non-empty strings.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      },
+      "uniqueItems": true
+    },
+    "severity": {
+      "title": "Severity",
+      "description": "Severity level assigned to the rule result.",
+      "type": "string",
+      "enum": ["info", "warning", "error", "critical"],
+      "examples": ["warning", "error"]
+    },
+    "target": {
+      "title": "Target",
+      "description": "Model projection against which the rule is evaluated. 'model' — architectural model from DSL/SDK source (to-be intent). 'actual' — model from code scanners, infra scanners, or imports (as-is reality). 'diff' — drift between model and actual.",
+      "type": "string",
+      "enum": ["model", "actual", "diff"],
+      "examples": ["actual", "diff"]
+    },
+    "sourceFamily": {
+      "title": "Source Family",
+      "description": "Source family used to narrow actual or diff projections.",
+      "type": "string",
+      "enum": ["code", "infra", "import"],
+      "examples": ["code", "infra"]
+    },
+    "entityType": {
+      "title": "Entity Type",
+      "description": "Type of projection items selected by a selector.",
+      "type": "string",
+      "enum": ["elements", "relationships", "diffItems"],
+      "examples": ["elements", "diffItems"]
+    },
+    "elementMode": {
+      "title": "Element Mode",
+      "description": "Evaluation mode for element rules.",
+      "type": "string",
+      "enum": ["perItem", "aggregate"],
+      "examples": ["perItem", "aggregate"]
+    },
+    "flowMode": {
+      "title": "Flow Mode",
+      "description": "Evaluation mode for flow rules.",
+      "type": "string",
+      "enum": ["perPath", "aggregate"],
+      "examples": ["aggregate", "perPath"]
+    },
+    "changeKind": {
+      "title": "Change Kind",
+      "description": "Kind of change in the diff projection that an element rule with target=diff can match.",
+      "type": "string",
+      "enum": ["added", "removed", "changed", "unmatchedModel", "unmatchedActual"],
+      "examples": ["removed", "unmatchedActual"]
+    },
+    "textMatcher": {
+      "title": "Text Matcher",
+      "description": "Matcher for textual fields such as name or technology. At least one matching strategy must be provided.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "equals": {
+          "title": "Equals",
+          "description": "Requires the field to exactly match the provided string.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["checkout-db"]
+        },
+        "contains": {
+          "title": "Contains",
+          "description": "Requires the field to contain the provided substring.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["checkout"]
+        },
+        "matches": {
+          "title": "Matches",
+          "description": "Requires the field to match the provided regular expression.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["^checkout-.*$"]
+        }
+      }
+    },
+    "propertyMatcher": {
+      "title": "Property Matcher",
+      "description": "Matcher for a property value inside selector.properties.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "equals": {
+          "title": "Equals",
+          "description": "Requires the property value to exactly match the provided string.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["postgres"]
+        },
+        "in": {
+          "title": "In",
+          "description": "Requires the property value to be one of the provided values.",
+          "$ref": "#/$defs/stringArray",
+          "examples": [["postgres", "mysql"]]
+        },
+        "matches": {
+          "title": "Matches",
+          "description": "Requires the property value to match the provided regular expression.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["^prod-.*$"]
+        }
+      }
+    },
+    "selector": {
+      "title": "Selector",
+      "description": "Inline selector used by a rule to describe which entities it applies to.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity"],
+      "properties": {
+        "entity": {
+          "title": "Entity",
+          "description": "Kind of projection items selected by this selector.",
+          "$ref": "#/$defs/entityType"
+        },
+        "kinds": {
+          "title": "Kinds",
+          "description": "Element or relationship kinds allowed by this selector.",
+          "$ref": "#/$defs/stringArray",
+          "examples": [["Service", "Application"]]
+        },
+        "tagsAny": {
+          "title": "Tags Any",
+          "description": "At least one of these tags must be present on the selected entity.",
+          "$ref": "#/$defs/stringArray",
+          "examples": [["critical", "public"]]
+        },
+        "tagsAll": {
+          "title": "Tags All",
+          "description": "All of these tags must be present on the selected entity.",
+          "$ref": "#/$defs/stringArray",
+          "examples": [["critical", "payments"]]
+        },
+        "name": {
+          "title": "Name Matcher",
+          "description": "Optional matcher applied to the entity name.",
+          "$ref": "#/$defs/textMatcher"
+        },
+        "technology": {
+          "title": "Technology Matcher",
+          "description": "Optional matcher applied to the entity technology field.",
+          "$ref": "#/$defs/textMatcher"
+        },
+        "sourceFamilies": {
+          "title": "Source Families",
+          "description": "Optional source families used to narrow actual or diff entities inside the selector.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/sourceFamily"
+          },
+          "uniqueItems": true,
+          "examples": [["code", "infra"]]
+        },
+        "properties": {
+          "title": "Properties",
+          "description": "Map of property matchers keyed by property name.",
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/propertyMatcher"
+          },
+          "examples": [
+            {
+              "engine": {
+                "in": ["postgres", "mysql"]
+              }
+            }
+          ]
+        },
+        "where": {
+          "title": "Where",
+          "description": "Rule Expression boolean predicate evaluated for each candidate entity matched by this selector.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["hasKind(item, \"Service\") && hasTag(item, \"critical\")"]
+        }
+      }
+    },
+    "elementOnlySelector": {
+      "title": "Element-Only Selector",
+      "description": "Selector constrained to elements entity type only.",
+      "allOf": [
+        { "$ref": "#/$defs/selector" },
+        {
+          "type": "object",
+          "properties": {
+            "entity": { "const": "elements" }
+          }
+        }
+      ]
+    },
+    "nonDiffSelector": {
+      "title": "Non-Diff Selector",
+      "description": "Selector that forbids diffItems entity type.",
+      "allOf": [
+        { "$ref": "#/$defs/selector" },
+        {
+          "type": "object",
+          "properties": {
+            "entity": { "not": { "const": "diffItems" } }
+          }
+        }
+      ]
+    },
+    "diffOnlySelector": {
+      "title": "Diff-Only Selector",
+      "description": "Selector constrained to diffItems entity type only.",
+      "allOf": [
+        { "$ref": "#/$defs/selector" },
+        {
+          "type": "object",
+          "properties": {
+            "entity": { "const": "diffItems" }
+          }
+        }
+      ]
+    },
+    "sourceFamiliesArray": {
+      "title": "Source Families Array",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/sourceFamily" },
+      "uniqueItems": true,
+      "examples": [["code", "infra"]]
+    },
+    "ruleBase": {
+      "title": "Rule Base",
+      "description": "Common fields shared by all rule kinds.",
+      "type": "object",
+      "required": ["id", "name", "kind", "target", "severity", "blocking", "assert", "message"],
+      "properties": {
+        "id": {
+          "title": "Rule ID",
+          "description": "Stable identifier of the rule. Must be unique within the file.",
+          "$ref": "#/$defs/identifier",
+          "examples": ["no-shared-db"]
+        },
+        "name": {
+          "title": "Name",
+          "description": "Human-readable rule name shown in UI and reports.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["Shared DB is forbidden"]
+        },
+        "kind": {
+          "title": "Rule Kind",
+          "description": "Rule evaluation strategy. 'element' checks properties of elements, relationships, or diff items. 'flow' checks reachability and paths between elements.",
+          "type": "string",
+          "enum": ["element", "flow"],
+          "examples": ["element", "flow"]
+        },
+        "target": {
+          "title": "Target",
+          "description": "Projection against which this rule is defined.",
+          "$ref": "#/$defs/target"
+        },
+        "severity": {
+          "title": "Severity",
+          "description": "Severity assigned when the rule fails.",
+          "$ref": "#/$defs/severity"
+        },
+        "blocking": {
+          "title": "Blocking",
+          "description": "Whether a failing result should be treated as blocking in CI or enforcement flows.",
+          "type": "boolean",
+          "examples": [true, false]
+        },
+        "description": {
+          "title": "Description",
+          "description": "Optional longer explanation of the intent of the rule.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["Critical services must not be isolated from the rest of the system."]
+        },
+        "enabled": {
+          "title": "Enabled",
+          "description": "Whether the rule is enabled. Omitted value is normalized to true.",
+          "type": "boolean",
+          "default": true,
+          "examples": [true]
+        },
+        "tags": {
+          "title": "Tags",
+          "description": "Free-form tags used to group and classify rules.",
+          "$ref": "#/$defs/stringArray",
+          "examples": [["governance", "payments"]]
+        },
+        "sourceFamilies": {
+          "title": "Source Families",
+          "description": "Optional top-level source narrowing for actual or diff targets.",
+          "$ref": "#/$defs/sourceFamiliesArray"
+        },
+        "where": {
+          "title": "Where",
+          "description": "Optional Rule Expression boolean predicate applied after the main selector for this rule kind.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["count(paths) >= 0"]
+        },
+        "let": {
+          "title": "Let",
+          "description": "Map of named Rule Expression values computed before assert and exposed to message interpolation.",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "examples": [
+            {
+              "pathCount": "count(paths)"
+            }
+          ]
+        },
+        "assert": {
+          "title": "Assert",
+          "description": "Required Rule Expression boolean that defines pass or fail for the rule.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["pathCount > 0", "count(items) == 0"]
+        },
+        "message": {
+          "title": "Message",
+          "description": "User-facing failure message. Supports interpolation of available bindings and let values.",
+          "$ref": "#/$defs/nonEmptyString",
+          "examples": ["Компонент '${item.name}' нарушает архитектурное правило"]
+        },
+        "subject": { "title": "Subject" },
+        "from": { "title": "From" },
+        "to": { "title": "To" },
+        "via": { "title": "Via" },
+        "viaMode": { "title": "Via Mode" },
+        "mode": { "title": "Mode" },
+        "maxDepth": { "title": "Max Depth" },
+        "allowCycles": { "title": "Allow Cycles" },
+        "changeKinds": { "title": "Change Kinds" }
+      },
+      "if": {
+        "type": "object",
+        "required": ["sourceFamilies"],
+        "properties": { "sourceFamilies": true }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "target": { "enum": ["actual", "diff"] }
+        }
+      }
+    },
+    "elementRule": {
+      "title": "Element Rule",
+      "description": "Rule that checks properties of elements, relationships, or diff items within a subject set.",
+      "type": "object",
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/ruleBase" },
+        {
+          "type": "object",
+          "required": ["subject"],
+          "properties": {
+            "kind": { "const": "element" },
+            "subject": {
+              "title": "Subject",
+              "description": "Selector that defines the entities evaluated by the rule."
+            },
+            "mode": {
+              "title": "Mode",
+              "description": "Whether the rule is evaluated per matched item or over the aggregate selection.",
+              "$ref": "#/$defs/elementMode",
+              "default": "perItem"
+            },
+            "changeKinds": {
+              "title": "Change Kinds",
+              "description": "Optional list of diff change kinds. Only allowed when target is 'diff'.",
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/changeKind" },
+              "uniqueItems": true,
+              "examples": [["removed"], ["unmatchedActual", "changed"]]
+            },
+            "from": false,
+            "to": false,
+            "via": false,
+            "viaMode": false,
+            "maxDepth": false,
+            "allowCycles": false
+          },
+          "if": {
+            "type": "object",
+            "properties": { "target": { "const": "diff" } },
+            "required": ["target"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "subject": { "$ref": "#/$defs/diffOnlySelector" }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "subject": { "$ref": "#/$defs/nonDiffSelector" },
+              "changeKinds": false
+            }
+          }
+        }
+      ]
+    },
+    "flowRule": {
+      "title": "Flow Rule",
+      "description": "Rule that checks reachability and path constraints between two element selections.",
+      "type": "object",
+      "unevaluatedProperties": false,
+      "allOf": [
+        { "$ref": "#/$defs/ruleBase" },
+        {
+          "type": "object",
+          "required": ["from", "to"],
+          "properties": {
+            "kind": { "const": "flow" },
+            "target": {
+              "description": "Flow rules can only target 'model' or 'actual' projections.",
+              "enum": ["model", "actual"]
+            },
+            "from": {
+              "title": "From",
+              "description": "Selector describing source elements of the candidate paths.",
+              "$ref": "#/$defs/elementOnlySelector"
+            },
+            "to": {
+              "title": "To",
+              "description": "Selector describing destination elements of the candidate paths.",
+              "$ref": "#/$defs/elementOnlySelector"
+            },
+            "via": {
+              "title": "Via",
+              "description": "Optional selector restricting which elements may appear inside candidate paths.",
+              "$ref": "#/$defs/elementOnlySelector"
+            },
+            "viaMode": {
+              "title": "Via Mode",
+              "description": "How the via selector constrains intermediate nodes. 'include' (default) requires all intermediate nodes to match; 'exclude' forbids any intermediate node from matching.",
+              "type": "string",
+              "enum": ["include", "exclude"],
+              "default": "include",
+              "examples": ["include", "exclude"]
+            },
+            "mode": {
+              "title": "Mode",
+              "description": "Whether assertions are evaluated per path or over the full path set.",
+              "$ref": "#/$defs/flowMode",
+              "default": "aggregate"
+            },
+            "maxDepth": {
+              "title": "Max Depth",
+              "description": "Maximum traversal depth in edges allowed when searching for candidate paths.",
+              "type": "integer",
+              "minimum": 1,
+              "default": 8,
+              "examples": [5, 8]
+            },
+            "allowCycles": {
+              "title": "Allow Cycles",
+              "description": "Whether cyclic paths may be considered during path evaluation.",
+              "type": "boolean",
+              "default": false,
+              "examples": [false]
+            },
+            "subject": false,
+            "changeKinds": false
+          }
+        }
+      ]
+    },
+    "rule": {
+      "title": "Rule",
+      "description": "Single self-contained rule. Must match exactly one supported rule kind.",
+      "oneOf": [
+        { "$ref": "#/$defs/elementRule" },
+        { "$ref": "#/$defs/flowRule" }
+      ]
+    }
+  }
+}

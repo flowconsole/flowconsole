@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_REF_DUPLICATE_RELATIONSHIP_ID",
+      "phase": "reference",
+      "level": "error",
+      "path": "/relationships/1/id",
+      "message": "Duplicate relationship id 'r-1'"
+    }
+  ]
+}

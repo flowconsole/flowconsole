@@ -1,0 +1,25 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "CodeScan",
+  "elements": [
+    {
+      "id": "user-service",
+      "kind": "Service",
+      "name": "User Service"
+    },
+    {
+      "id": "user-db",
+      "kind": "Database",
+      "name": "User Database"
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel-1",
+      "sourceId": "user-service",
+      "targetId": "user-db",
+      "kind": "Calls"
+    }
+  ]
+}

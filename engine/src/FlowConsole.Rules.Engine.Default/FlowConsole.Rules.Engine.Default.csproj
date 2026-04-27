@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="fcon" />
+    <InternalsVisibleTo Include="FlowConsole.Cli.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="BuiltInRules\*.rule.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Cel.NET" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowConsole.Rules.Core\FlowConsole.Rules.Core.csproj" />
+    <ProjectReference Include="..\FlowConsole.Graph\FlowConsole.Graph.csproj" />
+  </ItemGroup>
+
+</Project>

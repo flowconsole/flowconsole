@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="QuikGraph" Version="2.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowConsole.Core\FlowConsole.Core.csproj" />
+    <ProjectReference Include="..\FlowConsole.Shared\FlowConsole.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

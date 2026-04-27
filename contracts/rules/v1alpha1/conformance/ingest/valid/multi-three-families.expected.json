@@ -1,0 +1,87 @@
+{
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "critical-services-must-have-dependencies",
+      "name": "Critical services must have dependencies",
+      "kind": "element",
+      "target": "actual",
+      "severity": "warning",
+      "blocking": false,
+      "enabled": true,
+      "tags": ["governance", "topology"],
+      "sourceFamilies": ["code", "infra"],
+      "subject": {
+        "entity": "elements",
+        "kinds": ["Service", "Application"],
+        "tagsAll": ["critical"],
+        "sourceFamilies": ["code"]
+      },
+      "mode": "perItem",
+      "let": {
+        "outgoingCount": { "source": "count(outgoing(item))" }
+      },
+      "assert": { "source": "outgoingCount > 0" },
+      "message": "Критичный компонент '${item.name}' не имеет исходящих зависимостей"
+    },
+    {
+      "id": "gateway-must-reach-payment-worker",
+      "name": "Gateway must reach payment worker",
+      "kind": "flow",
+      "target": "actual",
+      "severity": "error",
+      "blocking": true,
+      "enabled": true,
+      "tags": ["path", "payments"],
+      "sourceFamilies": ["code", "infra"],
+      "from": {
+        "entity": "elements",
+        "kinds": ["Gateway"],
+        "name": { "equals": "api-gateway" },
+        "sourceFamilies": ["infra"]
+      },
+      "to": {
+        "entity": "elements",
+        "kinds": ["Worker"],
+        "name": { "equals": "payment-worker" },
+        "sourceFamilies": ["code"]
+      },
+      "via": {
+        "entity": "elements",
+        "kinds": ["Service", "Application", "Queue"]
+      },
+      "viaMode": "include",
+      "maxDepth": 5,
+      "allowCycles": false,
+      "mode": "aggregate",
+      "let": {
+        "pathCount": { "source": "count(paths)" }
+      },
+      "assert": { "source": "pathCount > 0" },
+      "message": "От api-gateway до payment-worker не найден допустимый путь"
+    },
+    {
+      "id": "no-unmatched-observed-gateways",
+      "name": "Unmatched observed gateways are forbidden",
+      "kind": "element",
+      "target": "diff",
+      "severity": "error",
+      "blocking": true,
+      "enabled": true,
+      "tags": ["drift", "diff"],
+      "sourceFamilies": ["code", "infra"],
+      "subject": {
+        "entity": "diffItems",
+        "kinds": ["Gateway"]
+      },
+      "changeKinds": ["unmatchedActual"],
+      "mode": "aggregate",
+      "let": {
+        "unmatchedGatewayCount": { "source": "count(items)" }
+      },
+      "assert": { "source": "unmatchedGatewayCount == 0" },
+      "message": "В diff-проекции обнаружены gateway-компоненты без соответствия в declared-модели"
+    }
+  ]
+}

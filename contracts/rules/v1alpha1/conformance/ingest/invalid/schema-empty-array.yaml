@@ -1,0 +1,14 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: empty-kinds
+    name: Rule with empty kinds array
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: elements
+      kinds: []
+    assert: "true"
+    message: Empty kinds array

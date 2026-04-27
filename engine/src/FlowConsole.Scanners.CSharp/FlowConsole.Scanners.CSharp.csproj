@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FlowConsole.Scanners.CSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TreeSitter.DotNet" Version="1.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowConsole.Scanners.Core\FlowConsole.Scanners.Core.csproj" />
+    <ProjectReference Include="..\FlowConsole.Scanners.CodeParsing\FlowConsole.Scanners.CodeParsing.csproj" />
+  </ItemGroup>
+
+</Project>

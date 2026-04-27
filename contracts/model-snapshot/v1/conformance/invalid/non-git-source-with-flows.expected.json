@@ -1,0 +1,10 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_FLOW_NOT_ALLOWED_FOR_SOURCE",
+      "phase": "reference",
+      "level": "error",
+      "message": "Flows present in non-Git source 'CodeScan' push"
+    }
+  ]
+}

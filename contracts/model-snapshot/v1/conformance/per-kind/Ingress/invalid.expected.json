@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_KIND_PROPERTIES_REQUIRED_MISSING",
+      "phase": "schema",
+      "level": "error",
+      "path": "/elements/0",
+      "message": "Ingress element is missing required property 'host' in properties"
+    }
+  ]
+}

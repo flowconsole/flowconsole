@@ -1,0 +1,25 @@
+{
+  "solution": {
+    "path": "FlowConsole.slnx",
+    "projects": [
+      "FlowConsole.Core\\FlowConsole.Core.csproj",
+      "FlowConsole.Graph\\FlowConsole.Graph.csproj",
+      "FlowConsole.Schema\\FlowConsole.Schema.csproj",
+      "FlowConsole.Shared\\FlowConsole.Shared.csproj",
+      "FlowConsole.Rules.Core\\FlowConsole.Rules.Core.csproj",
+      "FlowConsole.Rules.Engine.Default\\FlowConsole.Rules.Engine.Default.csproj",
+      "FlowConsole.Scanners.Core\\FlowConsole.Scanners.Core.csproj",
+      "FlowConsole.Scanners.CodeParsing\\FlowConsole.Scanners.CodeParsing.csproj",
+      "FlowConsole.Scanners.CSharp\\FlowConsole.Scanners.CSharp.csproj",
+      "FlowConsole.Scanners.Helm\\FlowConsole.Scanners.Helm.csproj",
+      "FlowConsole.Snapshots.Mapping\\FlowConsole.Snapshots.Mapping.csproj",
+      "FlowConsole.Cli\\FlowConsole.Cli.csproj",
+      "..\\tests\\FlowConsole.Schema.Tests\\FlowConsole.Schema.Tests.csproj",
+      "..\\tests\\FlowConsole.Scanners.Core.Tests\\FlowConsole.Scanners.Core.Tests.csproj",
+      "..\\tests\\FlowConsole.Scanners.CSharp.Tests\\FlowConsole.Scanners.CSharp.Tests.csproj",
+      "..\\tests\\FlowConsole.Scanners.CodeParsing.Tests\\FlowConsole.Scanners.CodeParsing.Tests.csproj",
+      "..\\tests\\FlowConsole.Snapshots.Mapping.Tests\\FlowConsole.Snapshots.Mapping.Tests.csproj",
+      "..\\tests\\FlowConsole.Cli.Tests\\FlowConsole.Cli.Tests.csproj"
+    ]
+  }
+}

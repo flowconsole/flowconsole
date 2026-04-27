@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_FLOW_STEP_UNRESOLVED",
+      "phase": "reference",
+      "level": "error",
+      "path": "/flows/0/steps/0",
+      "message": "Flow step references cross-source element 'scanned-db' (source: InfraScan)"
+    }
+  ]
+}

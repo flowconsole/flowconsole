@@ -1,0 +1,28 @@
+{
+  "expression": "hasKind(item, \"Service\") && hasTag(item, \"critical\")",
+  "context": {
+    "family": "graph",
+    "mode": "perItem"
+  },
+  "bindings": {
+    "item": {
+      "id": "svc-1",
+      "canonicalId": "checkout.service",
+      "kind": "Service",
+      "name": "checkout",
+      "technology": null,
+      "tags": ["critical"],
+      "properties": {},
+      "source": "code_scan",
+      "sourceFamily": "code",
+      "parentId": null
+    },
+    "rule": {
+      "id": "sample",
+      "name": "Sample",
+      "severity": "info",
+      "kind": "element",
+      "target": "actual"
+    }
+  }
+}

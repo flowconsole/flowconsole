@@ -1,0 +1,84 @@
+{
+  "name": "@flowconsole/sdk",
+  "version": "2.0.0",
+  "description": "FlowConsole SDK",
+  "main": "dist/flowconsole-sdk.js",
+  "scripts": {
+    "build": "jsii",
+    "build:watch": "jsii --watch",
+    "package": "jsii-pacmak --clean --verbose",
+    "test": "vitest run"
+  },
+  "keywords": [],
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "packages/sdk"
+  },
+  "license": "Apache-2.0",
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/flowconsole-sdk.d.ts",
+      "require": "./dist/flowconsole-sdk.js"
+    },
+    "./flowconsole-sdk.ts": "./flowconsole-sdk.ts",
+    "./*": "./*"
+  },
+  "files": [
+    "dist/flowconsole-sdk.js",
+    "dist/flowconsole-sdk.d.ts",
+    ".jsii",
+    ".jsii.gz",
+    "flowconsole-sdk.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.19.0",
+  "stability": "stable",
+  "types": "dist/flowconsole-sdk.d.ts",
+  "jsii": {
+    "outdir": "dist",
+    "versionFormat": "full",
+    "targets": {
+      "java": {
+        "package": "flowconsole.sdk",
+        "maven": {
+          "groupId": "io.github.flowconsole",
+          "artifactId": "flowconsole-sdk"
+        }
+      },
+      "python": {
+        "distName": "flowconsole-sdk",
+        "module": "flowconsole"
+      },
+      "dotnet": {
+        "namespace": "FlowConsole",
+        "packageId": "FlowConsole.Sdk",
+        "iconUrl": "https://raw.githubusercontent.com/flowconsole/flowconsole/main/apps/docs/public/_static/favicons/android-chrome-512x512.png"
+      },
+      "go": {
+        "packageName": "flowconsole",
+        "moduleName": "github.com/flowconsole/go-flowconsole"
+      }
+    },
+    "tsconfig": "tsconfig.json",
+    "validateTsconfig": "minimal",
+    "tsc": {
+      "outDir": "dist",
+      "rootDir": "."
+    },
+    "diagnostics": {
+    }
+  },
+  "devDependencies": {
+    "jsii": "^5.9.22",
+    "jsii-pacmak": "^1.125.0",
+    "vitest": "^4.0.15"
+  }
+}

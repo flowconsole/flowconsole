@@ -1,0 +1,26 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.1.0",
+  "source": "Git",
+  "elements": [
+    { "id": "webapp", "kind": "Service", "name": "Web Application", "technology": "React" },
+    { "id": "api", "kind": "Service", "name": "API Server", "technology": "ASP.NET Core" },
+    { "id": "db", "kind": "Database", "name": "Main Database", "technology": "PostgreSQL" }
+  ],
+  "relationships": [
+    { "id": "webapp_calls_api", "sourceId": "webapp", "targetId": "api", "kind": "Calls", "technology": "HTTP" },
+    { "id": "api_calls_db", "sourceId": "api", "targetId": "db", "kind": "Calls", "technology": "Npgsql" }
+  ],
+  "flows": [
+    {
+      "id": "user-login",
+      "name": "User Login Flow",
+      "description": "User authenticates via the web app",
+      "steps": [
+        { "sourceElementId": "webapp", "relationshipId": "webapp_calls_api", "label": "POST /auth/login" },
+        { "sourceElementId": "api", "relationshipId": null, "label": "validates credentials" },
+        { "sourceElementId": "api", "relationshipId": "api_calls_db", "label": "SELECT user WHERE email=?" }
+      ]
+    }
+  ]
+}

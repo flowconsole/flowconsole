@@ -1,0 +1,30 @@
+{
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "no-shared-db",
+      "name": "Shared DB is forbidden",
+      "kind": "element",
+      "target": "actual",
+      "severity": "error",
+      "blocking": true,
+      "description": "В observed-проекции одна БД не должна использоваться несколькими сервисами.",
+      "enabled": true,
+      "tags": ["governance", "data"],
+      "sourceFamilies": ["code", "infra"],
+      "subject": {
+        "entity": "elements",
+        "kinds": ["Database"],
+        "sourceFamilies": ["infra"],
+        "where": { "source": "hasKind(item, \"Database\")" }
+      },
+      "mode": "perItem",
+      "let": {
+        "consumerCount": { "source": "count(incoming(item))" }
+      },
+      "assert": { "source": "consumerCount <= 1" },
+      "message": "База данных '${item.name}' используется несколькими компонентами"
+    }
+  ]
+}

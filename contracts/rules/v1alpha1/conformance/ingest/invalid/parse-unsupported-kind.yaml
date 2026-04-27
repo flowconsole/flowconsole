@@ -1,0 +1,13 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: PolicyFile
+rules:
+  - id: test
+    name: Test rule
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: elements
+    assert: "true"
+    message: Test

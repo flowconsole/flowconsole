@@ -1,0 +1,16 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "InfraScan",
+  "elements": [
+    {
+      "id": "topic-1",
+      "kind": "Topic",
+      "name": "order-events",
+      "properties": {
+        "partitions": "12"
+      }
+    }
+  ],
+  "relationships": []
+}

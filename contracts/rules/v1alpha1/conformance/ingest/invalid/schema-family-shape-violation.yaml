@@ -1,0 +1,11 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: flow-no-endpoints
+    name: Flow rule without from/to
+    kind: flow
+    target: actual
+    severity: error
+    blocking: true
+    assert: count(paths) > 0
+    message: Flow rule must have from and to

@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_FLOW_ENDPOINT_INVALID_ENTITY",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/from/entity",
+      "ruleId": "flow-bad-from"
+    }
+  ]
+}

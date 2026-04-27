@@ -1,0 +1,651 @@
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  Position,
+  useInternalNode,
+  useReactFlow,
+  type EdgeProps,
+  type XYPosition,
+} from '@xyflow/react';
+import { curveCatmullRomOpen, line } from 'd3-shape';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { computePortPosition } from '../../diagram/layout/portSelector';
+import { relationshipStroke } from '../../diagram/theme';
+import type { RelationshipEdgeType } from '../../diagram/types';
+
+type Point = XYPosition;
+type InternalNodeInstance = NonNullable<ReturnType<typeof useInternalNode>>;
+const catmullRomLine = line<Point>()
+  .curve(curveCatmullRomOpen.alpha(0.7))
+  .x((d) => Math.round(d.x))
+  .y((d) => Math.round(d.y));
+
+/**
+ * Build a rounded polyline SVG path through waypoints.
+ * At each intermediate point, replaces the sharp corner with a quadratic
+ * bezier arc of the given radius. Guaranteed no loops or overshooting.
+ */
+function roundedPolylinePath(points: Point[], radius = 50): string | undefined {
+  if (points.length < 2) return undefined;
+  if (points.length === 2) {
+    return `M ${Math.round(points[0].x)},${Math.round(points[0].y)} L ${Math.round(points[1].x)},${Math.round(points[1].y)}`;
+  }
+
+  const parts: string[] = [];
+  parts.push(`M ${Math.round(points[0].x)},${Math.round(points[0].y)}`);
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+
+    // Distance to prev and next
+    const dPrev = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+    const dNext = Math.hypot(next.x - curr.x, next.y - curr.y);
+    // Clamp radius so it doesn't exceed half the segment length
+    const r = Math.min(radius, dPrev / 2, dNext / 2);
+
+    if (r < 1) {
+      // Too short to round — just line to the point
+      parts.push(`L ${Math.round(curr.x)},${Math.round(curr.y)}`);
+      continue;
+    }
+
+    // Point on segment before the corner
+    const t1 = r / dPrev;
+    const beforeX = curr.x + (prev.x - curr.x) * t1;
+    const beforeY = curr.y + (prev.y - curr.y) * t1;
+
+    // Point on segment after the corner
+    const t2 = r / dNext;
+    const afterX = curr.x + (next.x - curr.x) * t2;
+    const afterY = curr.y + (next.y - curr.y) * t2;
+
+    parts.push(`L ${Math.round(beforeX)},${Math.round(beforeY)}`);
+    parts.push(`Q ${Math.round(curr.x)},${Math.round(curr.y)} ${Math.round(afterX)},${Math.round(afterY)}`);
+  }
+
+  const last = points[points.length - 1];
+  parts.push(`L ${Math.round(last.x)},${Math.round(last.y)}`);
+  return parts.join(' ');
+}
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function getNodeStyleDimension(node: InternalNodeInstance, dim: 'width' | 'height'): number | undefined {
+  const style = (node as unknown as { style?: Record<string, unknown> }).style;
+  if (style && typeof style[dim] === 'number') return style[dim] as number;
+  return undefined;
+}
+
+function resolveAnchorPoint(
+  node: InternalNodeInstance | undefined,
+  anchor: NonNullable<RelationshipEdgeType['data']>['sourceAnchor'] | undefined
+): Point | undefined {
+  if (!node || !anchor) return undefined;
+  const width =
+    (typeof node.measured?.width === 'number' && node.measured.width) ||
+    (typeof node.width === 'number' ? node.width : undefined) ||
+    getNodeStyleDimension(node, 'width') ||
+    (typeof node.initialWidth === 'number' ? node.initialWidth : undefined);
+  const height =
+    (typeof node.measured?.height === 'number' && node.measured.height) ||
+    (typeof node.height === 'number' ? node.height : undefined) ||
+    getNodeStyleDimension(node, 'height') ||
+    (typeof node.initialHeight === 'number' ? node.initialHeight : undefined);
+  if (!width || !height) return undefined;
+  const { x, y } = node.internals.positionAbsolute;
+  const offset = clamp01(anchor.offset ?? 0.5);
+  switch (anchor.position) {
+    case Position.Left:
+      return { x, y: y + offset * height };
+    case Position.Right:
+      return { x: x + width, y: y + offset * height };
+    case Position.Top:
+      return { x: x + offset * width, y };
+    case Position.Bottom:
+      return { x: x + offset * width, y: y + height };
+    default:
+      return undefined;
+  }
+}
+
+// Returns the intersection point of a ray from node center toward a target point
+// with the node's visual contour (circle, hexagon, cloud, or rectangle bbox).
+function getNodeIntersectionToward(
+  node: InternalNodeInstance,
+  toward: Point
+): Point | undefined {
+  const w = node.measured?.width;
+  const h = node.measured?.height;
+  if (!w || !h) return undefined;
+  const pos = node.internals.positionAbsolute;
+  return computePortPosition(
+    { x: pos.x, y: pos.y, width: w, height: h },
+    toward,
+    node.type ?? 'element',
+  );
+}
+
+function bezierPathFromGraphviz(points: Point[] | undefined) {
+  if (!points?.length) return undefined;
+  let path = `M ${points[0].x},${points[0].y}`;
+  for (let i = 1; i + 2 < points.length; i += 3) {
+    const cp1 = points[i];
+    const cp2 = points[i + 1];
+    const end = points[i + 2];
+    if (!cp1 || !cp2 || !end) break;
+    path += ` C ${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${end.x},${end.y}`;
+  }
+  return path;
+}
+
+function normalizeGraphvizPoints(
+  basePoints: Point[] | undefined,
+  source: Point,
+  target: Point
+): Point[] | undefined {
+  if (!basePoints?.length || basePoints.length < 4) return undefined;
+  if ((basePoints.length - 1) % 3 !== 0) return undefined;
+  const shiftX = source.x - basePoints[0].x;
+  const shiftY = source.y - basePoints[0].y;
+  const adjusted = basePoints.map((p, idx) =>
+    idx === 0
+      ? { x: source.x, y: source.y }
+      : {
+          x: p.x + shiftX,
+          y: p.y + shiftY,
+        }
+  );
+  const n = adjusted.length;
+  const targetShiftX = target.x - adjusted[n - 1].x;
+  const targetShiftY = target.y - adjusted[n - 1].y;
+  for (let i = Math.max(1, n - 3); i < n; i++) {
+    adjusted[i] = {
+      x: adjusted[i].x + targetShiftX,
+      y: adjusted[i].y + targetShiftY,
+    };
+  }
+  adjusted[n - 1] = { x: target.x, y: target.y };
+  return adjusted;
+}
+
+function smoothPath(points: Point[] | undefined) {
+  if (!points || points.length < 2) return undefined;
+  return catmullRomLine(points) ?? undefined;
+}
+
+
+function distance(a: Point, b: Point) {
+  return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function midpoint(points: Point[]) {
+  if (points.length === 0) return undefined;
+  if (points.length === 1) return points[0];
+  const segmentLengths: number[] = [];
+  let total = 0;
+  for (let i = 0; i < points.length - 1; i++) {
+    const len = distance(points[i], points[i + 1]);
+    segmentLengths.push(len);
+    total += len;
+  }
+  if (total === 0) return points[0];
+  const target = total / 2;
+  let acc = 0;
+  for (let i = 0; i < segmentLengths.length; i++) {
+    const len = segmentLengths[i];
+    if (acc + len >= target) {
+      const t = (target - acc) / (len || 1);
+      const start = points[i];
+      const end = points[i + 1];
+      return {
+        x: start.x + (end.x - start.x) * t,
+        y: start.y + (end.y - start.y) * t,
+      };
+    }
+    acc += len;
+  }
+  return points[points.length - 1];
+}
+
+function distanceToSegment(point: Point, start: Point, end: Point) {
+  const segLenSq = Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2);
+  if (segLenSq === 0) return distance(point, start);
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point.x - start.x) * (end.x - start.x) + (point.y - start.y) * (end.y - start.y)) /
+        segLenSq
+    )
+  );
+  const proj = {
+    x: start.x + t * (end.x - start.x),
+    y: start.y + t * (end.y - start.y),
+  };
+  return distance(point, proj);
+}
+
+function insertControlPoint(
+  controlPoints: Point[],
+  newPoint: Point,
+  start: Point,
+  end: Point
+) {
+  const allPoints = [start, ...controlPoints, end];
+  let insertIndex = 0;
+  let minDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < allPoints.length - 1; i++) {
+    const dist = distanceToSegment(newPoint, allPoints[i], allPoints[i + 1]);
+    if (dist < minDistance) {
+      minDistance = dist;
+      insertIndex = i;
+    }
+  }
+  const next = controlPoints.slice();
+  const targetIndex = Math.min(insertIndex, controlPoints.length);
+  next.splice(targetIndex, 0, newPoint);
+  return next;
+}
+
+export function RelationshipEdge(props: EdgeProps<RelationshipEdgeType>) {
+  const {
+    id,
+    style,
+    data,
+    selected,
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  } = props;
+
+  const [localHovered, setLocalHovered] = useState(false);
+  const flowCurrent = Boolean(data?.flowCurrent);
+  const hovered = (data?.hovered ?? localHovered) || flowCurrent;
+  const flowTick = data?.flowTick ?? 0;
+  const [draftPoints, setDraftPoints] = useState<Point[] | null>(null);
+  const [isDraggingControl, setIsDraggingControl] = useState(false);
+  const draftRef = useRef<Point[] | null>(null);
+  draftRef.current = draftPoints;
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  const sourceNode = useInternalNode(source);
+  const targetNode = useInternalNode(target);
+  const reactFlow = useReactFlow();
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.();
+    };
+  }, []);
+
+  // Compute floating anchor points using the same algorithm for both
+  // routed and fallback paths — ray from node center toward the other node.
+  const sourceAnchorPoint = useMemo(
+    () => resolveAnchorPoint(sourceNode, data?.sourceAnchor),
+    [sourceNode, data?.sourceAnchor]
+  );
+  const targetAnchorPoint = useMemo(
+    () => resolveAnchorPoint(targetNode, data?.targetAnchor),
+    [targetNode, data?.targetAnchor]
+  );
+
+  const floatingGeometry = useMemo(() => {
+    // Use getNodeIntersectionToward for both source and target —
+    // same algorithm as routed edges, consistent anchor style.
+    const targetCenter: Point = targetNode
+      ? { x: targetNode.internals.positionAbsolute.x + (targetNode.measured?.width ?? 0) / 2,
+          y: targetNode.internals.positionAbsolute.y + (targetNode.measured?.height ?? 0) / 2 }
+      : { x: targetX, y: targetY };
+    const sourceCenter: Point = sourceNode
+      ? { x: sourceNode.internals.positionAbsolute.x + (sourceNode.measured?.width ?? 0) / 2,
+          y: sourceNode.internals.positionAbsolute.y + (sourceNode.measured?.height ?? 0) / 2 }
+      : { x: sourceX, y: sourceY };
+
+    const srcPt = (sourceNode && getNodeIntersectionToward(sourceNode, targetCenter)) ?? { x: sourceX, y: sourceY };
+    const tgtPt = (targetNode && getNodeIntersectionToward(targetNode, sourceCenter)) ?? { x: targetX, y: targetY };
+    return { sx: srcPt.x, sy: srcPt.y, tx: tgtPt.x, ty: tgtPt.y };
+  }, [sourceNode, targetNode, sourceX, sourceY, targetX, targetY]);
+
+  const sx = sourceAnchorPoint?.x ?? floatingGeometry.sx;
+  const sy = sourceAnchorPoint?.y ?? floatingGeometry.sy;
+  const tx = targetAnchorPoint?.x ?? floatingGeometry.tx;
+  const ty = targetAnchorPoint?.y ?? floatingGeometry.ty;
+
+  // Fallback: straight line rendered as rounded polyline (consistent with routed paths)
+  const [fallbackPath, fallbackLabelX, fallbackLabelY] = useMemo(() => {
+    const pts: Point[] = [{ x: sx, y: sy }, { x: tx, y: ty }];
+    const path = roundedPolylinePath(pts) ?? `M ${sx},${sy} L ${tx},${ty}`;
+    const mx = (sx + tx) / 2;
+    const my = (sy + ty) / 2;
+    return [path, mx, my] as [string, number, number];
+  }, [sx, sy, tx, ty]);
+
+  const storedControlPoints = data?.controlPoints ?? [];
+  const controlPoints = draftPoints ?? storedControlPoints;
+
+  const manualPath = useMemo(() => {
+    if (!controlPoints.length) return undefined;
+    const manualPoints = [{ x: sx, y: sy }, ...controlPoints, { x: tx, y: ty }];
+    // Pad endpoints for curveCatmullRomOpen which drops first/last segments
+    const padded = [manualPoints[0], ...manualPoints, manualPoints[manualPoints.length - 1]];
+    const path = smoothPath(padded);
+    const labelPoint = midpoint(manualPoints);
+    return path
+      ? {
+          path,
+          labelPoint,
+        }
+      : undefined;
+  }, [controlPoints, sx, sy, tx, ty]);
+
+  // Smooth routed path (from edgeRouting pipeline)
+  // Uses floating anchor points: ray from node center toward the edge's direction
+  const smoothRoutedPath = useMemo(() => {
+    if (data?.pathType !== 'smooth' || !data?.layoutPoints?.length) return undefined;
+    const raw = data.layoutPoints;
+    if (raw.length < 4) return undefined;
+
+    // Floating source: intersection of node boundary with ray toward second waypoint
+    const floatSrc = (sourceNode && getNodeIntersectionToward(sourceNode, raw[1])) ?? raw[0];
+    // Floating target: intersection of node boundary with ray toward second-to-last waypoint
+    const floatTgt = (targetNode && getNodeIntersectionToward(targetNode, raw[raw.length - 2])) ?? raw[raw.length - 1];
+
+    const points = [floatSrc, ...raw.slice(1, -1), floatTgt];
+    // Rounded polyline: no loops, no overshooting — just lines with rounded corners
+    const path = roundedPolylinePath(points);
+    const labelPoint = data.labelPos ?? midpoint(points);
+    return path ? { path, labelPoint } : undefined;
+  }, [data?.pathType, data?.layoutPoints, data?.labelPos, sourceNode, targetNode]);
+
+  const graphvizPoints = useMemo(() => {
+    if (data?.pathType === 'smooth') return undefined; // handled above
+    if (!data?.layoutPoints?.length) return undefined;
+    return normalizeGraphvizPoints(data.layoutPoints, { x: sx, y: sy }, { x: tx, y: ty });
+  }, [data?.pathType, data?.layoutPoints, sx, sy, tx, ty]);
+
+  const graphvizPath = useMemo(
+    () => bezierPathFromGraphviz(graphvizPoints),
+    [graphvizPoints]
+  );
+
+  const graphvizLabel = useMemo(() => {
+    if (data?.pathType === 'smooth') return undefined;
+    if (!data?.labelPos) return undefined;
+    if (!data?.layoutPoints?.length) return data.labelPos;
+    const base = data.layoutPoints[0];
+    const dx = sx - (base?.x ?? sx);
+    const dy = sy - (base?.y ?? sy);
+    return { x: data.labelPos.x + dx, y: data.labelPos.y + dy };
+  }, [data?.pathType, data?.labelPos, data?.layoutPoints, sx, sy]);
+
+  const resolvedPath = manualPath?.path ?? smoothRoutedPath?.path ?? graphvizPath ?? fallbackPath;
+  const resolvedLabelPoint =
+    manualPath?.labelPoint ?? smoothRoutedPath?.labelPoint ?? graphvizLabel ?? { x: fallbackLabelX, y: fallbackLabelY };
+
+  const stroke = relationshipStroke(data?.kind);
+  const currentStroke = hovered ? stroke.activeStroke : stroke.stroke;
+  const direction = data?.direction ?? 'forward';
+  const isDirectional = direction !== 'none';
+  const markerStart = direction === 'both' ? `url(#${id}-start)` : undefined;
+  const markerEnd = isDirectional ? `url(#${id}-end)` : undefined;
+  const hasIcon = Boolean(data?.icon);
+  const isAnimated = isDirectional && hovered;
+  const animationDirection =
+    direction === 'forward' ? 'reverse' : direction === 'both' ? 'alternate' : 'normal';
+  const animatedStyle = isAnimated
+    ? { strokeDasharray: '8 10', animationDirection }
+    : undefined;
+  const flowStyle = data?.flowHighlighted ? { strokeWidth: 3 } : undefined;
+  const interactionWidth = 20;
+
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const len = Math.max(Math.hypot(dx, dy), 1);
+
+  const side = data?.labelSide ?? 'above';
+  const offset = 18;
+  let offsetX = 0;
+  let offsetY = 0;
+  if (side === 'above') {
+    offsetX = (-dy / len) * offset;
+    offsetY = (dx / len) * offset;
+  } else if (side === 'below') {
+    offsetX = (dy / len) * offset;
+    offsetY = (-dx / len) * offset;
+  } else if (side === 'left') {
+    offsetX = (-dx / len) * offset;
+    offsetY = (-dy / len) * offset;
+  } else if (side === 'right') {
+    offsetX = (dx / len) * offset;
+    offsetY = (dy / len) * offset;
+  }
+
+  const updateEdgeData = useCallback(
+    (partial: Partial<NonNullable<RelationshipEdgeType['data']>>) => {
+      reactFlow.setEdges((edges) =>
+        edges.map((edge) =>
+          edge.id === id
+            ? {
+                ...edge,
+                data: {
+                  ...edge.data,
+                  ...partial,
+                },
+              }
+            : edge
+        )
+      );
+    },
+    [id, reactFlow]
+  );
+
+  const commitControlPoints = useCallback(
+    (points: Point[]) => {
+      const manualPoints = [{ x: sx, y: sy }, ...points, { x: tx, y: ty }];
+      updateEdgeData({
+        controlPoints: points,
+        labelPos: midpoint(manualPoints) ?? resolvedLabelPoint,
+      });
+    },
+    [sx, sy, tx, ty, updateEdgeData, resolvedLabelPoint]
+  );
+
+  const handleEdgeContextMenu = useCallback(
+    (event: React.MouseEvent<SVGPathElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const flow = reactFlow.screenToFlowPosition(
+        {
+          x: event.clientX,
+          y: event.clientY,
+        },
+        { snapToGrid: false }
+      );
+      const next = insertControlPoint(storedControlPoints, flow, { x: sx, y: sy }, { x: tx, y: ty });
+      commitControlPoints(next);
+    },
+    [reactFlow, storedControlPoints, sx, sy, tx, ty, commitControlPoints]
+  );
+
+  const handleControlPointerDown = useCallback(
+    (index: number) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.button === 2) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (storedControlPoints.length <= index) return;
+        const next = storedControlPoints.slice();
+        next.splice(index, 1);
+        commitControlPoints(next);
+        return;
+      }
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDraggingControl(true);
+      const pointerId = event.pointerId;
+      const initialPoints = (draftRef.current ?? storedControlPoints).map((p) => ({ ...p }));
+      setDraftPoints(initialPoints);
+      let moved = false;
+      const handleMove = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        moved = true;
+        const nextPos = reactFlow.screenToFlowPosition(
+          { x: ev.clientX, y: ev.clientY },
+          { snapToGrid: false }
+        );
+        setDraftPoints((prev) => {
+          const next = (prev ?? initialPoints).map((p) => ({ ...p }));
+          next[index] = { x: Math.round(nextPos.x), y: Math.round(nextPos.y) };
+          return next;
+        });
+      };
+      const cleanup = () => {
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleUp);
+        dragCleanupRef.current = null;
+      };
+      const handleUp = (ev: PointerEvent) => {
+        if (ev.pointerId !== pointerId) return;
+        cleanup();
+        const finalPoints = draftRef.current ?? initialPoints;
+        setDraftPoints(null);
+        setIsDraggingControl(false);
+        if (moved && finalPoints) {
+          commitControlPoints(finalPoints);
+        }
+      };
+      dragCleanupRef.current?.();
+      dragCleanupRef.current = cleanup;
+      window.addEventListener('pointermove', handleMove);
+      window.addEventListener('pointerup', handleUp);
+    },
+    [commitControlPoints, reactFlow, storedControlPoints]
+  );
+
+  const showControlPoints =
+    (controlPoints.length > 0 || isDraggingControl) && (selected || hovered || isDraggingControl);
+
+  if (!resolvedPath) {
+    return null;
+  }
+
+  return (
+    <g key={`${id}-${flowTick}-${flowCurrent ? 'flow' : 'idle'}`}>
+      {isDirectional ? (
+        <defs>
+          <marker
+            id={`${id}-end`}
+            markerWidth={hovered ? 18 : 12}
+            markerHeight={hovered ? 18 : 12}
+            refX={hovered ? 9 : 6}
+            refY={hovered ? 6 : 4}
+            orient="auto"
+            markerUnits="userSpaceOnUse"
+          >
+            <path d={hovered ? 'M2,2 L10,6 L2,10 Z' : 'M1,1 L7,4 L1,7 Z'} fill={currentStroke} />
+          </marker>
+          {direction === 'both' ? (
+            <marker
+              id={`${id}-start`}
+              markerWidth={hovered ? 18 : 12}
+              markerHeight={hovered ? 18 : 12}
+              refX={hovered ? 9 : 6}
+              refY={hovered ? 6 : 4}
+              orient="auto-start-reverse"
+              markerUnits="userSpaceOnUse"
+            >
+              <path d={hovered ? 'M2,2 L10,6 L2,10 Z' : 'M1,1 L7,4 L1,7 Z'} fill={currentStroke} />
+            </marker>
+          ) : null}
+        </defs>
+      ) : null}
+
+      <BaseEdge
+        id={id}
+        path={resolvedPath}
+        markerEnd={markerEnd}
+        markerStart={markerStart}
+        style={{
+          strokeWidth: hovered ? 2.4 : 1.2,
+          stroke: currentStroke,
+          strokeDasharray: stroke.strokeDasharray,
+          ...animatedStyle,
+          ...flowStyle,
+          ...style,
+          opacity: data?.muted ? 0.7 : 1,
+        }}
+        className={[
+          'relationship-path',
+          isDirectional ? 'relationship-path--directional' : '',
+          isAnimated ? 'relationship-path--animated' : '',
+          data?.flowHighlighted ? 'relationship-path--flow' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        onContextMenu={handleEdgeContextMenu}
+        interactionWidth={0}
+      />
+
+      <path
+        d={resolvedPath}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={interactionWidth}
+        className="relationship-path-interaction"
+        onMouseEnter={() => setLocalHovered(true)}
+        onMouseLeave={() => setLocalHovered(false)}
+        onContextMenu={handleEdgeContextMenu}
+      />
+
+      {(data?.label || data?.detail || hasIcon) && (
+        <EdgeLabelRenderer>
+          <div
+            className={`relationship-label${hovered ? ' relationship-label--visible' : ''}`}
+            style={{
+              transform: `translate(-50%, -50%) translate(${resolvedLabelPoint.x + offsetX}px, ${
+                resolvedLabelPoint.y + offsetY
+              }px)`,
+              borderColor: currentStroke,
+            }}
+          >
+            {hasIcon ? <span className="relationship-label__icon">{data?.icon}</span> : null}
+            {data?.label ? <span className="relationship-label__main">{data.label}</span> : null}
+            {data?.detail ? (
+              <span className="relationship-label__detail">{data.detail}</span>
+            ) : null}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+
+      {showControlPoints ? (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+            }}
+          >
+            {controlPoints.map((point, index) => (
+              <div
+                key={`${id}-cp-${index}`}
+                className="relationship-control-point nodrag nopan"
+                style={{
+                  transform: `translate(-50%, -50%) translate(${point.x}px, ${point.y}px)`,
+                  borderColor: currentStroke,
+                }}
+                onPointerDown={handleControlPointerDown(index)}
+              />
+            ))}
+          </div>
+        </EdgeLabelRenderer>
+      ) : null}
+    </g>
+  );
+}

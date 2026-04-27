@@ -1,10 +1,6 @@
 packages:
-  - src/app
-  - src/web
-  - src/docs
-  - src/cli
-  - src/core
-  - src/sdk
+  - 'apps/*'
+  - 'packages/*'
 
 onlyBuiltDependencies:
   - '@ast-grep/lang-csharp'

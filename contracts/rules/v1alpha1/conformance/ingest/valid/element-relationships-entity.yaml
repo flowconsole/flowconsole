@@ -1,0 +1,16 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: uses-relationships-must-exist
+    name: Uses relationships must exist
+    kind: element
+    target: actual
+    severity: info
+    blocking: false
+    subject:
+      entity: relationships
+      kinds:
+        - Uses
+    mode: aggregate
+    assert: count(items) > 0
+    message: No Uses relationships found

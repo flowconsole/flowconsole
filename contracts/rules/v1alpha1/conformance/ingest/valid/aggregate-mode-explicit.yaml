@@ -1,0 +1,17 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: services-must-exist
+    name: Services must exist
+    kind: element
+    target: actual
+    severity: warning
+    blocking: false
+    mode: aggregate
+    subject:
+      entity: elements
+      kinds:
+        - Service
+        - Application
+    assert: count(items) > 0
+    message: No services found

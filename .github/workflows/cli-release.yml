@@ -1,0 +1,561 @@
+name: CLI Release
+
+on:
+  # Frozen during repo refactor — re-enable tag trigger once cli-v* releases produce
+  # fcon-* archives (current cli-v0.2.0-beta still has legacy fc-* assets).
+  #push:
+  #  tags:
+  #    - 'cli-v*.*.*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry-run mode (skip publish steps)'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CLI_PROJECT: engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj
+
+permissions:
+  contents: write
+
+jobs:
+  extract-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="0.0.0-dryrun"
+          else
+            VERSION="${GITHUB_REF_NAME#cli-v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $VERSION"
+
+  backend-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production backend endpoints
+        env:
+          PROD_API_URL: ${{ secrets.PROD_API_URL }}
+          PROD_TEST_USER: ${{ secrets.PROD_TEST_USER }}
+          PROD_TEST_PASSWORD: ${{ secrets.PROD_TEST_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PROD_API_URL:-}" ]; then
+            echo "::error::PROD_API_URL secret not configured — cannot verify backend readiness"
+            exit 1
+          fi
+
+          echo "=== Preflight: PUT /api/v1/models/00000000-0000-0000-0000-000000000000/ir ==="
+          # Probe with oversized body — expect 401 (unauth) or 413 (too large), NOT 404 or 5xx
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X PUT "${PROD_API_URL}/api/v1/models/00000000-0000-0000-0000-000000000000/ir" \
+            -H "Content-Type: application/json" \
+            -d '{"probe": true}' \
+            --max-time 10)
+          echo "PUT /ir response: $HTTP_CODE"
+          if [ "$HTTP_CODE" -ge 500 ]; then
+            echo "::error::Backend PUT /ir returned $HTTP_CODE — production backend may be down"
+            exit 1
+          fi
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "::error::Backend PUT /ir returned 404 — endpoint not deployed"
+            exit 1
+          fi
+          echo "PUT /ir preflight passed (got $HTTP_CODE — expected 401 or 413)"
+
+          echo "=== Preflight: POST /api/v1/account/tokens ==="
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${PROD_API_URL}/api/v1/account/tokens" \
+            -H "Content-Type: application/json" \
+            -d '{"name": "preflight-probe"}' \
+            --max-time 10)
+          echo "POST /account/tokens response: $HTTP_CODE"
+          if [ "$HTTP_CODE" -ge 500 ]; then
+            echo "::error::Backend POST /account/tokens returned $HTTP_CODE — production backend may be down"
+            exit 1
+          fi
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "::error::Backend POST /account/tokens returned 404 — PAT endpoint not deployed"
+            exit 1
+          fi
+          echo "POST /account/tokens preflight passed (got $HTTP_CODE — expected 401)"
+
+          echo "=== Backend preflight complete ==="
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Build and test
+        run: |
+          dotnet restore engine/src/FlowConsole.slnx
+          dotnet build engine/src/FlowConsole.slnx --no-restore
+          dotnet test engine/src/FlowConsole.slnx --no-build --verbosity quiet
+
+  sfa-publish:
+    needs: [backend-preflight, build-and-test, extract-version]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rid: [linux-x64, linux-arm64, osx-x64, osx-arm64, win-x64, win-arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Publish SFA (${{ matrix.rid }})
+        run: |
+          dotnet publish ${{ env.CLI_PROJECT }} \
+            -r ${{ matrix.rid }} \
+            -c Release \
+            -p:Version=${{ needs.extract-version.outputs.version }} \
+            -o artifacts/${{ matrix.rid }}
+
+      - name: Create archive (Unix)
+        if: ${{ !startsWith(matrix.rid, 'win-') }}
+        run: |
+          cd artifacts/${{ matrix.rid }}
+          tar czf ../fcon-${{ matrix.rid }}.tar.gz *
+
+      - name: Create archive (Windows)
+        if: ${{ startsWith(matrix.rid, 'win-') }}
+        run: |
+          cd artifacts/${{ matrix.rid }}
+          zip -r ../fcon-${{ matrix.rid }}.zip *
+
+      - name: Compute SHA-256 checksum
+        run: |
+          cd artifacts
+          if [ -f "fcon-${{ matrix.rid }}.tar.gz" ]; then
+            sha256sum "fcon-${{ matrix.rid }}.tar.gz" > "fcon-${{ matrix.rid }}.sha256"
+          elif [ -f "fcon-${{ matrix.rid }}.zip" ]; then
+            sha256sum "fcon-${{ matrix.rid }}.zip" > "fcon-${{ matrix.rid }}.sha256"
+          fi
+          cat "fcon-${{ matrix.rid }}.sha256"
+
+      - name: Upload SFA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fcon-${{ matrix.rid }}
+          path: |
+            artifacts/fcon-${{ matrix.rid }}.tar.gz
+            artifacts/fcon-${{ matrix.rid }}.zip
+            artifacts/fcon-${{ matrix.rid }}.sha256
+
+  sfa-smoke-test:
+    needs: [sfa-publish, extract-version]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: osx-arm64
+            os: macos-latest
+          - rid: win-x64
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download SFA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fcon-${{ matrix.rid }}
+          path: fcon-archive/
+
+      - name: Extract binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p fcon-bin
+          tar xzf fcon-archive/fcon-${{ matrix.rid }}.tar.gz -C fcon-bin/
+          chmod +x fcon-bin/fcon
+
+      - name: Extract binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir fcon-bin
+          cd fcon-archive
+          unzip fcon-${{ matrix.rid }}.zip -d ../fcon-bin/
+
+      - name: Smoke test - fcon scan (identity mode)
+        run: |
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} scan contracts/model-snapshot/v1/conformance/valid/minimal.json
+
+      - name: Smoke test - fcon scan (C# project)
+        run: |
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} scan engine/src/FlowConsole.Core/
+
+      - name: Smoke test - fcon validate
+        run: |
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} validate contracts/model-snapshot/v1/conformance/valid/minimal.json
+
+      - name: Smoke test - fcon rules list
+        run: |
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} rules list
+
+      - name: Smoke test - fcon fmt
+        run: |
+          cp contracts/model-snapshot/v1/conformance/valid/minimal.json /tmp/test-fmt.json 2>/dev/null || copy contracts\model-snapshot\v1\conformance\valid\minimal.json %TEMP%\test-fmt.json
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} fmt ${{ runner.os == 'Windows' && '%TEMP%\test-fmt.json' || '/tmp/test-fmt.json' }}
+
+      - name: Smoke test - fcon synth --help
+        run: |
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} synth --help
+
+      - name: Smoke test - fcon --version
+        shell: bash
+        run: |
+          VERSION=$(${{ runner.os == 'Windows' && 'fcon-bin/fcon.exe' || 'fcon-bin/fcon' }} --version)
+          echo "Reported version: $VERSION"
+          echo "$VERSION" | grep -qF "${{ needs.extract-version.outputs.version }}"
+
+      - name: Smoke test - conformance fixture via fcon validate
+        run: |
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} validate contracts/model-snapshot/v1/conformance/valid/minimal.json --format json
+
+  conformance-suite:
+    needs: [sfa-publish, extract-version]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download linux-x64 SFA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fcon-linux-x64
+          path: fcon-archive/
+
+      - name: Extract binary
+        run: |
+          mkdir -p fcon-bin
+          tar xzf fcon-archive/fcon-linux-x64.tar.gz -C fcon-bin/
+          chmod +x fcon-bin/fcon
+
+      - name: Run conformance suite - valid fixtures
+        run: |
+          set -euo pipefail
+          PASS=0
+          FAIL=0
+          for f in contracts/model-snapshot/v1/conformance/valid/*.json; do
+            echo "--- Validating: $f"
+            if fcon-bin/fcon validate "$f" --format json; then
+              PASS=$((PASS + 1))
+            else
+              echo "::error::Conformance FAIL (should be valid): $f"
+              FAIL=$((FAIL + 1))
+            fi
+          done
+          echo "Valid fixtures: $PASS passed, $FAIL failed"
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Run conformance suite - per-kind valid fixtures
+        run: |
+          set -euo pipefail
+          PASS=0
+          FAIL=0
+          for f in contracts/model-snapshot/v1/conformance/per-kind/*/valid.json; do
+            echo "--- Validating: $f"
+            if fcon-bin/fcon validate "$f" --format json; then
+              PASS=$((PASS + 1))
+            else
+              echo "::error::Conformance FAIL (should be valid): $f"
+              FAIL=$((FAIL + 1))
+            fi
+          done
+          echo "Per-kind valid fixtures: $PASS passed, $FAIL failed"
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Run conformance suite - invalid fixtures (expect non-zero exit)
+        run: |
+          set -euo pipefail
+          PASS=0
+          FAIL=0
+          for f in contracts/model-snapshot/v1/conformance/invalid/*.json; do
+            echo "--- Validating (expect failure): $f"
+            if fcon-bin/fcon validate "$f" --format json 2>/dev/null; then
+              echo "::error::Conformance FAIL (should be invalid but passed): $f"
+              FAIL=$((FAIL + 1))
+            else
+              PASS=$((PASS + 1))
+            fi
+          done
+          echo "Invalid fixtures: $PASS correctly rejected, $FAIL incorrectly accepted"
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Verify execution budget (sequential <= 60s)
+        run: |
+          START=$(date +%s)
+          for f in contracts/model-snapshot/v1/conformance/valid/*.json \
+                   contracts/model-snapshot/v1/conformance/per-kind/*/valid.json; do
+            fcon-bin/fcon validate "$f" --format json > /dev/null 2>&1 || true
+          done
+          END=$(date +%s)
+          DURATION=$((END - START))
+          echo "Conformance suite completed in ${DURATION}s"
+          if [ "$DURATION" -gt 60 ]; then
+            echo "::error::Conformance suite exceeded 60s budget (took ${DURATION}s)"
+            exit 1
+          fi
+
+  nuget-publish:
+    needs: [build-and-test, extract-version]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Pack NuGet tool
+        run: |
+          dotnet pack ${{ env.CLI_PROJECT }} \
+            -c Release \
+            -p:Version=${{ needs.extract-version.outputs.version }} \
+            -o artifacts/nuget
+
+      - name: Publish to NuGet.org
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != 'true' }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push artifacts/nuget/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Upload NuGet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: artifacts/nuget/*.nupkg
+
+  create-release:
+    needs: [extract-version, sfa-publish, sfa-smoke-test, conformance-suite, nuget-publish]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all SFA artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts/
+          pattern: fcon-*
+
+      - name: Download NuGet artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-package
+          path: release-artifacts/nuget/
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          find release-artifacts -name '*.tar.gz' -o -name '*.zip' -o -name '*.nupkg' -o -name '*.sha256' | while read f; do
+            cp "$f" release-assets/
+          done
+          ls -la release-assets/
+
+      - name: Verify SHA-256 checksum files present
+        run: |
+          for RID in linux-x64 linux-arm64 osx-x64 osx-arm64 win-x64 win-arm64; do
+            if [ ! -f "release-assets/fcon-${RID}.sha256" ]; then
+              echo "::error::Missing checksum file: fcon-${RID}.sha256"
+              exit 1
+            fi
+            echo "Checksum present: fcon-${RID}.sha256 -> $(cat release-assets/fcon-${RID}.sha256)"
+          done
+
+      - name: Verify release notes exist
+        run: |
+          NOTES_FILE="docs/notes/cli-${GITHUB_REF_NAME#cli-}-release-notes.md"
+          if [ ! -f "$NOTES_FILE" ]; then
+            echo "::warning::Release notes file not found: $NOTES_FILE — using template"
+            mkdir -p docs/notes
+            cat > "$NOTES_FILE" <<'TEMPLATE'
+          ## FlowConsole CLI Release
+
+          ### What's New
+          - `fcon push snapshot` — push model snapshots to FlowConsole backend with PAT auth
+          - `fcon push findings` — push validation findings from CI pipelines
+          - `fcon diff` — offline local snapshot comparison (human/json/markdown output)
+          - `fcon telemetry` — anonymous usage stats with opt-out controls
+          - npm wrapper `@flowconsole/cli@2.0.0` — cross-platform install via npm
+
+          ### Known Limitations
+          - No durable snapshots (live-mutate only in v1)
+          - No finer-grained PAT scopes
+          - No If-Match concurrency guard
+          - Binaries are unsigned during alpha — signing planned for 1.0.0
+
+          ### Schema Compatibility
+          - Supports schemaVersion 1.0.0 through 1.1.0
+
+          ### Migration from v1.x
+          - `npm install -g @flowconsole/cli` now installs .NET SFA wrapper (not TypeScript CLI v1.x)
+          - `@flowconsole/cli@1.x` is deprecated but remains published
+          TEMPLATE
+          fi
+
+      - name: Create release
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES_FILE="docs/notes/cli-${GITHUB_REF_NAME#cli-}-release-notes.md"
+          gh release create "${{ github.ref_name }}" \
+            --title "FlowConsole CLI ${{ needs.extract-version.outputs.version }}" \
+            --notes-file "$NOTES_FILE" \
+            --prerelease \
+            release-assets/*
+
+  npm-publish:
+    needs: [extract-version, create-release]
+    runs-on: ubuntu-latest
+    outputs:
+      npm_version: ${{ steps.bump.outputs.npm_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update cliVersion and bump npm version
+        id: bump
+        run: |
+          cd packages/cli
+          # Update cliVersion (binary version) to match the released CLI version.
+          # Bump npm package version to 2.0.0-<cli-version> so each release gets a unique
+          # npm version while staying in the 2.x wrapper stream.
+          CLI_VERSION="${{ needs.extract-version.outputs.version }}"
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+            pkg.cliVersion = '${CLI_VERSION}';
+            pkg.version = '2.0.0-' + '${CLI_VERSION}'.replace(/[^a-zA-Z0-9.-]/g, '-');
+            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('npm_version=' + pkg.version);
+          " >> "$GITHUB_OUTPUT"
+
+      - name: Publish npm wrapper
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != 'true' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd packages/cli
+          npm publish --access public --tag latest
+
+      - name: Dry-run npm publish
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' }}
+        run: |
+          cd packages/cli
+          npm publish --access public --dry-run
+
+  npm-release-gate:
+    needs: [extract-version, npm-publish]
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != 'true' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: linux-x64
+            os: ubuntu-latest
+          - rid: linux-arm64
+            os: ubuntu-24.04-arm
+          - rid: osx-x64
+            os: macos-13
+          - rid: osx-arm64
+            os: macos-latest
+          - rid: win-x64
+            os: windows-latest
+          - rid: win-arm64
+            os: windows-11-arm
+
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install @flowconsole/cli from npm
+        run: npm install -g @flowconsole/cli@${{ needs.npm-publish.outputs.npm_version }}
+
+      - name: Smoke test - fcon --version
+        shell: bash
+        run: |
+          VERSION=$(fcon --version)
+          echo "Reported version: $VERSION"
+          [ -n "$VERSION" ] || { echo "ERROR: --version returned empty"; exit 1; }
+
+      - name: Smoke test - fcon --help
+        run: fcon --help
+
+  release-gate-summary:
+    needs: [npm-release-gate, npm-publish, extract-version]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check npm release gate results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FAILED_RIDS=""
+          if [ "${{ needs.npm-release-gate.result }}" == "skipped" ] && [ "${{ needs.npm-publish.result }}" == "success" ]; then
+            echo "npm release-gate was skipped (dry-run mode)"
+          elif [ "${{ needs.npm-release-gate.result }}" == "skipped" ] && [ "${{ needs.npm-publish.result }}" != "success" ]; then
+            echo "::error::npm release-gate was skipped because npm-publish failed (result: ${{ needs.npm-publish.result }})"
+            FAILED_RIDS="npm-publish failed — release-gate could not run"
+          elif [ "${{ needs.npm-release-gate.result }}" != "success" ]; then
+            echo "::warning::npm release-gate matrix had failures"
+            FAILED_RIDS="Some RIDs failed — check workflow run for details"
+          fi
+
+          if [ -n "$FAILED_RIDS" ]; then
+            echo "::warning::npm wrapper has known issues: $FAILED_RIDS"
+            # Update release notes to flag broken RIDs if this is a real release
+            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+              gh release edit "${{ github.ref_name }}" \
+                --notes "$(gh release view "${{ github.ref_name }}" --json body -q .body)
+
+          > **Warning:** npm wrapper \`@flowconsole/cli@${{ needs.npm-publish.outputs.npm_version }}\` has known issues on some platforms. Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details. SFA binaries and NuGet package are unaffected." \
+                2>/dev/null || echo "::warning::Could not update release notes"
+            fi
+          else
+            echo "All npm release-gate checks passed"
+          fi

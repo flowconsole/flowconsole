@@ -1,0 +1,52 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: duplicate-id
+    name: Invalid graph rule
+    kind: element
+    target: model
+    severity: error
+    blocking: true
+    sourceFamilies:
+      - code
+    subject:
+      entity: diffItems
+    assert: "true"
+    message: This rule is invalid by design
+
+  - id: duplicate-id
+    name: Invalid diff rule target
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: diffItems
+    assert: "count(items) == 0"
+    message: This rule is invalid by design
+
+  - id: bad-path-entity
+    name: Bad path selector entity
+    kind: flow
+    target: actual
+    severity: warning
+    blocking: false
+    from:
+      entity: relationships
+    to:
+      entity: elements
+    assert: count(paths) > 0
+    message: This rule is invalid by design
+
+  - id: bad-expression
+    name: Bad expression
+    kind: element
+    target: actual
+    severity: warning
+    blocking: false
+    subject:
+      entity: elements
+      kinds:
+        - Service
+    assert: count(items) +
+    message: This rule is also invalid by design

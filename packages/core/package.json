@@ -1,0 +1,71 @@
+{
+  "name": "@flowconsole/core",
+  "version": "1.0.0",
+  "description": "FlowConsole core parser library for architecture-as-code",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./infra/*": {
+      "types": "./dist/infra/*.d.ts",
+      "import": "./dist/infra/*.js",
+      "require": "./dist/infra/*.js"
+    },
+    "./parsers/*": {
+      "types": "./dist/parsers/*.d.ts",
+      "import": "./dist/parsers/*.js",
+      "require": "./dist/parsers/*.js"
+    },
+    "./types/*": {
+      "types": "./dist/types/*.d.ts",
+      "import": "./dist/types/*.js",
+      "require": "./dist/types/*.js"
+    }
+  },
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "!dist/**/*.tsbuildinfo",
+    "!dist/vitest.config.*"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "keywords": [],
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  },
+  "packageManager": "pnpm@10.19.0",
+  "dependencies": {
+    "@ast-grep/lang-csharp": "^0.0.5",
+    "@ast-grep/lang-go": "^0.0.5",
+    "@ast-grep/lang-java": "^0.0.6",
+    "@ast-grep/lang-python": "^0.0.5",
+    "@ast-grep/napi": "^0.40.5",
+    "uuidv7": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "vitest": "^4.0.17",
+    "@flowconsole/sdk": "workspace:*"
+  }
+}

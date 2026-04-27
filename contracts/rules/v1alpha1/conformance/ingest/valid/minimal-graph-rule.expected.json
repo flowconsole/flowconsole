@@ -1,0 +1,24 @@
+{
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "minimal-graph",
+      "name": "Minimal graph rule",
+      "kind": "element",
+      "target": "actual",
+      "severity": "info",
+      "blocking": false,
+      "enabled": true,
+      "subject": {
+        "entity": "elements",
+        "kinds": ["Service"]
+      },
+      "mode": "aggregate",
+      "assert": {
+        "source": "count(items) >= 0"
+      },
+      "message": "Sample message"
+    }
+  ]
+}

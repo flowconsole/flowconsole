@@ -1,0 +1,39 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_SOURCE_FAMILY_ON_MODEL_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/sourceFamilies",
+      "ruleId": "duplicate-id"
+    },
+    {
+      "code": "RF_SEM_DIFFITEMS_ON_NON_DIFF_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/subject/entity",
+      "ruleId": "duplicate-id"
+    },
+    {
+      "code": "RF_SEM_DUPLICATE_RULE_ID",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/1/id",
+      "ruleId": "duplicate-id"
+    },
+    {
+      "code": "RF_SEM_DIFFITEMS_ON_NON_DIFF_TARGET",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/1/subject/entity",
+      "ruleId": "duplicate-id"
+    },
+    {
+      "code": "RF_SEM_FLOW_ENDPOINT_INVALID_ENTITY",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/2/from/entity",
+      "ruleId": "bad-path-entity"
+    }
+  ]
+}

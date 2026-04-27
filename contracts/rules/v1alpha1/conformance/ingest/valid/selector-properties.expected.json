@@ -1,0 +1,27 @@
+{
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "high-tier-service-must-have-deps",
+      "name": "High-tier services must have dependencies",
+      "kind": "element",
+      "target": "actual",
+      "severity": "warning",
+      "blocking": false,
+      "enabled": true,
+      "subject": {
+        "entity": "elements",
+        "kinds": ["Service"],
+        "properties": {
+          "tier": { "in": ["tier-1", "tier-2"] }
+        }
+      },
+      "mode": "perItem",
+      "assert": {
+        "source": "count(outgoing(item)) > 0"
+      },
+      "message": "High-tier service ${item.name} must have dependencies"
+    }
+  ]
+}

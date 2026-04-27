@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_FLOW_ID_DUPLICATE",
+      "phase": "reference",
+      "level": "error",
+      "path": "/flows/1/id",
+      "message": "Duplicate flow id 'same-flow-id'"
+    }
+  ]
+}

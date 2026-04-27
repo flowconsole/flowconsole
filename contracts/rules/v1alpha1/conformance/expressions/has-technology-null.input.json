@@ -1,0 +1,28 @@
+{
+  "expression": "hasTag(item, \"monitored\") && !hasKind(item, \"Database\")",
+  "context": {
+    "family": "graph",
+    "mode": "perItem"
+  },
+  "bindings": {
+    "item": {
+      "id": "svc-1",
+      "canonicalId": "checkout.service",
+      "kind": "Service",
+      "name": "checkout",
+      "technology": null,
+      "tags": ["monitored"],
+      "properties": {},
+      "source": "code_scan",
+      "sourceFamily": "code",
+      "parentId": null
+    },
+    "rule": {
+      "id": "sample",
+      "name": "Sample",
+      "severity": "info",
+      "kind": "element",
+      "target": "actual"
+    }
+  }
+}

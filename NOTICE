@@ -15,7 +15,6 @@ This product includes software developed by:
 
 - React (MIT License) - https://reactjs.org
 - ReactFlow (@xyflow/react, MIT License) - https://reactflow.dev
-- Mantine (@mantine/core, @mantine/hooks, MIT License) - https://mantine.dev
 - Monaco Editor (@monaco-editor/react, MIT License) - https://microsoft.github.io/monaco-editor
 - graphviz-wasm (MIT License) - WebAssembly port of Graphviz
 - d3-shape (ISC License) - https://d3js.org
@@ -24,16 +23,15 @@ This product includes software developed by:
 - fast-equals (MIT License) - https://github.com/planttheidea/fast-equals
 - @tabler/icons-react (MIT License) - https://tabler.io/icons
 - @react-hookz/web (MIT License) - https://react-hookz.github.io/web
+- elkjs (EPL-2.0 License) - https://github.com/kieler/elkjs
 
-## CLI Dependencies
+## CLI Dependencies (.NET)
 
-- ast-grep (@ast-grep/napi, MIT License) - https://ast-grep.github.io
-- @ast-grep/lang-csharp (MIT License) - C# language support for ast-grep
-- @ast-grep/lang-python (MIT License) - Python language support for ast-grep
-- @ast-grep/lang-java (MIT License) - Java language support for ast-grep
-- @ast-grep/lang-go (MIT License) - Go language support for ast-grep
-- yargs (MIT License) - https://yargs.js.org
-- uuidv7 (MIT License) - https://github.com/LiosK/uuidv7
+The `fcon` CLI is a self-contained .NET binary distributed via the
+`@flowconsole/cli` npm wrapper. The npm wrapper itself has no runtime
+dependencies (only a postinstall script that downloads the binary).
+
+- Spectre.Console.Cli (MIT License) - https://spectreconsole.net
 
 ## SDK Dependencies
 
@@ -48,6 +46,18 @@ This product includes software developed by:
 - shiki (MIT License) - https://shiki.matsu.io
 - recharts (MIT License) - https://recharts.org
 - Zod (MIT License) - https://zod.dev
+
+## Backend Dependencies (.NET)
+
+- ASP.NET Core (MIT License) - https://dotnet.microsoft.com/apps/aspnet
+- Entity Framework Core (MIT License) - https://docs.microsoft.com/ef/core
+- FluentResults (MIT License) - https://github.com/altmann/FluentResults
+- FluentValidation (Apache-2.0 License) - https://fluentvalidation.net
+- Wolverine (MIT License) - https://wolverine.netlify.app
+- Npgsql (PostgreSQL License) - https://www.npgsql.org
+- CliWrap (MIT License) - https://github.com/Tyrrrz/CliWrap
+- LibGit2Sharp (MIT License) - https://github.com/libgit2/libgit2sharp
+- TreeSitter.DotNet (MIT License) - Tree-sitter bindings for .NET
 
 ## Build & Development Tools
 

@@ -1,0 +1,15 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: bad-sourcefamily
+    name: SourceFamilies on model target
+    kind: element
+    target: model
+    severity: error
+    blocking: true
+    sourceFamilies:
+      - code
+    subject:
+      entity: elements
+    assert: "true"
+    message: Should fail

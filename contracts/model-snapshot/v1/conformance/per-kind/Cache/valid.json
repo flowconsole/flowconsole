@@ -1,0 +1,9 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "InfraScan",
+  "elements": [
+    { "id": "cache-1", "kind": "Cache", "name": "session-redis-cache" }
+  ],
+  "relationships": []
+}

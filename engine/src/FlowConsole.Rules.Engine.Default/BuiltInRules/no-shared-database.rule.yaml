@@ -1,0 +1,22 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: no-shared-database
+    name: No shared database
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    description: A database should not be consumed by more than one service.
+    tags:
+      - governance
+      - data
+    subject:
+      entity: elements
+      kinds:
+        - Database
+    mode: perItem
+    let:
+      consumers: count(incoming(item))
+    assert: consumers <= 1
+    message: "Database '${item.Name}' has ${consumers} incoming relationships, exceeds threshold 1"

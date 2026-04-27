@@ -1,0 +1,12 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: missing-assert
+    name: Rule without assert
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: elements
+    message: Missing assert field

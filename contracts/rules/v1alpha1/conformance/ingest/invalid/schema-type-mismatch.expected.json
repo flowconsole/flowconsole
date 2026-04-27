@@ -1,0 +1,10 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SCHEMA_TYPE_MISMATCH",
+      "phase": "schema",
+      "level": "error",
+      "path": "/rules/0/blocking"
+    }
+  ]
+}

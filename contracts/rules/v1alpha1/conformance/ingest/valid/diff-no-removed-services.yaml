@@ -1,0 +1,30 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: no-removed-service-components
+    name: Removed service components are forbidden
+    kind: element
+    target: diff
+    severity: error
+    blocking: true
+    description: В diff-проекции не должно быть удалённых сервисных компонентов.
+    enabled: true
+    tags:
+      - drift
+      - diff
+    sourceFamilies:
+      - code
+      - infra
+    subject:
+      entity: diffItems
+      kinds:
+        - Service
+        - Application
+        - Worker
+    changeKinds:
+      - removed
+    mode: aggregate
+    let:
+      removedCount: count(items)
+    assert: removedCount == 0
+    message: В diff-проекции обнаружены удалённые сервисные компоненты

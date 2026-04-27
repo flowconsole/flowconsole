@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_SEM_LET_SELF_REFERENCE",
+      "phase": "semantic",
+      "level": "error",
+      "path": "/rules/0/let/x",
+      "ruleId": "self-ref"
+    }
+  ]
+}

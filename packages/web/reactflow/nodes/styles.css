@@ -1,0 +1,513 @@
+
+.diagram-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  min-height: 92px;
+  padding: 5px 5px;
+  border: 1px solid var(--diagram-border);
+  border-radius: 14px;
+  box-shadow: var(--diagram-card-shadow);
+  background: var(--diagram-container-bg);
+  color: var(--diagram-text);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.diagram-container__collapsed {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.diagram-container__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.diagram-container__body {
+  font-size: 13px;
+  color: var(--diagram-text-muted);
+  line-height: 1.4;
+}
+
+.diagram-container__child-count {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  margin-top: 4px;
+}
+
+.diagram-container__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.diagram-container__drill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.diagram-container:hover .diagram-container__drill-icon {
+  opacity: 1;
+}
+
+
+.diagram-note {
+  position: relative;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--diagram-border);
+  border-radius: 12px;
+  color: var(--diagram-text);
+  box-shadow: var(--diagram-card-shadow);
+}
+
+.diagram-note__title {
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.diagram-note__body {
+  color: var(--diagram-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.diagram-card {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  isolation: isolate;
+  min-height: 92px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--diagram-border);
+  border-radius: 16px;
+  box-shadow: var(--diagram-card-shadow);
+  color: var(--diagram-text);
+  padding: 14px 16px;
+  background-color: var(--diagram-panel);
+  --diagram-accent: var(--diagram-primary);
+}
+
+.diagram-card__shape-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.diagram-shape-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.diagram-card__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+  flex-direction: column;
+}
+
+.diagram-card--service {
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-card--service .diagram-card__content {
+  text-align: center;
+  align-items: center;
+}
+
+/* SVG-backed shapes: transparent root so SVG draws the visible fill/border.
+   Content is centered horizontally and vertically, same as circle/hexagon. */
+.diagram-card--database,
+.diagram-card--queue,
+.diagram-card--storage,
+.diagram-card--boundary {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-card--database .diagram-card__content,
+.diagram-card--queue .diagram-card__content,
+.diagram-card--storage .diagram-card__content,
+.diagram-card--boundary .diagram-card__content {
+  text-align: center;
+  align-items: center;
+}
+
+.diagram-card--database {
+  padding: 26px 20px 18px 20px;
+}
+
+.diagram-card--queue {
+  padding: 16px 36px;
+}
+
+.diagram-card--storage {
+  padding: 20px;
+}
+
+.diagram-card--boundary {
+  padding: 20px;
+}
+
+/* Person: rectangular card with user icon (same layout as service). */
+.diagram-card--person {
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-card--person .diagram-card__content {
+  text-align: center;
+  align-items: center;
+}
+
+.diagram-card--circle {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border-radius: 50%;
+  overflow: visible;
+}
+
+.diagram-card--circle .diagram-card__content {
+  text-align: center;
+  align-items: center;
+}
+
+.diagram-card--hexagon {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 22px 30px;
+  aspect-ratio: 1.15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.diagram-card--hexagon .diagram-card__content {
+  text-align: center;
+  align-items: center;
+}
+
+.diagram-card--cloud {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 24px 28px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.diagram-card--cloud .diagram-card__content {
+  text-align: center;
+  align-items: center;
+}
+
+.diagram-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.diagram-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.diagram-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.diagram-card__subtitle {
+  font-size: 12px;
+  color: var(--diagram-text-muted);
+}
+
+.diagram-card__description {
+  color: var(--diagram-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.diagram-card__tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.diagram-tag {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--diagram-border);
+  color: var(--diagram-text-muted);
+}
+
+.diagram-badge {
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--diagram-border-strong);
+}
+
+.diagram-icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: var(--diagram-accent);
+  flex-shrink: 0;
+}
+
+.diagram-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.diagram-icon__custom {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.diagram-icon__image {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  display: block;
+}
+
+.diagram-status {
+  display: grid;
+  place-items: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 2px solid var(--diagram-panel);
+}
+
+.diagram-footer {
+  font-size: 12px;
+  color: var(--diagram-text-muted);
+  border-top: 1px solid var(--diagram-border);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.react-flow__edge-labels {
+  position: relative;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.react-flow__edge-labels .relationship-label {
+  pointer-events: auto;
+}
+
+.react-flow .react-flow__edges svg {
+  z-index: 2 !important;
+}
+
+.relationship-label__main {
+  font-weight: 700;
+}
+
+.relationship-label__detail {
+  color: var(--diagram-text-muted);
+}
+
+.relationship-label__icon {
+  font-size: 13px;
+}
+
+.perimeter-handle {
+  opacity: 0;
+}
+
+.perimeter-handle:focus-visible {
+  outline: 1px solid var(--diagram-primary);
+  opacity: 0.6;
+}
+
+.relationship-path {
+  transition: stroke 200ms ease, stroke-width 200ms ease, opacity 200ms ease;
+}
+
+.relationship-label {
+  transition: border-color 200ms ease;
+}
+
+.relationship-path--animated {
+  stroke-dasharray: 8 10;
+  animation: dash-move 1s linear infinite;
+}
+
+.relationship-path--flow {
+  filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.6));
+}
+
+.relationship-control-point {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--diagram-primary);
+  background: var(--diagram-panel);
+  box-shadow: var(--diagram-card-shadow);
+  position: absolute;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.relationship-control-point:hover {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.relationship-label {
+  position: absolute;
+  transform-origin: center center;
+  background: var(--diagram-panel);
+  border: 1px solid var(--diagram-border);
+  color: var(--diagram-text);
+  padding: 3px 7px;
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 11px;
+  box-shadow: var(--diagram-card-shadow);
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease, border-color 200ms ease;
+}
+
+.relationship-label--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hidden-handle {
+  opacity: 0;
+  border: none;
+}
+
+/* ── Preset styles ── */
+
+/* Deprecated: reduced opacity, dashed border for rectangular shapes */
+.diagram-card--deprecated {
+  border-style: dashed;
+}
+
+.diagram-card--deprecated .diagram-shape-svg circle,
+.diagram-card--deprecated .diagram-shape-svg polygon,
+.diagram-card--deprecated .diagram-shape-svg path {
+  stroke-dasharray: 6 4;
+}
+
+/* Highlighted: warm glow via drop-shadow (works for both CSS borders and SVG contours) */
+.diagram-card--highlighted {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45));
+}
+
+/* Critical: subtle red glow */
+.diagram-card--critical {
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.35));
+}
+
+/* New: subtle green glow */
+.diagram-card--new {
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.3));
+}
+
+/* External: subtle purple glow */
+.diagram-card--external {
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.3));
+}
+
+/* Container preset variants */
+.diagram-container--deprecated {
+  border-style: dashed;
+}
+
+.diagram-container--highlighted {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.45));
+}
+
+.diagram-container--critical {
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.35));
+}
+
+.diagram-container--new {
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.3));
+}
+
+.diagram-container--external {
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.3));
+}
+
+/* Ghost nodes — external references in scoped view */
+.diagram-card--ghost {
+  opacity: 0.55;
+  border-style: dashed;
+  border-width: 1.5px;
+  background: transparent;
+}
+
+.diagram-card--ghost .diagram-card__title {
+  font-style: italic;
+}

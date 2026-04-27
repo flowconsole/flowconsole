@@ -1,0 +1,61 @@
+{
+  "expression": "count(items) >= 2 && count(items) <= 10",
+  "context": {
+    "family": "graph",
+    "mode": "aggregate"
+  },
+  "bindings": {
+    "items": [
+      {
+        "id": "svc-1",
+        "canonicalId": "checkout.service",
+        "kind": "Service",
+        "name": "checkout",
+        "technology": "dotnet",
+        "tags": [],
+        "properties": {},
+        "source": "code_scan",
+        "sourceFamily": "code",
+        "parentId": null
+      },
+      {
+        "id": "svc-2",
+        "canonicalId": "orders.service",
+        "kind": "Service",
+        "name": "orders",
+        "technology": "dotnet",
+        "tags": [],
+        "properties": {},
+        "source": "code_scan",
+        "sourceFamily": "code",
+        "parentId": null
+      },
+      {
+        "id": "db-1",
+        "canonicalId": "checkout.database",
+        "kind": "Database",
+        "name": "checkout-db",
+        "technology": "postgres",
+        "tags": [],
+        "properties": {},
+        "source": "code_scan",
+        "sourceFamily": "code",
+        "parentId": null
+      }
+    ],
+    "stats": {
+      "count": 3,
+      "countByKind": { "Service": 2, "Database": 1 },
+      "countByTag": {},
+      "countBySourceFamily": { "code": 3 },
+      "distinctTags": []
+    },
+    "rule": {
+      "id": "sample",
+      "name": "Sample",
+      "severity": "info",
+      "kind": "element",
+      "target": "actual"
+    }
+  }
+}

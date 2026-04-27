@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "title": "ModelSnapshot",
+  "description": "FlowConsole ModelSnapshot wire format v1. Represents a complete model snapshot for exchange between CLI, SDK, and backend.",
+  "type": "object",
+  "required": ["$schema", "schemaVersion", "source", "elements", "relationships"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+      "description": "JSON Schema URI (must match this schema's $id)"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semver version of this schema (e.g. \"1.0.0\")"
+    },
+    "source": {
+      "type": "string",
+      "description": "Origin source identifier (e.g. \"CodeScan\", \"InfraScan\", \"Git\", \"Import\")"
+    },
+    "elements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Element" },
+      "description": "All elements in the snapshot"
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Relationship" },
+      "description": "All relationships between elements"
+    },
+    "flows": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/Flow" },
+      "description": "Optional sequence flows describing interactions between elements"
+    }
+  },
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$",
+      "description": "Stable identifier — letters, digits, and `_`, `.`, `:`, `-`. Must start with a letter, digit, or underscore."
+    },
+    "Element": {
+      "type": "object",
+      "required": ["id", "kind", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Unique element identifier within the snapshot"
+        },
+        "kind": {
+          "$ref": "#/$defs/ElementKind",
+          "description": "Element kind discriminator"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable element name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional element description"
+        },
+        "technology": {
+          "type": "string",
+          "description": "Technology, framework, or language"
+        },
+        "parentId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Parent element ID for hierarchical models"
+        },
+        "source": {
+          "type": "string",
+          "description": "Per-element source override"
+        },
+        "canonicalId": {
+          "type": "string",
+          "description": "Stable canonical identifier for drift detection"
+        },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Alternative identifiers for matching"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Kind-specific and custom key-value properties"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Classification tags"
+        }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/ElementKindProperties" }
+      ]
+    },
+    "ElementKind": {
+      "type": "string",
+      "enum": [
+        "Class",
+        "Interface",
+        "Endpoint",
+        "Function",
+        "Producer",
+        "Consumer",
+        "Deployment",
+        "Database",
+        "Queue",
+        "Cache",
+        "Ingress",
+        "Namespace",
+        "Broker",
+        "Topic",
+        "Service",
+        "Application",
+        "Module",
+        "External",
+        "Gateway",
+        "Worker"
+      ]
+    },
+    "ElementKindProperties": {
+      "description": "Per-kind required properties validation via if/then",
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "Endpoint" } } },
+          "then": {
+            "properties": {
+              "properties": {
+                "type": "object",
+                "required": ["httpMethod"],
+                "properties": {
+                  "httpMethod": { "type": "string" }
+                }
+              }
+            },
+            "required": ["properties"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "Topic" } } },
+          "then": {
+            "properties": {
+              "properties": {
+                "type": "object",
+                "required": ["partitions"],
+                "properties": {
+                  "partitions": { "type": "string" }
+                }
+              }
+            },
+            "required": ["properties"]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "Ingress" } } },
+          "then": {
+            "properties": {
+              "properties": {
+                "type": "object",
+                "required": ["host"],
+                "properties": {
+                  "host": { "type": "string" }
+                }
+              }
+            },
+            "required": ["properties"]
+          }
+        }
+      ]
+    },
+    "Relationship": {
+      "type": "object",
+      "required": ["id", "sourceId", "targetId", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Unique relationship identifier within the snapshot"
+        },
+        "sourceId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Source element ID"
+        },
+        "targetId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Target element ID"
+        },
+        "kind": {
+          "$ref": "#/$defs/RelationKind",
+          "description": "Relationship kind"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable relationship label"
+        },
+        "technology": {
+          "type": "string",
+          "description": "Protocol or transport technology"
+        },
+        "source": {
+          "type": "string",
+          "description": "Per-relationship source override"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Custom key-value properties"
+        }
+      }
+    },
+    "RelationKind": {
+      "type": "string",
+      "enum": [
+        "Contains",
+        "DeployedOn",
+        "Uses",
+        "Calls",
+        "DependsOn",
+        "Imports",
+        "Implements",
+        "Produces",
+        "Consumes",
+        "Exposes",
+        "RoutesTo"
+      ]
+    },
+    "Flow": {
+      "type": "object",
+      "required": ["id", "name", "steps"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Unique flow identifier within the snapshot"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable flow name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional flow description"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/FlowStep" },
+          "description": "Ordered sequence of flow steps (array index = order)"
+        }
+      }
+    },
+    "FlowStep": {
+      "type": "object",
+      "required": ["sourceElementId"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceElementId": {
+          "$ref": "#/$defs/Identifier",
+          "description": "Source element ID for this step"
+        },
+        "relationshipId": {
+          "oneOf": [
+            { "$ref": "#/$defs/Identifier" },
+            { "type": "null" }
+          ],
+          "description": "Relationship ID for edge steps; null for action steps"
+        },
+        "label": {
+          "type": "string",
+          "description": "Optional step label"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Custom key-value properties for this step"
+        }
+      }
+    }
+  }
+}

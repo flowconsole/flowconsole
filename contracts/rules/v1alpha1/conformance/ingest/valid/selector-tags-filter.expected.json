@@ -1,0 +1,25 @@
+{
+  "apiVersion": "rules.flowconsole.tech/v1alpha1",
+  "kind": "RuleFile",
+  "rules": [
+    {
+      "id": "critical-monitored-must-have-outgoing",
+      "name": "Critical monitored elements must have outgoing dependencies",
+      "kind": "element",
+      "target": "actual",
+      "severity": "warning",
+      "blocking": false,
+      "enabled": true,
+      "subject": {
+        "entity": "elements",
+        "tagsAny": ["critical", "important"],
+        "tagsAll": ["monitored"]
+      },
+      "mode": "perItem",
+      "assert": {
+        "source": "count(outgoing(item)) > 0"
+      },
+      "message": "Critical monitored element ${item.name} has no outgoing dependencies"
+    }
+  ]
+}

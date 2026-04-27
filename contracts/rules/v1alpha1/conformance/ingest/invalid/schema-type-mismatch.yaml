@@ -1,0 +1,13 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: bad-blocking
+    name: Rule with string blocking
+    kind: element
+    target: actual
+    severity: error
+    blocking: "yes"
+    subject:
+      entity: elements
+    assert: "true"
+    message: Blocking should be boolean not string

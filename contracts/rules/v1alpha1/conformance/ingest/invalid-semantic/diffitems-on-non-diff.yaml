@@ -1,0 +1,13 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: bad-diffitems
+    name: DiffItems on non-diff target
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: diffItems
+    assert: "true"
+    message: Should fail

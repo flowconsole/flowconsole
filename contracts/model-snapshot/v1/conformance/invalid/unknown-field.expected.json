@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_UNKNOWN_FIELD",
+      "phase": "schema",
+      "level": "error",
+      "path": "/",
+      "message": "Unknown field 'unknownTopLevel'"
+    }
+  ]
+}

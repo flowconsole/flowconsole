@@ -1,0 +1,51 @@
+{
+  "name": "@flowconsole/cli",
+  "version": "2.0.0",
+  "description": "FlowConsole CLI (fc / fcon / flowconsole) — architecture scanner and rule engine for your CI/CD",
+  "license": "Apache-2.0",
+  "bin": {
+    "fc": "./bin/fc.js",
+    "fcon": "./bin/fc.js",
+    "flowconsole": "./bin/fc.js"
+  },
+  "scripts": {
+    "postinstall": "node postinstall.js",
+    "dev:reinstall": "bash scripts/dev-reinstall.sh"
+  },
+  "cliVersion": "0.2.0-beta",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "files": [
+    "bin/",
+    "binaries/",
+    "postinstall.js",
+    "README.md"
+  ],
+  "keywords": [
+    "architecture",
+    "architecture-as-code",
+    "diagrams",
+    "cli",
+    "flowconsole"
+  ],
+  "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/flowconsole/flowconsole.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://flowconsole.tech",
+  "bugs": {
+    "url": "https://github.com/flowconsole/flowconsole/issues"
+  }
+}

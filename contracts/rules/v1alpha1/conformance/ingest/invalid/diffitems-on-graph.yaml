@@ -1,0 +1,13 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: bad-graph
+    name: Graph cannot use diffItems
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    subject:
+      entity: diffItems
+    assert: "true"
+    message: This is invalid by design

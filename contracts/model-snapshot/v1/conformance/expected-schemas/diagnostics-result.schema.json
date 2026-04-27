@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flowconsole.tech/contracts/model-snapshot/v1/conformance/expected-schemas/diagnostics-result.schema.json",
+  "title": "DiagnosticsResult",
+  "description": "Expected diagnostics output for invalid ModelSnapshot conformance fixtures",
+  "type": "object",
+  "required": ["diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "diagnostics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["code", "phase", "level"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^SNAPSHOT_"
+          },
+          "phase": {
+            "type": "string",
+            "enum": ["schema", "version", "reference", "limit"]
+          },
+          "level": {
+            "type": "string",
+            "enum": ["error", "warning"]
+          },
+          "path": {
+            "type": "string",
+            "description": "JSON Pointer (Rfcon 6901) to the problematic node"
+          },
+          "message": {
+            "type": "string"
+          },
+          "hint": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

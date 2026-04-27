@@ -1,0 +1,13 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: diff-wrong-entity
+    name: Diff target requires diffItems entity
+    kind: element
+    target: diff
+    severity: error
+    blocking: true
+    subject:
+      entity: elements
+    assert: "true"
+    message: Should fail

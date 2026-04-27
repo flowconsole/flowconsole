@@ -1,0 +1,25 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.1.0",
+  "source": "Git",
+  "elements": [
+    { "id": "svc-a", "kind": "Service", "name": "Service A" }
+  ],
+  "relationships": [],
+  "flows": [
+    {
+      "id": "same-flow-id",
+      "name": "Flow One",
+      "steps": [
+        { "sourceElementId": "svc-a", "label": "step one" }
+      ]
+    },
+    {
+      "id": "same-flow-id",
+      "name": "Flow Two",
+      "steps": [
+        { "sourceElementId": "svc-a", "label": "step two" }
+      ]
+    }
+  ]
+}

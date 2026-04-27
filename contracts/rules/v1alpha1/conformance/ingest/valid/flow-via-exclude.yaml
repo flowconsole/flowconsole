@@ -1,0 +1,27 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: gateway-to-db-avoid-external
+    name: Gateway to database avoiding external systems
+    kind: flow
+    target: actual
+    severity: error
+    blocking: true
+    from:
+      entity: elements
+      kinds:
+        - Gateway
+    to:
+      entity: elements
+      kinds:
+        - Database
+    via:
+      entity: elements
+      kinds:
+        - External
+    viaMode: exclude
+    maxDepth: 5
+    allowCycles: false
+    mode: aggregate
+    assert: count(paths) > 0
+    message: No path from gateway to database avoiding external systems

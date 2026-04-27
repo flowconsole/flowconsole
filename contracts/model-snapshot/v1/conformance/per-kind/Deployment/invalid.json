@@ -1,0 +1,9 @@
+{
+  "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+  "schemaVersion": "1.0.0",
+  "source": "InfraScan",
+  "elements": [
+    { "id": "deployment-1", "kind": "Deployment" }
+  ],
+  "relationships": []
+}

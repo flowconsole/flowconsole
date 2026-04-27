@@ -1,0 +1,20 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: service-dependency-limit
+    name: Service dependency limit
+    kind: element
+    target: actual
+    severity: warning
+    blocking: false
+    subject:
+      entity: elements
+      kinds:
+        - Service
+    mode: perItem
+    let:
+      inCount: count(incoming(item))
+      outCount: count(outgoing(item))
+      totalDeps: inCount + outCount
+    assert: totalDeps <= 20
+    message: Service ${item.name} has too many dependencies

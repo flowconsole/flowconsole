@@ -1,0 +1,14 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: unknown-field
+    name: Rule with unknown field
+    kind: element
+    target: actual
+    severity: error
+    blocking: true
+    timeout: 5000
+    subject:
+      entity: elements
+    assert: "true"
+    message: The timeout field is not part of the schema

@@ -39,3 +39,5 @@ tmp/
 apps/docs/.next
 packages/cli/binaries/*
 apps/docs/.contentlayer/
+packages/cli/binaries/*
+packages/cli/*.tgz

@@ -1,0 +1,11 @@
+{
+  "diagnostics": [
+    {
+      "code": "SNAPSHOT_SCHEMA_INVALID_ID_PATTERN",
+      "phase": "schema",
+      "level": "error",
+      "path": "/relationships/0/id",
+      "message": "Identifier 'svc-a--Calls-->svc-b' does not match pattern ^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$"
+    }
+  ]
+}

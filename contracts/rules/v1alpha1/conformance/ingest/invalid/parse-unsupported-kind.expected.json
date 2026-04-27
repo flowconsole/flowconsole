@@ -1,0 +1,10 @@
+{
+  "diagnostics": [
+    {
+      "code": "RF_PARSE_UNSUPPORTED_KIND",
+      "phase": "parse",
+      "level": "error",
+      "path": "/kind"
+    }
+  ]
+}

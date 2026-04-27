@@ -1,0 +1,15 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: flow-diff
+    name: Flow with diff target
+    kind: flow
+    target: diff
+    severity: error
+    blocking: true
+    from:
+      entity: elements
+    to:
+      entity: elements
+    assert: count(paths) > 0
+    message: Should fail

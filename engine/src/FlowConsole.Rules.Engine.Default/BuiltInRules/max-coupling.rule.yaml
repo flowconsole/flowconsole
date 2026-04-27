@@ -1,0 +1,25 @@
+apiVersion: rules.flowconsole.tech/v1alpha1
+kind: RuleFile
+rules:
+  - id: max-coupling
+    name: Maximum coupling threshold
+    kind: element
+    target: actual
+    severity: warning
+    blocking: false
+    description: Services and applications should not exceed a coupling threshold of 10 (afferent + efferent).
+    tags:
+      - governance
+      - structural
+    subject:
+      entity: elements
+      kinds:
+        - Service
+        - Application
+    mode: perItem
+    let:
+      ca: count(incoming(item))
+      ce: count(outgoing(item))
+      total: ca + ce
+    assert: total <= 10
+    message: "Element '${item.Name}' has coupling ${total} (Ca=${ca}, Ce=${ce}), exceeds threshold 10"

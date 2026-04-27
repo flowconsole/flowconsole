@@ -41,28 +41,142 @@ to the CLA.
 
 ---
 
-## How to Contribute
+## Development Setup
 
-1. Fork the repository.
-2. Create a new branch from `main` (or the appropriate development branch).
-3. Make your changes.
-4. Ensure tests and linting pass (if applicable).
-5. Submit a pull request.
+### Prerequisites
 
-Pull requests that do not comply with the CLA requirement will not be
-merged.
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | 22+ | LTS recommended |
+| pnpm | 9+ | `corepack enable` to activate |
+| .NET | 10.0 | SDK — [get.dot.net](https://get.dot.net) |
 
-## Filing issues
+### Clone and build
+
+```bash
+git clone https://github.com/flowconsole/flowconsole.git
+cd flowconsole
+
+# Docs / CLI wrapper / SDK
+pnpm install
+pnpm build
+
+# CLI (.NET)
+cd engine/src
+dotnet build FlowConsole.slnx
+```
+
+### Running tests
+
+```bash
+# TypeScript unit tests
+pnpm test:unit
+
+# CLI / scanners / schema tests
+cd engine/src
+dotnet test FlowConsole.slnx
+```
+
+---
+
+## Filing Issues
+
 - For bugs, include reproduction steps, expected vs actual behavior, environment (OS, browser/Node version), and logs/screenshots where helpful.
 - For features, describe the use case and any prior art or alternatives considered.
-
 
 ---
 
 ## Code Style and Quality
 
-Please follow the existing code style and conventions used in the project.
-Keep changes focused and well-documented.
+### TypeScript / JavaScript
+
+- ESLint config at [`eslint.config.js`](./eslint.config.js) — run `pnpm lint` to check.
+- Prefer `const` over `let`; avoid `var`.
+- Use TypeScript strict mode; no `any` unless truly unavoidable.
+- Immutability by default — readonly properties, spread over mutation.
+
+### C# / .NET
+
+- `dotnet format` enforces the style defined in `Directory.Build.props`.
+- `TreatWarningsAsErrors` and `EnforceCodeStyleInBuild` are enabled project-wide.
+- Use records and `with`-expressions for immutable data.
+- Business errors use `Result<T>` (FluentResults), not exceptions.
+
+### General
+
+- No obvious or section comments (`// Arrange`, `// Act`, `// Assert`, `#region`, divider lines). Comment only when the *why* is non-obvious.
+- Keep changes focused — one logical change per commit.
+
+---
+
+## Pull Request Process
+
+### Branch naming
+
+Use a descriptive prefix:
+
+- `feat/short-description` — new features
+- `fix/short-description` — bug fixes
+- `docs/short-description` — documentation only
+- `refactor/short-description` — code restructuring without behavior change
+
+### How to submit
+
+1. Fork the repository.
+2. Create a branch from `main` following the naming convention above.
+3. Make your changes, keeping commits focused and well-described.
+4. Ensure all tests and linting pass locally (see [Development Setup](#development-setup)).
+5. Open a pull request against `main`.
+
+### Review process
+
+- All PRs require at least one maintainer review before merge.
+- CI runs automatically — linting, unit tests, and build must pass.
+- Address review feedback by pushing new commits (do not force-push during review).
+- PRs that do not comply with the CLA requirement will not be merged.
+
+### Acceptance is at maintainer discretion
+
+Submitting a pull request does **not guarantee that it will be merged.**
+Maintainers may decline a contribution — including a working, well-tested one —
+for any of the following reasons (non-exhaustive):
+
+- The change is **out of scope** for the project's stated goals.
+- The functionality belongs to the **commercial / SaaS edition** of FlowConsole
+  rather than the open-source core. FlowConsole follows an **open-core model**:
+  certain capabilities/features are intentionally kept in the closed-source
+  product and are not accepted into this repository, even when the
+  implementation is technically sound. If you are unsure whether a feature
+  falls on the OSS or SaaS side of the line, please open an issue first.
+- It conflicts with the **roadmap** or with work already in progress.
+- The design **doesn't fit the existing architecture** or would impose ongoing
+  maintenance cost we are not prepared to take on.
+- **Code quality, test coverage, or documentation** falls below project
+  standards and the gap is not addressed during review.
+- The change introduces **breaking changes** without sufficient justification
+  or migration path.
+- It duplicates functionality that exists elsewhere in the codebase or in a
+  dependency we already use.
+- We cannot reach the contributor for required clarification within a
+  reasonable timeframe.
+
+**To reduce the risk of rejection on a substantial change**, please:
+
+1. **Open an issue or discussion first** describing the problem and your
+   proposed approach — *before* writing the code. Maintainers will indicate
+   whether the direction is likely to be accepted.
+2. Keep PRs **small and focused** — one logical change per PR.
+3. Reference the related issue in the PR description.
+
+Bug fixes, documentation improvements, and small focused changes can usually
+go directly to PR without prior discussion.
+
+If a contribution is declined, the work remains yours under the project's
+license — you are welcome to maintain it in a fork.
+
+Maintainers may also **close stale PRs** that have not received a response to
+review feedback within a reasonable period (typically 30 days). A closed PR
+can always be reopened once the feedback is addressed.
 
 ---
 
@@ -70,5 +184,9 @@ Keep changes focused and well-documented.
 
 If you have questions about contributing, licensing, or the CLA,
 feel free to open an issue or start a discussion.
-## Code of conduct
-Please review `CODE_OF_CONDUCT.md`; by participating you agree to abide by it.
+
+---
+
+## Code of Conduct
+
+Please review [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md); by participating you agree to abide by it.
