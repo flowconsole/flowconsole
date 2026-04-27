@@ -12,7 +12,7 @@ FlowConsole is an architecture-as-code platform that lets developers model syste
 # Install dependencies (from repo root or any workspace)
 pnpm install
 
-# Development (run from apps/app or apps/docs)
+# Development (run from apps/docs)
 pnpm dev
 
 # Build
@@ -25,7 +25,6 @@ pnpm lint:fix                 # ESLint with auto-fix
 
 # Testing
 pnpm test:unit                # Run Vitest unit tests across all packages
-pnpm test:e2e                 # Playwright E2E (apps/app)
 
 # Run single test file (in any package)
 pnpm --filter @flowconsole/web vitest run tests/unit/<filename>.test.ts
@@ -33,12 +32,11 @@ pnpm --filter @flowconsole/web vitest run tests/unit/<filename>.test.ts
 
 ## Workspace Structure
 
-- **apps/app** (`app`) - Product SPA (Vite + React 19, the authenticated workspace UI)
 - **apps/docs** (`flowconsole-docs`) - Documentation + marketing site (Next.js)
 - **packages/web** (`@flowconsole/web`) - React diagram components, layout pipeline, Monaco workbench
 - **packages/sdk** (`@flowconsole/sdk` v2.0.0) - Typed architecture-as-code SDK with jsii multi-language support (TypeScript, C#, Java, Python, Go). 13 base element classes, 6 deployment classes, 23 convenience wrappers. Three-layer API: Topology (elements + belongsTo), Flows (fluent interaction chains with automatic relationship inference), Deployment (infrastructure targets). `SoftwareSystem` (not `System`) due to C# reserved name. Key exports: `buildSnapshot()`, `getRuntime()`
-- **packages/ui** (`@flowconsole/ui`) - Shared shadcn/Radix UI primitives (consumed by apps/app and apps/docs)
-- **packages/cli** (`@flowconsole/cli`) - npm-wrapper that distributes the .NET self-contained `fc` CLI binary (source in `backend/src/FlowConsole.Cli/`)
+- **packages/ui** (`@flowconsole/ui`) - Shared shadcn/Radix UI primitives (consumed by apps/docs)
+- **packages/cli** (`@flowconsole/cli`) - npm-wrapper that distributes the .NET self-contained `fc` CLI binary (source in `engine/src/FlowConsole.Cli/`)
 
 ## Architecture
 
@@ -61,22 +59,22 @@ pnpm --filter @flowconsole/web vitest run tests/unit/<filename>.test.ts
 - SVG-based shapes (circle, hexagon, cloud) render via absolutely-positioned `<svg>` under content; rectangular shapes (service, database, queue, etc.) use CSS only
 - Preset styles (`theme.ts`): highlighted, critical, deprecated, new, external — each maps to borderColor/backgroundColor/opacity overrides
 
-## Backend — Rule Engine
+## Engine — CLI Rule Engine
 
 Two .NET projects implement the v1alpha1 rule engine:
 
-- **backend/src/FlowConsole.Rules.Core** — domain types, compiled model, ingest pipeline (5 phases: parse → schema → semantic → expression → normalize), abstractions (IRuleFileIngestor, IExpressionCompiler, IExpressionEvaluator, ISubjectResolver, IPathFinder, IRuleExecutor). No external dependencies beyond YamlDotNet.
-- **backend/src/FlowConsole.Rules.Engine.Default** — Cel.NET-based expression compiler/evaluator, helper functions (collection, graph, diff, predicate), InMemory subject resolver, path finder, rule executor. Cel.NET types do not leak into the public API surface.
+- **engine/src/FlowConsole.Rules.Core** — domain types, compiled model, ingest pipeline (5 phases: parse → schema → semantic → expression → normalize), abstractions (IRuleFileIngestor, IExpressionCompiler, IExpressionEvaluator, ISubjectResolver, IPathFinder, IRuleExecutor). No external dependencies beyond YamlDotNet.
+- **engine/src/FlowConsole.Rules.Engine.Default** — Cel.NET-based expression compiler/evaluator, helper functions (collection, graph, diff, predicate), InMemory subject resolver, path finder, rule executor. Cel.NET types do not leak into the public API surface.
 
-## Backend — Scanners
+## Engine — Scanners
 
-- **backend/src/FlowConsole.Scanners.Helm** — Helm chart scanner shared library. Parses Chart.yaml + templates/ to produce typed Elements/Relationships (Deployment, Service, Ingress, ConfigMap, etc.). Implements `IInfraScanner`. Used by both backend API and CLI (`fc scan` auto-detects via Chart.yaml).
+- **engine/src/FlowConsole.Scanners.Helm** — Helm chart scanner shared library. Parses Chart.yaml + templates/ to produce typed Elements/Relationships (Deployment, Service, Ingress, ConfigMap, etc.). Implements `IInfraScanner`. Used by the CLI (`fc scan` auto-detects via Chart.yaml).
 
 Rule file contract: `contracts/rules/v1alpha1/` — JSON Schema, expression language spec, types, helpers, diagnostics, conformance suite (50+ fixtures).
 
 ```bash
-# Backend build and test
-cd backend
+# Engine build and test
+cd engine
 dotnet build src/FlowConsole.slnx
 dotnet test src/FlowConsole.slnx --verbosity quiet
 
@@ -86,10 +84,9 @@ cd .. && pnpm validate:rules:all
 
 ## Testing Conventions
 
-- Unit tests: per-package `tests/unit/` using Vitest + React Testing Library (e.g. `packages/web/tests/unit/`, `apps/app/tests/unit/`)
-- E2E tests: `apps/app/tests/e2e/` using Playwright
-- Backend tests: `backend/tests/` using xUnit + NSubstitute + FluentAssertions
-- Test config: per-package `vitest.config.ts` and `playwright.config.ts` (no root configs)
+- Unit tests: per-package `tests/unit/` using Vitest + React Testing Library (e.g. `packages/web/tests/unit/`)
+- Engine tests: `engine/tests/` using xUnit + NSubstitute + FluentAssertions
+- Test config: per-package `vitest.config.ts` (no root configs)
 
 ## Code Style
 
@@ -97,3 +94,7 @@ cd .. && pnpm validate:rules:all
 - UI: shadcn/Radix primitives from `@flowconsole/ui` (`packages/ui/`)
 - Linting: ESLint with typescript-eslint, react-hooks, and react-refresh plugins
 - Prefer existing patterns in `@flowconsole/core` (`packages/core/`) for state management (useMemo/useCallback)
+
+## Note
+
+Server code (Api, Application, Infrastructure, plugins, web SPA, docker stack) has been moved to the private `src_main` repository.

@@ -15,7 +15,7 @@ on:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  CLI_PROJECT: backend/src/FlowConsole.Cli/FlowConsole.Cli.csproj
+  CLI_PROJECT: engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj
 
 permissions:
   contents: write
@@ -103,9 +103,9 @@ jobs:
 
       - name: Build and test
         run: |
-          dotnet restore backend/src/FlowConsole.slnx
-          dotnet build backend/src/FlowConsole.slnx --no-restore
-          dotnet test backend/src/FlowConsole.slnx --no-build --verbosity quiet
+          dotnet restore engine/src/FlowConsole.slnx
+          dotnet build engine/src/FlowConsole.slnx --no-restore
+          dotnet test engine/src/FlowConsole.slnx --no-build --verbosity quiet
 
   sfa-publish:
     needs: [backend-preflight, build-and-test, extract-version]
@@ -204,7 +204,7 @@ jobs:
 
       - name: Smoke test - fc scan (C# project)
         run: |
-          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} scan backend/src/FlowConsole.Core/
+          ${{ runner.os == 'Windows' && 'fc-bin\fc.exe' || 'fc-bin/fc' }} scan engine/src/FlowConsole.Core/
 
       - name: Smoke test - fc validate
         run: |

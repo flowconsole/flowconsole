@@ -18,7 +18,7 @@ public class JsonSchemaValidatorTests
             var candidate = Path.Combine(dir, "contracts", "model-snapshot", "v1", "conformance");
             if (Directory.Exists(candidate)) return candidate;
 
-            // Also check if we're in oss/backend/...
+            // Also check if we're in oss/engine/...
             candidate = Path.Combine(dir, "oss", "contracts", "model-snapshot", "v1", "conformance");
             if (Directory.Exists(candidate)) return candidate;
 

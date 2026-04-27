@@ -50,8 +50,6 @@ to the CLA.
 | Node.js | 22+ | LTS recommended |
 | pnpm | 9+ | `corepack enable` to activate |
 | .NET | 10.0 | SDK — [get.dot.net](https://get.dot.net) |
-| Docker | 20.10+ | Required for PostgreSQL + Apache AGE |
-| Docker Compose | v2 | Bundled with Docker Desktop |
 
 ### Clone and build
 
@@ -59,30 +57,23 @@ to the CLA.
 git clone https://github.com/flowconsole/flowconsole.git
 cd flowconsole
 
-# Frontend / CLI / SDK
+# Docs / CLI wrapper / SDK
 pnpm install
 pnpm build
 
-# Backend
-cd backend/src
+# CLI (.NET)
+cd engine/src
 dotnet build FlowConsole.slnx
-
-# Run backend stack (PostgreSQL + AGE + Ollama + API)
-cd ../../backend/docker
-docker compose up
 ```
 
 ### Running tests
 
 ```bash
-# Frontend unit tests
+# TypeScript unit tests
 pnpm test:unit
 
-# Frontend E2E tests (requires running app)
-pnpm test:e2e
-
-# Backend tests
-cd backend/src
+# CLI / scanners / schema tests
+cd engine/src
 dotnet test FlowConsole.slnx
 ```
 

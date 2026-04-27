@@ -109,6 +109,7 @@ internal sealed class TelemetryState
     }
 
     private void Save(StateData data)
+    {
         var dir = Path.GetDirectoryName(_stateFilePath);
         if (dir is not null && !Directory.Exists(dir))
             Directory.CreateDirectory(dir);

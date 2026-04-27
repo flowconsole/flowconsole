@@ -12,7 +12,7 @@
     "stability": "stable"
   },
   "homepage": "https://flowconsole.tech",
-  "jsiiVersion": "5.9.23 (build 29252a0)",
+  "jsiiVersion": "5.9.37 (build 5176c0d)",
   "keywords": [],
   "license": "Apache-2.0",
   "metadata": {
@@ -5942,5 +5942,5 @@
     }
   },
   "version": "2.0.0",
-  "fingerprint": "UOryq1ax8+Uz5nGzAEJkAtYrHQzMlUj35KCqEodhwfg="
+  "fingerprint": "tU6i6yWgP8XsZ70twzCag6Fk/LCR4gCVAYWuhoWR97I="
 }

@@ -14,7 +14,7 @@ set -euo pipefail
 
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "$PKG_DIR/../.." && pwd)"
-CLI_PROJECT="$REPO_ROOT/backend/src/FlowConsole.Cli/FlowConsole.Cli.csproj"
+CLI_PROJECT="$REPO_ROOT/engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj"
 
 detect_rid() {
   local os arch

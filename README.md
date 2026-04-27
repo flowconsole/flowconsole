@@ -51,15 +51,14 @@ FlowConsole turns your architecture into a **queryable live graph**, not a colle
 
 ## Quick Start
 
-The fastest way to run FlowConsole is with Docker Compose:
+Install the CLI via npm:
 
 ```bash
-git clone https://github.com/flowconsole/flowconsole.git
-cd flowconsole/backend/docker
-docker compose up
+npm install -g @flowconsole/cli
+fc --version
 ```
 
-This starts the API server (port 5555), PostgreSQL with Apache AGE. See [backend/README.md](backend/README.md) for build-from-source instructions and configuration options.
+See [engine/README.md](engine/README.md) for build-from-source instructions.
 
 ## Supported Languages
 
@@ -104,14 +103,14 @@ This starts the API server (port 5555), PostgreSQL with Apache AGE. See [backend
 ```
 flowconsole/
 ├── apps/
-│   ├── app/          # Main frontend application (Vite + React)
 │   └── docs/         # Documentation site (Next.js)
 ├── packages/
 │   ├── web/          # Web UI components
 │   ├── sdk/          # Multi-language SDK
 │   ├── cli/          # CLI npm wrapper
+│   ├── core/         # TS parsers (csharp/go/java/python/ts)
 │   └── ui/           # Shared UI components
-├── backend/          # .NET app (API)
+├── engine/           # .NET source for the `fc` CLI binary
 └── contracts/        # JSON schemas (model-snapshot, rules)
 ```
 
