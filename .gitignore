@@ -36,3 +36,6 @@ tmp/
 *.sln
 *.sw?
 .VSCodeCounter/
+apps/docs/.next
+packages/cli/binaries/*
+apps/docs/.contentlayer/
