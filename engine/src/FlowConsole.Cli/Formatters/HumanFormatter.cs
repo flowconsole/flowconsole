@@ -53,9 +53,9 @@ internal sealed class HumanFormatter : IFindingsFormatter
     private static (string Icon, string Color) SeverityStyle(string severity) => severity switch
     {
         "critical" => ("X", "bold red"),
-        "error"    => ("E", "bold red"),
-        "warning"  => ("W", "bold yellow"),
-        "info"     => ("I", "bold cyan"),
-        _          => ("?", "grey"),
+        "error" => ("E", "bold red"),
+        "warning" => ("W", "bold yellow"),
+        "info" => ("I", "bold cyan"),
+        _ => ("?", "grey"),
     };
 }

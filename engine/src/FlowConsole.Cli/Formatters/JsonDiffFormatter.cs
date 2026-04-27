@@ -41,13 +41,19 @@ internal sealed class JsonDiffFormatter : IDiffFormatter
         {
             Elements = diff.AddedElements.Select(e => new JsonDiffElementEntry
             {
-                Id = e.Id, Kind = e.Kind, Name = e.Name,
-                Technology = e.Technology, Source = e.Source
+                Id = e.Id,
+                Kind = e.Kind,
+                Name = e.Name,
+                Technology = e.Technology,
+                Source = e.Source
             }).ToList(),
             Relationships = diff.AddedRelationships.Select(r => new JsonDiffRelEntry
             {
-                SourceId = r.SourceId, TargetId = r.TargetId, Kind = r.Kind,
-                Label = r.Label, Technology = r.Technology
+                SourceId = r.SourceId,
+                TargetId = r.TargetId,
+                Kind = r.Kind,
+                Label = r.Label,
+                Technology = r.Technology
             }).ToList()
         };
     }
@@ -61,13 +67,19 @@ internal sealed class JsonDiffFormatter : IDiffFormatter
         {
             Elements = diff.RemovedElements.Select(e => new JsonDiffElementEntry
             {
-                Id = e.Id, Kind = e.Kind, Name = e.Name,
-                Technology = e.Technology, Source = e.Source
+                Id = e.Id,
+                Kind = e.Kind,
+                Name = e.Name,
+                Technology = e.Technology,
+                Source = e.Source
             }).ToList(),
             Relationships = diff.RemovedRelationships.Select(r => new JsonDiffRelEntry
             {
-                SourceId = r.SourceId, TargetId = r.TargetId, Kind = r.Kind,
-                Label = r.Label, Technology = r.Technology
+                SourceId = r.SourceId,
+                TargetId = r.TargetId,
+                Kind = r.Kind,
+                Label = r.Label,
+                Technology = r.Technology
             }).ToList()
         };
     }
@@ -83,34 +95,50 @@ internal sealed class JsonDiffFormatter : IDiffFormatter
             {
                 Before = new JsonDiffElementEntry
                 {
-                    Id = e.Before.Id, Kind = e.Before.Kind, Name = e.Before.Name,
-                    Technology = e.Before.Technology, Source = e.Before.Source
+                    Id = e.Before.Id,
+                    Kind = e.Before.Kind,
+                    Name = e.Before.Name,
+                    Technology = e.Before.Technology,
+                    Source = e.Before.Source
                 },
                 After = new JsonDiffElementEntry
                 {
-                    Id = e.After.Id, Kind = e.After.Kind, Name = e.After.Name,
-                    Technology = e.After.Technology, Source = e.After.Source
+                    Id = e.After.Id,
+                    Kind = e.After.Kind,
+                    Name = e.After.Name,
+                    Technology = e.After.Technology,
+                    Source = e.After.Source
                 },
                 FieldChanges = e.FieldChanges.Select(f => new JsonFieldChange
                 {
-                    Field = f.Field, Before = f.Before, After = f.After
+                    Field = f.Field,
+                    Before = f.Before,
+                    After = f.After
                 }).ToList()
             }).ToList(),
             Relationships = diff.ChangedRelationships.Select(r => new JsonDiffChangedRel
             {
                 Before = new JsonDiffRelEntry
                 {
-                    SourceId = r.Before.SourceId, TargetId = r.Before.TargetId, Kind = r.Before.Kind,
-                    Label = r.Before.Label, Technology = r.Before.Technology
+                    SourceId = r.Before.SourceId,
+                    TargetId = r.Before.TargetId,
+                    Kind = r.Before.Kind,
+                    Label = r.Before.Label,
+                    Technology = r.Before.Technology
                 },
                 After = new JsonDiffRelEntry
                 {
-                    SourceId = r.After.SourceId, TargetId = r.After.TargetId, Kind = r.After.Kind,
-                    Label = r.After.Label, Technology = r.After.Technology
+                    SourceId = r.After.SourceId,
+                    TargetId = r.After.TargetId,
+                    Kind = r.After.Kind,
+                    Label = r.After.Label,
+                    Technology = r.After.Technology
                 },
                 FieldChanges = r.FieldChanges.Select(f => new JsonFieldChange
                 {
-                    Field = f.Field, Before = f.Before, After = f.After
+                    Field = f.Field,
+                    Before = f.Before,
+                    After = f.After
                 }).ToList()
             }).ToList()
         };

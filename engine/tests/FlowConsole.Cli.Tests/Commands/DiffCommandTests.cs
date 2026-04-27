@@ -763,13 +763,13 @@ public sealed class DiffCommandTests : IDisposable
         string beforePath, string afterPath,
         string format = "human", string? only = null,
         string? outputPath = null) => new()
-    {
-        BeforePath = beforePath,
-        AfterPath = afterPath,
-        Format = format,
-        Only = only,
-        OutputPath = outputPath
-    };
+        {
+            BeforePath = beforePath,
+            AfterPath = afterPath,
+            Format = format,
+            Only = only,
+            OutputPath = outputPath
+        };
 
     private static string CaptureStdout(Action action)
     {

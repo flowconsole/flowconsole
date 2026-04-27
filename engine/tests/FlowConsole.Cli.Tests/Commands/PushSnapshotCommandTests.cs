@@ -399,18 +399,18 @@ public sealed class PushSnapshotCommandTests : IDisposable
         string? snapshotPath = null,
         string? apiKey = null,
         bool dryRun = false) => new()
-    {
-        SnapshotPath = snapshotPath ?? _snapshotPath,
-        ModelId = "test-model",
-        ApiUrl = "http://localhost:9999",
-        ApiKey = apiKey,
-        DryRun = dryRun
-    };
+        {
+            SnapshotPath = snapshotPath ?? _snapshotPath,
+            ModelId = "test-model",
+            ApiUrl = "http://localhost:5555",
+            ApiKey = apiKey,
+            DryRun = dryRun
+        };
 
     private (PushSnapshotCommand, CancellationTokenHolder) CreateCommand(HttpMessageHandler handler)
     {
         // Set API key for tests
-        Environment.SetEnvironmentVariable("FLOWCONSOLE_API_KEY", "fcp_testtoken123");
+        Environment.SetEnvironmentVariable("FLOWCONSOLE_API_KEY", "TODO");
 
         var services = new ServiceCollection();
         services.AddHttpClient("FlowConsole")

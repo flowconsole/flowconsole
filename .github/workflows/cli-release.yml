@@ -1,9 +1,11 @@
 name: CLI Release
 
 on:
-  push:
-    tags:
-      - 'cli-v*.*.*'
+  # Frozen during repo refactor — re-enable tag trigger once cli-v* releases produce
+  # fcon-* archives (current cli-v0.2.0-beta still has legacy fc-* assets).
+  #push:
+  #  tags:
+  #    - 'cli-v*.*.*'
   workflow_dispatch:
     inputs:
       dry_run:

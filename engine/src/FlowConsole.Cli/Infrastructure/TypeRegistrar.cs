@@ -16,8 +16,8 @@ internal sealed class TypeRegistrar : ITypeRegistrar
         _services = services;
     }
 
-     public ITypeResolver Build() =>
-        new TypeResolver(_services.BuildServiceProvider());
+    public ITypeResolver Build() =>
+       new TypeResolver(_services.BuildServiceProvider());
 
 #pragma warning disable IL2067 // Spectre.Console.Cli ITypeRegistrar does not annotate its parameters
     public void Register(Type service, Type implementation) =>

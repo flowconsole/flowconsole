@@ -2,7 +2,7 @@ name: Engine CI
 
 on:
   push:
-    branches: [main, phase*]
+    branches: [main]
     paths:
       - 'engine/**'
       - '.github/workflows/engine-ci.yml'

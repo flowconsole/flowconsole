@@ -353,13 +353,13 @@ public sealed class PushFindingsCommandTests : IDisposable
         string? findingsPath = null,
         string? apiKey = null,
         bool dryRun = false) => new()
-    {
-        FindingsPath = findingsPath ?? _findingsPath,
-        ModelId = "test-model",
-        ApiUrl = "http://localhost:9999",
-        ApiKey = apiKey,
-        DryRun = dryRun
-    };
+        {
+            FindingsPath = findingsPath ?? _findingsPath,
+            ModelId = "test-model",
+            ApiUrl = "http://localhost:9999",
+            ApiKey = apiKey,
+            DryRun = dryRun
+        };
 
     private PushFindingsCommand CreateCommand(HttpMessageHandler handler)
     {

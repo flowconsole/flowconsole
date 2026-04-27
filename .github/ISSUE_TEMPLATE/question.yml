@@ -1,0 +1,45 @@
+name: Question
+description: Ask a question about FlowConsole — usage, configuration, or expected behavior
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question? Please check first:
+        - [Documentation](https://flowconsole.tech/docs)
+        - [Existing Discussions](https://github.com/flowconsole/flowconsole/discussions)
+        - [Open and closed issues](https://github.com/flowconsole/flowconsole/issues?q=is%3Aissue)
+
+        For open-ended questions or design discussions, prefer
+        [Discussions](https://github.com/flowconsole/flowconsole/discussions) — they keep the
+        issue tracker focused on bugs and feature work.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+      placeholder: I'm trying to do X and...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What have you tried? Any relevant configuration, command output, or links to your code?
+      render: shell
+
+  - type: input
+    id: fcon-version
+    attributes:
+      label: fcon Version
+      description: Output of `fcon --version`
+      placeholder: e.g. 0.2.0-beta
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: e.g. Ubuntu 22.04, macOS 14.3, Windows 11
