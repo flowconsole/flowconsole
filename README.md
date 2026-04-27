@@ -1,7 +1,7 @@
 <p align="center">
-  <img src="../apps/docs/public/banner.png" alt="FlowConsole" />
+  <img src="https://raw.githubusercontent.com/flowconsole/flowconsole/main/apps/docs/public/banner.png" alt="FlowConsole" />
 </p>
-<p align="center">Architecture as Code platform — define, validate, and visualize software architecture</p>
+<p align="center">define, validate, and visualize software architecture</p>
 <br/>
 <p align="center">
   <a href="https://discord.gg/23CkhhDz"><img src="https://img.shields.io/badge/Community-discord-blue?style=flat&logo=discord" alt="discord chat"></a>
@@ -25,7 +25,6 @@ This repository ships the open-source CLI, SDK, scanners, rule engine, and JSON 
 
 - **Multi-language SDK** — author models in TypeScript natively, or in C#, Java, or Python via jsii-generated bindings
 - **Source code scanners** — extract architectural snapshots from C# projects and Helm charts(other sources are comming)
-- **Snapshot diff** — `fcon diff` compares two model versions and reports structural changes
 - **Fitness functions** — Rule engine for architectural constraints
 - **CI/CD validation** — `fcon validate` enforces schema and rules; ships as a self-contained binary for  linux/macOS/windows × x64/arm64
 - **Public JSON schemas** — `model-snapshot/v1` and `rules/v1alpha1` with conformance fixtures, so any tool can integrate
