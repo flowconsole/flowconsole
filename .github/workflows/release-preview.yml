@@ -15,6 +15,11 @@ permissions:
   contents: write
   id-token: write
 
+env:
+  # Skip @flowconsole/cli postinstall download (chicken-and-egg in CI:
+  # @flowconsole/cli is a workspace dep but its binary isn't published yet for this build).
+  FLOWCONSOLE_CLI_SKIP_DOWNLOAD: "1"
+
 jobs:
   preview:
     runs-on: ubuntu-latest

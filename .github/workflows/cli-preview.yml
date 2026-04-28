@@ -19,6 +19,9 @@ env:
   DOTNET_VERSION: "10.0.x"
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Skip @flowconsole/cli postinstall download (chicken-and-egg in CI:
+  # the binary we're about to build doesn't exist on GitHub Releases yet).
+  FLOWCONSOLE_CLI_SKIP_DOWNLOAD: "1"
 
 jobs:
   version:
@@ -172,7 +175,10 @@ jobs:
             fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256
 
   npm-publish:
-    needs: [version, build]
+    # Depends on github-prerelease so that the GitHub Release with binaries exists
+    # BEFORE @flowconsole/cli is published to npm. Otherwise, any `npm install
+    # @flowconsole/cli@next` between the two job completions would 404 in postinstall.js.
+    needs: [version, build, github-prerelease]
     if: needs.version.outputs.no_changes != 'true'
     runs-on: ubuntu-latest
     steps:
