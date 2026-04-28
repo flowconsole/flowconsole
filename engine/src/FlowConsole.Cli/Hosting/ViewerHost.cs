@@ -75,30 +75,20 @@ internal sealed class ViewerHost : IDisposable
         if (path.StartsWith("/assets/", StringComparison.Ordinal))
         {
             var assetName = path["/assets/".Length..];
-            var resourceName = ResourcePrefix + "assets." + assetName.Replace('-', '-');
             var assembly = typeof(ViewerHost).Assembly;
+            var resourceName = ResolveResourceName(assembly, assetName);
+
+            if (resourceName is null)
+            {
+                response.StatusCode = 404;
+                response.Close();
+                return;
+            }
 
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream is null)
             {
-                // Vite hashes include dots — try replacing dots in filename (not extension) with dots in resource name
-                var altResourceName = ResolveResourceName(assetName);
-                using var altStream = altResourceName is not null
-                    ? assembly.GetManifestResourceStream(altResourceName)
-                    : null;
-
-                if (altStream is null)
-                {
-                    response.StatusCode = 404;
-                    response.Close();
-                    return;
-                }
-
-                var altExt = System.IO.Path.GetExtension(assetName);
-                response.ContentType = AssetMime.Resolve(altExt);
-                response.Headers.Set("Cache-Control", "public, max-age=31536000, immutable");
-                response.ContentLength64 = altStream.Length;
-                await altStream.CopyToAsync(response.OutputStream);
+                response.StatusCode = 404;
                 response.Close();
                 return;
             }
@@ -163,19 +153,23 @@ internal sealed class ViewerHost : IDisposable
         response.Close();
     }
 
-    private static string? ResolveResourceName(string assetFileName)
+    private static string? ResolveResourceName(Assembly assembly, string assetFileName)
     {
-        var assembly = typeof(ViewerHost).Assembly;
-        var prefix = ResourcePrefix + "assets.";
-        var allResources = assembly.GetManifestResourceNames();
+        var directName = ResourcePrefix + "assets." + assetFileName;
+        if (assembly.GetManifestResourceInfo(directName) is not null)
+            return directName;
 
-        foreach (var name in allResources)
+        // .NET embeds hyphens as-is but dots in filenames become namespace separators.
+        // Vite hashes can contain dots (e.g. index-CxH3q.2B.js). Try suffix match
+        // against all resources to handle mangled names.
+        var prefix = ResourcePrefix + "assets.";
+        foreach (var name in assembly.GetManifestResourceNames())
         {
             if (!name.StartsWith(prefix, StringComparison.Ordinal))
                 continue;
 
             var resourceSuffix = name[prefix.Length..];
-            if (string.Equals(resourceSuffix, assetFileName, StringComparison.Ordinal))
+            if (string.Equals(resourceSuffix, assetFileName, StringComparison.OrdinalIgnoreCase))
                 return name;
         }
 

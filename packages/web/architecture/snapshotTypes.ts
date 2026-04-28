@@ -26,7 +26,8 @@ export type ElementKind =
   | 'Module'
   | 'External'
   | 'Gateway'
-  | 'Worker';
+  | 'Worker'
+  | 'User';
 
 export type RelationKind =
   | 'Contains'

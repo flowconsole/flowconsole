@@ -8,9 +8,6 @@ public class BrowserLauncher
 {
     public virtual void TryOpen(string url)
     {
-        if (EnvironmentDetector.IsCI)
-            return;
-
         try
         {
             Process.Start(new ProcessStartInfo

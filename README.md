@@ -73,7 +73,8 @@ See [engine/README.md](engine/README.md) for build-from-source instructions.
 │   fcon CLI (.NET)   │   SDK (jsii)                 │
 │   scan / validate │   TS, C#, Java, Python       │
 │   diff / fmt      │                              │
-│   push / rules    │   author the model in code   │
+│   view / push     │   author the model in code   │
+│   rules           │                              │
 ├───────────────────┼──────────────────────────────┤
 │   Scanners        │   Rule engine                │
 │   C# + Helm       │   fitness functions  │
@@ -100,6 +101,7 @@ flowconsole/
 │   └── docs/         # Documentation site (Next.js)
 ├── packages/
 │   ├── web/          # Web UI components
+│   ├── viewer/       # Local snapshot viewer SPA (embedded in CLI)
 │   ├── sdk/          # Multi-language SDK
 │   ├── cli/          # CLI npm wrapper
 │   ├── core/         # TS parsers (csharp/go/java/python/ts)

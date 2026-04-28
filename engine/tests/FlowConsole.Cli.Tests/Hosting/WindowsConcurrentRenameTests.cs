@@ -23,7 +23,7 @@ public sealed class WindowsConcurrentRenameTests : IDisposable
             Directory.Delete(_tempDir, recursive: true);
     }
 
-    [Fact(Skip = "Windows-only: concurrent rename with FileShare.Delete")]
+    [Fact]
     public async Task ConcurrentRead_DuringAtomicRename_NoSharingViolation()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

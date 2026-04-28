@@ -131,7 +131,7 @@ fcon scan ./src
 
 `fcon view` works with the framework-dependent `dotnet tool install` channel.
 It does **not** require the ASP.NET Core runtime — the embedded HTTP server
-uses WatsonWebserver over `System.Net.HttpListener`.
+uses a lightweight `System.Net.HttpListener` — no ASP.NET Core dependency.
 
 ## Known Limitations (v0.2.0-alpha)
 

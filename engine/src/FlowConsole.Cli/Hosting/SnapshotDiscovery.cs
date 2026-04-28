@@ -18,7 +18,7 @@ public sealed class SnapshotDiscovery
             return PeekSnapshot(explicitPath);
         }
 
-        var snapshotsDir = Path.Combine(".flowconsole", "snapshots");
+        var snapshotsDir = Path.GetFullPath(Path.Combine(".flowconsole", "snapshots"));
         if (!Directory.Exists(snapshotsDir))
             throw new SnapshotsNotFoundException(snapshotsDir);
 

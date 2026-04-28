@@ -63,7 +63,17 @@ internal sealed class ViewCommand : AsyncCommand<ViewSettings>
             return 7;
         }
 
-        var port = PortAllocator.ResolvePort(settings.Port);
+        int port;
+        try
+        {
+            port = PortAllocator.ResolvePort(settings.Port);
+        }
+        catch (PortInUseException ex)
+        {
+            CliConsole.Error(ex.Message);
+            return 5;
+        }
+
         var url = $"http://127.0.0.1:{port}";
 
         using var host = new ViewerHost(discovered.Path, settings.MaxSnapshotBytes, port);

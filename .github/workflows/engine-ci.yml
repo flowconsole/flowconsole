@@ -3,6 +3,7 @@ name: Engine CI
 on:
   push:
     branches:
+      - main
       - dev
       - 'feature/**'
     paths:
@@ -12,6 +13,7 @@ on:
       - '.github/workflows/engine-ci.yml'
   pull_request:
     branches:
+      - main
       - dev
     paths:
       - 'engine/**'
