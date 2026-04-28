@@ -52,6 +52,10 @@ internal sealed class ViewerHost : IDisposable
             {
                 // Client disconnected
             }
+            catch (IOException)
+            {
+                // Snapshot file disappeared or was replaced mid-read (e.g. AtomicFileWriter rename)
+            }
         }
     }
 
