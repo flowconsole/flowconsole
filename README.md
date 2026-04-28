@@ -27,6 +27,7 @@ This repository ships the open-source CLI, SDK, scanners, rule engine, and JSON 
 - **Source code scanners** — extract architectural snapshots from C# projects and Helm charts(other sources are comming)
 - **Fitness functions** — Rule engine for architectural constraints
 - **CI/CD validation** — `fcon validate` enforces schema and rules; ships as a self-contained binary for  linux/macOS/windows × x64/arm64
+- **Local viewer** — `fcon view` opens a local web diagram of any snapshot; re-reads on F5 after `fcon scan` ([details](engine/src/FlowConsole.Cli/README.md#fcon-view))
 - **Public JSON schemas** — `model-snapshot/v1` and `rules/v1alpha1` with conformance fixtures, so any tool can integrate
 
 ## How FLOWCONSOLE Compares
