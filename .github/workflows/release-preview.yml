@@ -95,13 +95,14 @@ jobs:
       - name: Publish to npm (OIDC Trusted Publisher)
         if: steps.changeset.outputs.no_changes != 'true'
         working-directory: packages/sdk
-        # Auth via npm Trusted Publisher (configured for @flowconsole/sdk). publib reads
-        # NPM_PROVENANCE/NPM_TOKEN env vars; with provenance enabled and no token, the
-        # underlying `npm publish` exchanges the GitHub OIDC token automatically.
+        # Auth via npm Trusted Publisher (configured for @flowconsole/sdk on npmjs.com).
+        # publib-npm requires NPM_TOKEN or NPM_TRUSTED_PUBLISHER=true; the latter tells
+        # publib to skip token setup and let `npm publish` exchange the GitHub OIDC token.
         # publib-* are bin entries of the `publib` package; -p makes npx fetch the right pkg.
         run: npx -y -p publib publib-npm
         env:
           NPM_DIST_TAG: beta
+          NPM_TRUSTED_PUBLISHER: "true"
           NPM_PROVENANCE: "true"
 
       - name: Publish to PyPI
