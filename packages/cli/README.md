@@ -101,7 +101,7 @@ The alpha binaries are unsigned. Windows SmartScreen may show "Windows protected
 
 > Signing and notarization are planned for v1.0.0. Alpha binaries are unsigned.
 
-## Deprecation of v1 
+## Deprecation of v1
 
 `@flowconsole/cli@1.x` was a TypeScript-based CLI. `@flowconsole/cli@2.x` is a complete rewrite as a .NET self-contained binary, offering:
 
