@@ -183,6 +183,79 @@ public sealed class SnapshotDiscoveryTests : IDisposable
         }
     }
 
+    [Fact]
+    public void Discover_AllOversized_ThrowsInvalidOperationException()
+    {
+        var snapshotsDir = Path.Combine(_tempDir, ".flowconsole", "snapshots");
+        Directory.CreateDirectory(snapshotsDir);
+        WriteSnapshot(snapshotsDir, "big.json", "CodeScan", 100);
+
+        var oldDir = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(_tempDir);
+        try
+        {
+            var act = () => _sut.Discover(null, null, maxBytes: 10);
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*exceed*size*");
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(oldDir);
+        }
+    }
+
+    [Fact]
+    public void Discover_OversizedWithSourceFilter_ThrowsInvalidOperationException()
+    {
+        var snapshotsDir = Path.Combine(_tempDir, ".flowconsole", "snapshots");
+        Directory.CreateDirectory(snapshotsDir);
+        WriteSnapshot(snapshotsDir, "big-scan.json", "CodeScan", 100);
+        WriteSnapshot(snapshotsDir, "small-git.json", "Git", 2);
+
+        var bigSize = new FileInfo(Path.Combine(snapshotsDir, "big-scan.json")).Length;
+        var smallSize = new FileInfo(Path.Combine(snapshotsDir, "small-git.json")).Length;
+        var limit = (bigSize + smallSize) / 2;
+
+        var oldDir = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(_tempDir);
+        try
+        {
+            var act = () => _sut.Discover(null, "scan", maxBytes: limit);
+            act.Should().Throw<InvalidOperationException>()
+                .WithMessage("*skipped due to size*");
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(oldDir);
+        }
+    }
+
+    [Fact]
+    public void Discover_OversizedSkipped_FallsBackToValidSnapshot()
+    {
+        var snapshotsDir = Path.Combine(_tempDir, ".flowconsole", "snapshots");
+        Directory.CreateDirectory(snapshotsDir);
+        WriteSnapshot(snapshotsDir, "big.json", "CodeScan", 100);
+        WriteSnapshot(snapshotsDir, "small.json", "Git", 2);
+
+        var bigSize = new FileInfo(Path.Combine(snapshotsDir, "big.json")).Length;
+        var smallSize = new FileInfo(Path.Combine(snapshotsDir, "small.json")).Length;
+        var limit = (bigSize + smallSize) / 2;
+
+        var oldDir = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(_tempDir);
+        try
+        {
+            var result = _sut.Discover(null, null, maxBytes: limit);
+            result.Source.Should().Be("Git");
+            result.ElementCount.Should().Be(2);
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(oldDir);
+        }
+    }
+
     private static string WriteSnapshot(string dir, string fileName, string source, int elementCount)
     {
         var elements = string.Join(",\n",

@@ -46,6 +46,8 @@ export default function App() {
         model: mapSnapshotToDiagram(result.data),
         snapshot: result.data,
       });
+    }).catch(() => {
+      if (!cancelled) setState({ kind: 'error', error: 'io-error' });
     });
     return () => { cancelled = true; };
   }, []);
