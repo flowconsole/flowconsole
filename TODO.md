@@ -4,22 +4,29 @@
 
 Add `CliConsole.Action(verb, message)` helper (right-padded green-bold verb, cargo-style: `   Pushed model v3`) and apply only in commands with multi-step output (`scan`, `push` per-source split, `synth` build/diff/confirm, `validate` rules+format). Single-result commands keep `✓` glyph form. Skip until a multi-step command actually needs it — avoid cargo-cargo-cult.
 
-## SDK release — migrate publish steps to AWS `publib`
+## SDK release — enable Maven Central publishing
 
-Both `.github/workflows/release-preview.yml` (and the future stable SDK release workflow) currently publish jsii artifacts to every registry (npm / PyPI / NuGet / Maven Central / Go) via hand-rolled scripts: `pnpm publish`, `pypa/gh-action-pypi-publish`, `dotnet nuget push`, a `mvn deploy:deploy-file` loop over `dist/java/**.pom`, and a manual `git init`/`git push` for the Go module.
+The "Publish to Maven Central" step in `.github/workflows/release-preview.yml` is currently commented out (also `Setup Java` and the Maven row in the release-notes table). All other targets (npm / PyPI / NuGet / Go) are wired through `publib-*` and ready to ship.
 
-`publib` (formerly `jsii-release`) from AWS is the de-facto standard tool for the jsii ecosystem (CDK, Projen, and friends). It knows the full publishing stack, including the new Sonatype Central Portal (not the legacy OSSRH), GPG signing, Go module repo force-push, and npm provenance.
+To re-enable:
 
-**Replacement:**
+1. **Verify namespace `io.github.flowconsole`** on https://central.sonatype.com/publishing/namespaces
+   - Add Namespace → enter `io.github.flowconsole`
+   - Sonatype provides a verification key; create a public GitHub repo with that name in the `flowconsole` org
+   - Click "Verify" — it auto-checks and flips to ✅ Verified
+2. **Generate Sonatype User Token** at https://central.sonatype.com/account → Generate User Token
+   - Add `MAVEN_USERNAME` / `MAVEN_PASSWORD` repo secrets (the `<server><username>`/`<server><password>` values)
+3. **Generate GPG keypair** for artifact signing (Sonatype requires it):
+   ```bash
+   gpg --gen-key
+   gpg --list-secret-keys --keyid-format LONG
+   gpg --keyserver keys.openpgp.org --send-keys <KEY_ID>
+   gpg --armor --export-secret-keys <KEY_ID> | pbcopy   # → MAVEN_GPG_PRIVATE_KEY
+   ```
+   Add `MAVEN_GPG_PRIVATE_KEY` and `MAVEN_GPG_PASSPHRASE` repo secrets.
+4. **Uncomment** in `release-preview.yml`:
+   - `Setup Java` step
+   - `Publish to Maven Central` step
+   - Restore the Maven row in the release-notes table (drop the "(not published — namespace pending verification)" suffix)
 
-```yaml
-- run: cd packages/sdk && npx -y publib-npm
-- run: cd packages/sdk && npx -y publib-pypi
-- run: cd packages/sdk && npx -y publib-nuget
-- run: cd packages/sdk && npx -y publib-maven
-- run: cd packages/sdk && npx -y publib-golang
-```
-
-Each step reads env vars: `NPM_TOKEN`, `TWINE_USERNAME` / `TWINE_PASSWORD`, `NUGET_API_KEY`, `MAVEN_USERNAME` / `MAVEN_PASSWORD` / `MAVEN_GPG_*` / `MAVEN_ENDPOINT`, `GITHUB_REPO` / `GITHUB_TOKEN`. Should shrink the workflow by roughly 3x and drop the hand-rolled `dist/java/**.pom` loop plus the `git init` for the Go repo.
-
-**When to do it:** after the current hand-rolled workflow has succeeded at least once (so we know credentials and registries are correctly configured). Until then the hand-rolled workflow is easier to debug step by step.
+Until steps 1–3 are done the workflow returns 403 from `central.sonatype.com/repository/maven-snapshots/` regardless of code.
