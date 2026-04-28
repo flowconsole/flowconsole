@@ -41,3 +41,6 @@ packages/cli/binaries/*
 apps/docs/.contentlayer/
 packages/cli/binaries/*
 packages/cli/*.tgz
+
+# Generated viewer assets copied into CLI for embedding
+engine/src/FlowConsole.Cli/Resources/web/

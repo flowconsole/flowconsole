@@ -1,0 +1,6 @@
+<Project>
+  <Target Name="EnsureViewerAssets" BeforeTargets="BeforeCompile">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/Resources/web/index.html')"
+           Text="Viewer assets missing — run 'pnpm build:viewer' from the repository root before building FlowConsole.Cli." />
+  </Target>
+</Project>
