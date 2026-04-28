@@ -46,6 +46,10 @@ services.AddSingleton<BuiltInRuleLoader>(sp =>
 services.AddSingleton<AtomicFileWriter>();
 services.AddSingleton<OutputRouter>();
 services.AddSingleton<ShellOutRunner>();
+
+services.AddSingleton<FlowConsole.Cli.Hosting.SnapshotDiscovery>();
+services.AddSingleton<FlowConsole.Cli.Hosting.SnapshotStartupValidator>();
+services.AddSingleton<FlowConsole.Cli.Hosting.BrowserLauncher>();
 // CancellationToken is a struct — wrap in a holder for DI
 services.AddSingleton(new CancellationTokenHolder(ct));
 
@@ -113,6 +117,9 @@ app.Configure(config =>
     config.AddCommand<DiffCommand>("diff")
         .WithDescription("Compare two ModelSnapshot JSON files and show differences");
 
+    config.AddCommand<ViewCommand>("view")
+        .WithDescription("Start a local viewer for a ModelSnapshot");
+
     config.AddBranch("telemetry", telemetry =>
     {
         telemetry.SetDescription("Manage anonymous usage telemetry");
@@ -156,7 +163,7 @@ static string ResolveCommandName(string[] args)
     // updated every time a new --flag <VALUE> is added to any command.
     HashSet<string> knownCommands = [
         "init", "doctor", "completion", "scan", "fmt", "validate",
-        "synth", "explain", "diff",
+        "synth", "explain", "diff", "view",
         // Branch commands (parent only — subcommands checked separately)
         "push", "telemetry", "rules"
     ];
