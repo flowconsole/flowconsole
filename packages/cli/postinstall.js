@@ -80,7 +80,7 @@ function fetch(url, maxRedirects = 5) {
     const client = url.startsWith("https") ? https : http;
     client
       .get(url, { headers: { "User-Agent": "flowconsole-cli-npm" } }, (res) => {
-        // Follow redirects (GitHub releases redirect to S3)
+        //Follow redirects (GitHub releases redirect to S3)
         if (
           (res.statusCode === 301 ||
             res.statusCode === 302 ||
