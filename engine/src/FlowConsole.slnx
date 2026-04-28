@@ -20,5 +20,6 @@
     <Project Path="../tests/FlowConsole.Scanners.CodeParsing.Tests/FlowConsole.Scanners.CodeParsing.Tests.csproj" />
     <Project Path="../tests/FlowConsole.Snapshots.Mapping.Tests/FlowConsole.Snapshots.Mapping.Tests.csproj" />
     <Project Path="../tests/FlowConsole.Cli.Tests/FlowConsole.Cli.Tests.csproj" />
+    <Project Path="../tests/FlowConsole.Cli.SmokeTests/FlowConsole.Cli.SmokeTests.csproj" />
   </Folder>
 </Solution>

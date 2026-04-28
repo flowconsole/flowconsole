@@ -270,6 +270,39 @@ jobs:
         run: |
           ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} validate contracts/model-snapshot/v1/conformance/valid/minimal.json --format json
 
+  trim-smoke-test:
+    needs: [sfa-publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download linux-x64 SFA artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: fcon-linux-x64
+          path: fcon-archive/
+
+      - name: Extract binary
+        run: |
+          mkdir -p fcon-bin
+          tar xzf fcon-archive/fcon-linux-x64.tar.gz -C fcon-bin/
+          chmod +x fcon-bin/fcon
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Run trim-mode smoke tests
+        env:
+          FCON_PUBLISHED_PATH: ${{ github.workspace }}/fcon-bin/fcon
+          FCON_FIXTURES_DIR: ${{ github.workspace }}/contracts/model-snapshot/v1/conformance/valid
+        run: |
+          dotnet test engine/tests/FlowConsole.Cli.SmokeTests --verbosity normal
+
   conformance-suite:
     needs: [sfa-publish, extract-version]
     runs-on: ubuntu-latest
