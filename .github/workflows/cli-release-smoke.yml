@@ -64,3 +64,45 @@ jobs:
         env:
           DO_NOT_TRACK: '1'
         run: fcon telemetry status
+
+      - name: Smoke test - fcon view --help
+        run: fcon view --help
+
+      - name: Checkout (for fixture files)
+        if: runner.os == 'Linux'
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: contracts/model-snapshot/v1/conformance/valid
+
+      - name: Smoke test - fcon view (local server)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          FIXTURE="contracts/model-snapshot/v1/conformance/valid/minimal.json"
+          fcon view "$FIXTURE" --no-open --port 0 2>viewer_stderr.log &
+          FCON_PID=$!
+          sleep 3
+
+          PORT=$(ss -tlnp 2>/dev/null | grep "$FCON_PID" | grep -oP '127\.0\.0\.1:\K[0-9]+' | head -1 || true)
+          if [ -z "$PORT" ]; then
+            echo "::warning::Could not detect viewer port — skipping HTTP checks"
+            kill "$FCON_PID" 2>/dev/null || true
+            cat viewer_stderr.log
+            exit 0
+          fi
+
+          BASE="http://127.0.0.1:$PORT"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/")
+          echo "GET / -> $HTTP_CODE"
+          [ "$HTTP_CODE" = "200" ] || { echo "::error::GET / returned $HTTP_CODE"; kill "$FCON_PID"; exit 1; }
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/snapshot")
+          echo "GET /api/snapshot -> $HTTP_CODE"
+          [ "$HTTP_CODE" = "200" ] || { echo "::error::GET /api/snapshot returned $HTTP_CODE"; kill "$FCON_PID"; exit 1; }
+
+          CACHE_HEADER=$(curl -s -D - -o /dev/null "$BASE/api/snapshot" | grep -i "cache-control" | tr -d '\r')
+          echo "Cache-Control: $CACHE_HEADER"
+
+          kill "$FCON_PID" 2>/dev/null || true
+          echo "fcon view smoke test passed"

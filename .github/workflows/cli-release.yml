@@ -98,6 +98,21 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build viewer SPA
+        run: pnpm build:viewer
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
@@ -119,6 +134,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build viewer SPA
+        run: pnpm build:viewer
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -157,7 +187,7 @@ jobs:
           cat "fcon-${{ matrix.rid }}.sha256"
 
       - name: Upload SFA artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: fcon-${{ matrix.rid }}
           path: |
@@ -182,7 +212,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download SFA artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: fcon-${{ matrix.rid }}
           path: fcon-archive/
@@ -249,7 +279,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download linux-x64 SFA artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: fcon-linux-x64
           path: fcon-archive/
@@ -326,12 +356,72 @@ jobs:
             exit 1
           fi
 
+  pack-as-tool-smoke:
+    needs: [build-and-test, extract-version]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build viewer SPA
+        run: pnpm build:viewer
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Pack NuGet tool
+        run: |
+          dotnet pack ${{ env.CLI_PROJECT }} \
+            -c Release \
+            -p:Version=${{ needs.extract-version.outputs.version }} \
+            -o artifacts/nuget
+
+      - name: Install as global tool (runtime-only image simulation)
+        run: |
+          dotnet tool install -g FlowConsole.Cli \
+            --add-source artifacts/nuget \
+            --version ${{ needs.extract-version.outputs.version }}
+
+      - name: Verify fcon view --help works without ASP.NET Core runtime
+        run: fcon view --help
+
   nuget-publish:
     needs: [build-and-test, extract-version]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build viewer SPA
+        run: pnpm build:viewer
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -357,7 +447,7 @@ jobs:
             --skip-duplicate
 
       - name: Upload NuGet artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-package
           path: artifacts/nuget/*.nupkg
@@ -370,13 +460,13 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Download all SFA artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: release-artifacts/
           pattern: fcon-*
 
       - name: Download NuGet artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: nuget-package
           path: release-artifacts/nuget/

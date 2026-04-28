@@ -7,12 +7,16 @@ on:
       - 'feature/**'
     paths:
       - 'engine/**'
+      - 'packages/viewer/**'
+      - 'packages/web/**'
       - '.github/workflows/engine-ci.yml'
   pull_request:
     branches:
       - dev
     paths:
       - 'engine/**'
+      - 'packages/viewer/**'
+      - 'packages/web/**'
       - '.github/workflows/engine-ci.yml'
   workflow_dispatch:
 
@@ -27,6 +31,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install npm dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build viewer SPA
+        run: pnpm build:viewer
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
