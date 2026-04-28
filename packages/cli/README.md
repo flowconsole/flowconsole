@@ -113,7 +113,6 @@ The alpha binaries are unsigned. Windows SmartScreen may show "Windows protected
 - Anonymous telemetry (opt-out via `fcon telemetry off`)
 
 To upgrade: `npm install -g @flowconsole/cli@next`
-
 The v1 package remains published for backward compatibility but receives no updates.
 
 ## License

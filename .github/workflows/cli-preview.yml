@@ -164,8 +164,8 @@ jobs:
       - name: Generate checksum
         shell: bash
         run: |
-          sha256sum fcon-${{ matrix.rid }}.${{ matrix.archive }} > fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256 || \
-          shasum -a 256 fcon-${{ matrix.rid }}.${{ matrix.archive }} > fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256
+          sha256sum fcon-${{ matrix.rid }}.${{ matrix.archive }} > fcon-${{ matrix.rid }}.sha256 || \
+          shasum -a 256 fcon-${{ matrix.rid }}.${{ matrix.archive }} > fcon-${{ matrix.rid }}.sha256
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -173,7 +173,7 @@ jobs:
           name: fcon-${{ matrix.rid }}
           path: |
             fcon-${{ matrix.rid }}.${{ matrix.archive }}
-            fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256
+            fcon-${{ matrix.rid }}.sha256
 
   npm-publish:
     # Depends on github-prerelease so that the GitHub Release with binaries exists
@@ -218,6 +218,35 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  nuget-preview:
+    needs: version
+    if: needs.version.outputs.no_changes != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Pack preview NuGet tool
+        run: |
+          dotnet pack engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj \
+            -c Release \
+            -p:Version=${{ needs.version.outputs.cli_version }} \
+            -o artifacts/nuget
+
+      - name: Push to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push artifacts/nuget/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
   github-prerelease:
     needs: [version, build]
     if: needs.version.outputs.no_changes != 'true'
@@ -246,8 +275,9 @@ jobs:
               if [[ -f "$archive" ]]; then
                 ARCHIVE_NAME=$(basename "$archive")
                 CHECKSUM=""
-                if [[ -f "${archive}.sha256" ]]; then
-                  CHECKSUM=$(awk '{print $1}' "${archive}.sha256")
+                CHECKSUM_FILE="${dir}fcon-${RID}.sha256"
+                if [[ -f "$CHECKSUM_FILE" ]]; then
+                  CHECKSUM=$(awk '{print $1}' "$CHECKSUM_FILE")
                 fi
                 case "$RID" in
                   linux-x64)   PLATFORM="Linux x64" ;;
