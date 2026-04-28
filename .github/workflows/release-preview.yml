@@ -107,7 +107,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Publish to Maven
+      - name: Publish to Maven Central (snapshots)
         if: steps.changeset.outputs.no_changes != 'true'
         run: |
           mkdir -p ~/.m2
@@ -115,7 +115,7 @@ jobs:
           <settings>
             <servers>
               <server>
-                <id>ossrh</id>
+                <id>central</id>
                 <username>${env.MAVEN_USERNAME}</username>
                 <password>${env.MAVEN_PASSWORD}</password>
               </server>
@@ -123,8 +123,10 @@ jobs:
           </settings>
           SETTINGS_EOF
           cd packages/sdk/dist/java
+          # Sonatype Central Portal snapshot repository (replaces legacy OSSRH s01.oss.sonatype.org).
+          # MAVEN_USERNAME / MAVEN_PASSWORD = User Token from https://central.sonatype.com/account
           mvn deploy \
-            -DaltDeploymentRepository=ossrh::https://s01.oss.sonatype.org/content/repositories/snapshots
+            -DaltDeploymentRepository=central::https://central.sonatype.com/repository/maven-snapshots/
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
