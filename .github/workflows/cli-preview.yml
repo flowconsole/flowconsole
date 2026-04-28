@@ -14,7 +14,6 @@ concurrency:
 
 permissions:
   contents: write
-  deployments: write
   id-token: write
 
 env:
@@ -183,9 +182,6 @@ jobs:
     needs: [version, build, github-prerelease]
     if: needs.version.outputs.no_changes != 'true'
     runs-on: ubuntu-latest
-    # NPM_TOKEN lives in the `release` environment (per repo settings).
-    environment:
-      name: release
     steps:
       - name: Checkout
         uses: actions/checkout@v5

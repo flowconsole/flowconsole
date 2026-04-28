@@ -14,7 +14,6 @@ concurrency:
 permissions:
   contents: write
   id-token: write
-  deployments: write
 
 env:
   # Skip @flowconsole/cli postinstall download (chicken-and-egg in CI:
@@ -24,9 +23,6 @@ env:
 jobs:
   preview:
     runs-on: ubuntu-latest
-    # NPM_TOKEN / NUGET_API_KEY / MAVEN_* live in the `release` environment (per repo settings).
-    environment:
-      name: release
     steps:
       - name: Checkout
         uses: actions/checkout@v5
