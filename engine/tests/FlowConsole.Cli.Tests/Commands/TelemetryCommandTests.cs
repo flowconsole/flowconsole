@@ -86,14 +86,17 @@ public sealed class TelemetryCommandTests : IDisposable
     [Fact]
     public void FirstRunBanner_PrintedOnce_SecondRunSilent()
     {
+        ClearCiEnv();
         var state = new TelemetryState(_stateFilePath);
         var handler = new TelemetryMockHandler(HttpStatusCode.OK);
         var client = CreateTelemetryClient(handler, state);
+        client.IsTtyCheck = () => true;
 
         // First invocation — banner should appear
         var stderr1 = CaptureStderr(() => client.ShowBannerIfNeeded());
         stderr1.Should().Contain("FlowConsole CLI (fc) sends anonymous usage stats");
         stderr1.Should().Contain("fcon telemetry off");
+        stderr1.Should().Contain("DO_NOT_TRACK=1");
 
         // Second invocation — banner should be silent
         var stderr2 = CaptureStderr(() => client.ShowBannerIfNeeded());
@@ -103,9 +106,11 @@ public sealed class TelemetryCommandTests : IDisposable
     [Fact]
     public void FirstRunBanner_SetsPromptedAt()
     {
+        ClearCiEnv();
         var state = new TelemetryState(_stateFilePath);
         var handler = new TelemetryMockHandler(HttpStatusCode.OK);
         var client = CreateTelemetryClient(handler, state);
+        client.IsTtyCheck = () => true;
 
         client.ShowBannerIfNeeded();
 
@@ -113,6 +118,78 @@ public sealed class TelemetryCommandTests : IDisposable
         var json = File.ReadAllText(_stateFilePath);
         var doc = JsonDocument.Parse(json);
         doc.RootElement.TryGetProperty("prompted_at", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public void FirstRunBanner_SuppressedInCi()
+    {
+        Environment.SetEnvironmentVariable("CI", "true");
+        try
+        {
+            var state = new TelemetryState(_stateFilePath);
+            var handler = new TelemetryMockHandler(HttpStatusCode.OK);
+            var client = CreateTelemetryClient(handler, state);
+            client.IsTtyCheck = () => true;
+
+            var stderr = CaptureStderr(() => client.ShowBannerIfNeeded());
+            stderr.Should().BeEmpty();
+            state.HasBeenPrompted().Should().BeFalse();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("CI", null);
+        }
+    }
+
+    [Fact]
+    public void FirstRunBanner_SuppressedWhenStderrPiped()
+    {
+        ClearCiEnv();
+        var state = new TelemetryState(_stateFilePath);
+        var handler = new TelemetryMockHandler(HttpStatusCode.OK);
+        var client = CreateTelemetryClient(handler, state);
+        client.IsTtyCheck = () => false;
+
+        var stderr = CaptureStderr(() => client.ShowBannerIfNeeded());
+        stderr.Should().BeEmpty();
+        state.HasBeenPrompted().Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("--help")]
+    [InlineData("-h")]
+    [InlineData("--version")]
+    [InlineData("-v")]
+    public void FirstRunBanner_SuppressedOnInfoFlag(string flag)
+    {
+        ClearCiEnv();
+        var state = new TelemetryState(_stateFilePath);
+        var handler = new TelemetryMockHandler(HttpStatusCode.OK);
+        var client = CreateTelemetryClient(handler, state);
+        client.IsTtyCheck = () => true;
+
+        var stderr = CaptureStderr(() => client.ShowBannerIfNeeded(commandName: "", args: ["scan", flag]));
+        stderr.Should().BeEmpty();
+        state.HasBeenPrompted().Should().BeFalse();
+    }
+
+    [Fact]
+    public void FirstRunBanner_SuppressedOnCompletionCommand()
+    {
+        ClearCiEnv();
+        var state = new TelemetryState(_stateFilePath);
+        var handler = new TelemetryMockHandler(HttpStatusCode.OK);
+        var client = CreateTelemetryClient(handler, state);
+        client.IsTtyCheck = () => true;
+
+        var stderr = CaptureStderr(() => client.ShowBannerIfNeeded(commandName: "completion", args: ["completion", "bash"]));
+        stderr.Should().BeEmpty();
+        state.HasBeenPrompted().Should().BeFalse();
+    }
+
+    private static void ClearCiEnv()
+    {
+        Environment.SetEnvironmentVariable("CI", null);
     }
 
     // --- Opt-out mechanisms ---

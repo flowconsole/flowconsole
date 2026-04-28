@@ -79,14 +79,12 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
             return 2;
         }
 
-        // Validate --source if provided
         if (settings.Source is not null && !ValidSources.Contains(settings.Source))
         {
             CliConsole.Error($"--source must be one of: push, pull_request, schedule, manual (got '{settings.Source}').");
             return 2;
         }
 
-        // Resolve config file for fallback values
         var configFile = settings.ConfigPath ?? ConfigDiscovery.FindConfigFile(Directory.GetCurrentDirectory());
 
         // Resolve model ID: CLI flag > .flowconsole.yaml > error
@@ -122,7 +120,6 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
             }
         }
 
-        // Read and validate findings file
         if (!File.Exists(settings.FindingsPath))
         {
             CliConsole.Error($"findings file not found: {settings.FindingsPath}");
@@ -140,7 +137,6 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
             return 2;
         }
 
-        // Validate JSON and build request body
         string requestJson;
         try
         {
@@ -152,7 +148,6 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
             return 2;
         }
 
-        // Dry-run: print request payload and exit
         if (settings.DryRun)
         {
             var displayUrl = apiUrl ?? "<not configured>";
@@ -196,11 +191,6 @@ internal sealed class PushFindingsCommand : Command<PushFindingsSettings>
         return 0;
     }
 
-    /// <summary>
-    /// Builds the request body for POST /api/v1/models/{modelId}/validation-runs.
-    /// The findings file may contain just the findings array or the full request body.
-    /// This method normalizes it and merges CLI metadata.
-    /// </summary>
     internal static string BuildRequestBody(string findingsFileContent, PushFindingsSettings settings)
     {
         using var doc = JsonDocument.Parse(findingsFileContent);

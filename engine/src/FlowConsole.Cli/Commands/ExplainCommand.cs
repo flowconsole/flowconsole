@@ -19,9 +19,6 @@ internal sealed class ExplainSettings : GlobalSettings
     public string? FindingFile { get; init; }
 }
 
-/// <summary>
-/// Explains a rule or a specific finding trace.
-/// </summary>
 internal sealed class ExplainCommand : Command<ExplainSettings>
 {
     private readonly BuiltInRuleLoader _builtInRuleLoader;

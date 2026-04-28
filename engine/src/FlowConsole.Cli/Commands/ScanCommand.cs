@@ -98,7 +98,6 @@ internal sealed class ScanCommand : Command<ScanSettings>
 
         var snapshot = result.Snapshot!;
 
-        // Serialize to wire format with $schema + schemaVersion
         var json = SnapshotSerializer.Serialize(snapshot);
 
         // Validate output through IJsonSchemaValidator before emit.
@@ -134,7 +133,6 @@ internal sealed class ScanCommand : Command<ScanSettings>
             CliConsole.Warn("schema validation unavailable, output may contain errors");
         }
 
-        // Build human summary
         var summary = $"Scanned {result.FilesScanned} source(s): {snapshot.Elements.Count} elements, {snapshot.Relationships.Count} relationships";
         if (result.FilesSkipped > 0)
             summary += $" ({result.FilesSkipped} skipped)";

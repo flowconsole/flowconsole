@@ -65,18 +65,15 @@ internal sealed class SynthCommand : Command<SynthSettings>
     {
         var ct = _ctHolder.Token;
 
-        // Validate flag dependencies
         if (settings.RequireConfirm && !settings.DiffAgainstLive)
         {
             CliConsole.Error("--require-confirm requires --diff-against-live.");
             return 2;
         }
 
-        // Resolve config file
         var configFile = settings.ConfigPath ?? ConfigDiscovery.FindConfigFile(Directory.GetCurrentDirectory());
         var configDir = configFile is not null ? Path.GetDirectoryName(Path.GetFullPath(configFile))! : Directory.GetCurrentDirectory();
 
-        // Read synth config from .flowconsole.yaml
         ConfigDiscovery.SynthConfig? synthConfig = null;
         if (configFile is not null)
             synthConfig = ConfigDiscovery.ReadSynthConfig(configFile);
@@ -113,7 +110,6 @@ internal sealed class SynthCommand : Command<SynthSettings>
             return 2;
         }
 
-        // Shell out to user's toolchain
         if (settings.Verbose)
             CliConsole.Info($"Running: {command} (in {cwd})");
 
@@ -130,14 +126,12 @@ internal sealed class SynthCommand : Command<SynthSettings>
             return 130;
         }
 
-        // Output limit exceeded
         if (exitCode == -1)
         {
             CliConsole.Error("synth command output exceeded 10 MB limit.");
             return 3;
         }
 
-        // Non-zero exit from subprocess
         if (exitCode != 0)
         {
             CliConsole.Error($"synth command exited with code {exitCode}.");
@@ -150,7 +144,6 @@ internal sealed class SynthCommand : Command<SynthSettings>
             return 3;
         }
 
-        // Normalize the JSON output through canonical order (reuses fcon fmt normalization)
         string normalized;
         try
         {
@@ -162,7 +155,6 @@ internal sealed class SynthCommand : Command<SynthSettings>
             return 3;
         }
 
-        // Write output atomically
         var defaultOutputPath = Path.Combine(configDir, ".flowconsole", "snapshots", "latest.json");
 
         try
@@ -184,7 +176,6 @@ internal sealed class SynthCommand : Command<SynthSettings>
             return 130;
         }
 
-        // --diff-against-live: fetch remote and render diff
         if (settings.DiffAgainstLive)
         {
             var apiUrl = configFile is not null
@@ -223,7 +214,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
             if (!fetchResult.Success)
             {
                 CliConsole.Error($"{fetchResult.ErrorMessage}");
-                return 4; // network/auth error
+                return 4;
             }
 
             using var localDoc = JsonDocument.Parse(normalized);
@@ -233,7 +224,6 @@ internal sealed class SynthCommand : Command<SynthSettings>
 
             fetchResult.Snapshot!.Dispose();
 
-            // --require-confirm: prompt user
             if (settings.RequireConfirm)
             {
                 if (FlowDiffRenderer.IsEmpty(diff))

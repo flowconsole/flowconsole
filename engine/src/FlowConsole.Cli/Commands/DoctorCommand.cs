@@ -36,16 +36,9 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
         Console.WriteLine($"  CLI version: {VersionCommand.GetVersion()}");
         Console.WriteLine();
 
-        // Check 1: Tree-sitter native library
         CheckTreeSitter(ref hasWarning, ref hasCritical, settings.Verbose);
-
-        // Check 2: Rules directory
         CheckRulesDirectory(ref hasWarning, ref hasCritical, settings.Verbose);
-
-        // Check 3: Schema version compatibility
         CheckSchemaVersion(ref hasWarning, ref hasCritical, settings.Verbose);
-
-        // Check 4: API key
         CheckApiKey(ref hasWarning, ref hasCritical, settings.Verbose);
 
         Console.WriteLine();
@@ -100,7 +93,6 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
             return;
         }
 
-        // Validate each rule file against schema
         var invalidCount = 0;
         foreach (var ruleFile in ruleFiles)
         {
@@ -136,7 +128,6 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
 
     private void CheckSchemaVersion(ref bool hasWarning, ref bool hasCritical, bool verbose)
     {
-        // Look for snapshot files to check schema version compatibility
         var snapshotDir = Path.Combine(".flowconsole", "snapshots");
         if (!Directory.Exists(snapshotDir))
         {
@@ -219,9 +210,9 @@ internal sealed class DoctorCommand : Command<DoctorSettings>
     {
         var prefix = status switch
         {
-            CheckStatus.Pass => "✓", // checkmark
-            CheckStatus.Warn => "⚠", // warning
-            CheckStatus.Fail => "✗", // X mark
+            CheckStatus.Pass => "✓",
+            CheckStatus.Warn => "⚠",
+            CheckStatus.Fail => "✗",
             _ => "?"
         };
         Console.WriteLine($"  {prefix} {message}");

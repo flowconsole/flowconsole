@@ -15,9 +15,6 @@ internal sealed class RulesListSettings : GlobalSettings
     public bool BuiltIn { get; init; }
 }
 
-/// <summary>
-/// Lists available rules (built-in and from rules directory).
-/// </summary>
 internal sealed class RulesListCommand : Command<RulesListSettings>
 {
     private readonly BuiltInRuleLoader _builtInRuleLoader;
@@ -36,7 +33,6 @@ internal sealed class RulesListCommand : Command<RulesListSettings>
             return 0;
         }
 
-        // Header
         Console.WriteLine($"{"ID",-30} {"SEVERITY",-10} {"KIND",-10} {"TARGET",-8} {"NAME"}");
         Console.WriteLine(new string('-', 80));
 
@@ -59,9 +55,6 @@ internal sealed class RulesExportSettings : GlobalSettings
     public string OutputDir { get; init; } = string.Empty;
 }
 
-/// <summary>
-/// Exports built-in YAML rules to a directory for customization.
-/// </summary>
 internal sealed class RulesExportCommand : Command<RulesExportSettings>
 {
     public override int Execute(CommandContext context, RulesExportSettings settings)
@@ -90,7 +83,6 @@ internal sealed class RulesExportCommand : Command<RulesExportSettings>
             using var reader = new StreamReader(stream);
             var content = reader.ReadToEnd();
 
-            // Extract file name from resource name (last segment after last dot before .rule.yaml)
             var fileName = SharedHelpers.ExtractRuleFileName(resourceName);
             var outputPath = Path.Combine(outputDir, fileName);
 

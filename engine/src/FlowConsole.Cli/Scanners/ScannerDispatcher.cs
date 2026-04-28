@@ -8,16 +8,6 @@ using FlowConsole.Snapshots.Mapping;
 
 namespace FlowConsole.Cli.Scanners;
 
-/// <summary>
-/// Dispatches scan requests to the appropriate scanner based on auto-detection or explicit override.
-/// Handles merging of multiple scan results and graceful degradation.
-///
-/// Detection order for directories:
-///   1. Check Chart.yaml presence (Helm)
-///   2. Check .sln/.slnx/.csproj/.cs presence (C#)
-///   Both checks run independently — if both match, scanners run in sequence and results merge.
-/// For files: extension-based detection (unchanged from Phase 1).
-/// </summary>
 internal sealed class ScannerDispatcher
 {
     private readonly CSharpScannerAdapter _csharpScanner;
@@ -29,9 +19,6 @@ internal sealed class ScannerDispatcher
         _helmScanner = helmScanner;
     }
 
-    /// <summary>
-    /// Detects the input type from a path and dispatches to the correct scanner.
-    /// </summary>
     public async Task<DispatchResult> DispatchAsync(
         string inputPath,
         string? scannerOverride,
@@ -42,7 +29,6 @@ internal sealed class ScannerDispatcher
         var fullPath = Path.GetFullPath(inputPath);
         var diagnostics = new List<ScanDiagnostic>();
 
-        // Check if path exists
         if (!File.Exists(fullPath) && !Directory.Exists(fullPath))
         {
             return DispatchResult.Failure(
@@ -50,7 +36,6 @@ internal sealed class ScannerDispatcher
                 exitCode: 3);
         }
 
-        // Determine which scanners to run
         var scanners = scannerOverride is not null
             ? DetectByOverride(scannerOverride)
             : DetectScanners(fullPath);
@@ -73,7 +58,6 @@ internal sealed class ScannerDispatcher
         int totalFilesScanned = 0;
         int totalFilesSkipped = 0;
 
-        // Run Helm scanner if detected
         if (scanners.HasFlag(DetectedScanners.Helm))
         {
             var helmPath = File.Exists(fullPath) ? Path.GetDirectoryName(fullPath)! : fullPath;
@@ -89,7 +73,6 @@ internal sealed class ScannerDispatcher
                 snapshots.Add(helmResult.Snapshot);
         }
 
-        // Run C# scanner if detected
         if (scanners.HasFlag(DetectedScanners.CSharp))
         {
             var scanPath = File.Exists(fullPath) ? Path.GetDirectoryName(fullPath)! : fullPath;
@@ -105,7 +88,6 @@ internal sealed class ScannerDispatcher
                 snapshots.Add(csharpResult.Snapshot);
         }
 
-        // Merge scanner results
         ModelSnapshot snapshot;
         if (snapshots.Count == 0)
             snapshot = new ModelSnapshot(ElementSource.CodeScan, [], []);
@@ -136,7 +118,6 @@ internal sealed class ScannerDispatcher
             snapshot = SnapshotMerger.Merge(snapshots, mergeSource);
         }
 
-        // Merge with existing snapshot if requested
         if (mergeWithPath is not null)
         {
             var mergeResult = await MergeWithExisting(snapshot, mergeWithPath, diagnostics, ct).ConfigureAwait(false);
@@ -155,10 +136,8 @@ internal sealed class ScannerDispatcher
             }
         }
 
-        // Check catastrophic: no elements at all
         if (snapshot.Elements.Count == 0)
         {
-            // If there are error diagnostics, report them; otherwise generic "no files" message
             if (diagnostics.Any(d => d.Severity == ScanDiagnosticSeverity.Error))
                 return DispatchResult.StrictFailure(diagnostics);
 
@@ -285,10 +264,6 @@ internal sealed class ScannerDispatcher
         }
     }
 
-    /// <summary>
-    /// Collects all distinct ElementSource values from a snapshot's elements and relationships.
-    /// Falls back to the snapshot's top-level Source if no items exist.
-    /// </summary>
     private static HashSet<ElementSource> CollectItemSources(ModelSnapshot snapshot)
     {
         var sources = new HashSet<ElementSource>();
@@ -313,9 +288,6 @@ internal sealed class ScannerDispatcher
     private sealed record MergeResult(bool Success, ModelSnapshot? Snapshot, string? ErrorMessage);
 }
 
-/// <summary>
-/// Result of scanner dispatch.
-/// </summary>
 internal sealed record DispatchResult
 {
     public bool Success { get; init; }

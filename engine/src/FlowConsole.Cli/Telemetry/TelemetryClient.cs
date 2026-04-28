@@ -5,10 +5,6 @@ using System.Text.Json;
 
 namespace FlowConsole.Cli.Telemetry;
 
-/// <summary>
-/// Sends anonymous usage stats to PostHog (direct HTTPS, no FlowConsole backend).
-/// Fire-and-forget with 2s timeout + 1 retry. Errors silently swallowed.
-/// </summary>
 internal sealed class TelemetryClient
 {
     // Public capture key — not a secret. Same pattern as Vercel, Bun, Astro OSS CLIs.
@@ -31,40 +27,59 @@ internal sealed class TelemetryClient
         _platform = GetPlatformIdentifier();
     }
 
-    /// <summary>
-    /// Session ID for this process invocation (random UUID, fresh per fcon run).
-    /// </summary>
     internal string SessionId => _sessionId;
 
-    /// <summary>
-    /// Show first-run banner if not yet prompted, then record prompted_at.
-    /// Prints to stderr only.
-    /// </summary>
-    public void ShowBannerIfNeeded()
+    internal Func<bool> IsTtyCheck { get; set; } = DefaultIsTty;
+
+    public void ShowBannerIfNeeded(string commandName = "", string[]? args = null)
     {
         if (_state.HasBeenPrompted())
             return;
 
-        FlowConsole.Cli.Infrastructure.CliConsole.DetailBlock(FirstRunBanner.Text);
+        if (IsCi())
+            return;
+
+        if (!IsTtyCheck())
+            return;
+
+        if (commandName == "completion")
+            return;
+
+        if (args is not null && args.Any(IsInfoFlag))
+            return;
+
+        FlowConsole.Cli.Infrastructure.CliConsole.DetailBlock(FirstRunBanner.ShortNotice);
         _state.MarkPrompted();
     }
 
-    /// <summary>
-    /// Send telemetry event. Returns a Task that callers can await with a bounded timeout.
-    /// </summary>
-    /// <param name="command">The CLI command that was run (e.g. "scan", "push snapshot").</param>
-    /// <param name="exitCode">Process exit code.</param>
-    /// <param name="durationMs">Command execution duration in milliseconds.</param>
-    /// <param name="noTelemetryFlag">True if --no-telemetry was passed.</param>
-    /// <param name="verbose">True if --verbose for debug logging.</param>
-    /// <returns>A Task that completes when the send finishes or is abandoned. Safe to ignore.</returns>
+    private static bool IsCi()
+    {
+        var ci = Environment.GetEnvironmentVariable("CI");
+        return !string.IsNullOrEmpty(ci)
+            && !ci.Equals("0", StringComparison.Ordinal)
+            && !ci.Equals("false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool DefaultIsTty()
+    {
+        try
+        {
+            return !Console.IsErrorRedirected;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsInfoFlag(string arg) =>
+        arg is "--help" or "-h" or "-?" or "--version" or "-v";
+
     public Task Send(string command, int exitCode, long durationMs, bool noTelemetryFlag, bool verbose)
     {
-        // Check opt-out: --no-telemetry flag
         if (noTelemetryFlag)
             return Task.CompletedTask;
 
-        // Check opt-out: state file + env vars
         if (!_state.IsEnabled())
             return Task.CompletedTask;
 
@@ -86,7 +101,7 @@ internal sealed class TelemetryClient
 
     private async Task SendWithRetryAsync(string payload, bool verbose, CancellationToken ct)
     {
-        const int maxAttempts = 2; // 1 retry
+        const int maxAttempts = 2;
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
@@ -114,7 +129,6 @@ internal sealed class TelemetryClient
     {
         var timestamp = DateTimeOffset.UtcNow.ToString("o");
 
-        // Manually build JSON to ensure strict whitelist — no auto-capture fields
         using var ms = new MemoryStream();
         using var writer = new Utf8JsonWriter(ms);
 

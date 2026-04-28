@@ -2,10 +2,6 @@ using System.Text.Json;
 
 namespace FlowConsole.Cli.Diff;
 
-/// <summary>
-/// Compares two model snapshots and produces a structured diff result.
-/// Offline comparison — does not call backend drift detector.
-/// </summary>
 internal static class SnapshotDiffer
 {
     public static DiffResult Compare(JsonDocument before, JsonDocument after)
@@ -15,7 +11,6 @@ internal static class SnapshotDiffer
         var beforeRels = ExtractRelationships(before);
         var afterRels = ExtractRelationships(after);
 
-        // Elements: compare by id
         var addedElements = new List<DiffElement>();
         var removedElements = new List<DiffElement>();
         var changedElements = new List<ChangedElement>();
@@ -47,7 +42,6 @@ internal static class SnapshotDiffer
                 removedElements.Add(before_);
         }
 
-        // Relationships: compare by composite key (sourceId + targetId + kind)
         var addedRels = new List<DiffRelationship>();
         var removedRels = new List<DiffRelationship>();
         var changedRels = new List<ChangedRelationship>();

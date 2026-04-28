@@ -3,10 +3,7 @@ using FlowConsole.Cli.Infrastructure;
 
 namespace FlowConsole.Cli.Http;
 
-/// <summary>
-/// Manual retry with exponential backoff + circuit breaker for HTTP calls.
-/// Avoids Polly dependency (~2 MB SFA overhead).
-/// </summary>
+// Manual retry with exponential backoff + circuit breaker — avoids Polly dependency (~2 MB SFA overhead).
 internal sealed class RetryPolicy
 {
     private static readonly TimeSpan[] Delays = [
@@ -17,11 +14,8 @@ internal sealed class RetryPolicy
 
     private const int CircuitBreakerThreshold = 3;
 
-    public int MaxAttempts => Delays.Length + 1; // 1 initial + 3 retries
+    public int MaxAttempts => Delays.Length + 1;
 
-    /// <summary>
-    /// Executes an HTTP request with retry on transient errors and circuit breaker on consecutive 5xx.
-    /// </summary>
     public async Task<HttpResponseMessage> ExecuteAsync(
         Func<Task<HttpResponseMessage>> sendRequest,
         bool verbose,
@@ -58,7 +52,6 @@ internal sealed class RetryPolicy
                     continue;
                 }
 
-                // Non-transient errors — return immediately
                 if (!IsTransient(response.StatusCode))
                 {
                     lastResponse?.Dispose();
@@ -66,7 +59,6 @@ internal sealed class RetryPolicy
                     return response;
                 }
 
-                // Track consecutive 5xx for circuit breaker
                 if ((int)response.StatusCode >= 500)
                 {
                     consecutive5xx++;

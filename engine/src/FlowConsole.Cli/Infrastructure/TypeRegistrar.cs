@@ -4,9 +4,6 @@ using Spectre.Console.Cli;
 
 namespace FlowConsole.Cli.Infrastructure;
 
-/// <summary>
-/// Bridges Microsoft.Extensions.DependencyInjection with Spectre.Console.Cli.
-/// </summary>
 internal sealed class TypeRegistrar : ITypeRegistrar
 {
     private readonly IServiceCollection _services;

@@ -4,10 +4,6 @@ using System.Text.Json;
 
 namespace FlowConsole.Cli.Synth;
 
-/// <summary>
-/// Fetches the current model snapshot from the backend API for diff comparison.
-/// Uses FLOWCONSOLE_API_KEY environment variable for authentication.
-/// </summary>
 internal class LiveDiffFetcher
 {
     private readonly HttpClient _httpClient;
@@ -17,22 +13,12 @@ internal class LiveDiffFetcher
         _httpClient = httpClient ?? new HttpClient();
     }
 
-    /// <summary>
-    /// Result of a live fetch operation.
-    /// </summary>
     public sealed record FetchResult(
         bool Success,
         JsonDocument? Snapshot,
         int? StatusCode,
         string? ErrorMessage);
 
-    /// <summary>
-    /// Fetches the current model snapshot from the backend.
-    /// </summary>
-    /// <param name="apiUrl">Base API URL (e.g. http://localhost:5555)</param>
-    /// <param name="modelId">Model ID to fetch</param>
-    /// <param name="ct">Cancellation token</param>
-    /// <returns>Fetch result with parsed snapshot or error details</returns>
     public virtual async Task<FetchResult> FetchSnapshotAsync(string apiUrl, string modelId, CancellationToken ct = default)
     {
         var apiKey = Environment.GetEnvironmentVariable("FLOWCONSOLE_API_KEY");

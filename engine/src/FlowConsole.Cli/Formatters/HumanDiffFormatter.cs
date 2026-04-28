@@ -3,11 +3,6 @@ using FlowConsole.Cli.Diff;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// Formats diff results as colored human-readable tree output.
-/// Uses ANSI escape codes for color (green +, red -, yellow ~).
-/// Respects NO_COLOR env and non-TTY stdout via Spectre.Console conventions.
-/// </summary>
 internal sealed class HumanDiffFormatter : IDiffFormatter
 {
     public string Format(DiffResult diff, string? onlyFilter)
@@ -51,7 +46,6 @@ internal sealed class HumanDiffFormatter : IDiffFormatter
             }
         }
 
-        // Summary line (respects --only filter)
         var addedCount = showAdded ? diff.AddedElements.Count + diff.AddedRelationships.Count : 0;
         var removedCount = showRemoved ? diff.RemovedElements.Count + diff.RemovedRelationships.Count : 0;
         var changedCount = showChanged ? diff.ChangedElements.Count + diff.ChangedRelationships.Count : 0;
@@ -71,7 +65,6 @@ internal sealed class HumanDiffFormatter : IDiffFormatter
         if (Environment.GetEnvironmentVariable("NO_COLOR") is not null)
             return false;
 
-        // Non-interactive (piped) stdout — skip colors
         try
         {
             return !Console.IsOutputRedirected;

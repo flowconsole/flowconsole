@@ -5,10 +5,6 @@ using System.Text.Json;
 
 namespace FlowConsole.Cli.Http;
 
-/// <summary>
-/// HTTP client for write operations (PUT/POST) to the FlowConsole backend API.
-/// Handles PAT auth, retry, circuit breaker, and schema version negotiation.
-/// </summary>
 internal sealed class FlowConsoleApiClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
@@ -170,7 +166,6 @@ internal sealed class FlowConsoleApiClient
 
     private static string? ExtractValidationRunId(HttpResponseMessage response, string body)
     {
-        // Try Location header first
         if (response.Headers.Location is { } location)
         {
             var path = location.IsAbsoluteUri ? location.AbsolutePath : location.OriginalString;
@@ -179,7 +174,6 @@ internal sealed class FlowConsoleApiClient
                 return segments[^1];
         }
 
-        // Try response body
         try
         {
             using var doc = JsonDocument.Parse(body);

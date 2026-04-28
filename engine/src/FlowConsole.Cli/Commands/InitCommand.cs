@@ -100,7 +100,6 @@ internal sealed class InitCommand : Command<InitSettings>
         if (!System.IO.Directory.Exists(targetDir))
             System.IO.Directory.CreateDirectory(targetDir);
 
-        // Create .flowconsole.yaml
         var configPath = Path.Combine(targetDir, FlowConsoleYaml);
         if (File.Exists(configPath) && !settings.Force)
         {
@@ -114,7 +113,6 @@ internal sealed class InitCommand : Command<InitSettings>
         }
         File.WriteAllText(configPath, configContent);
 
-        // Create .flowconsole/ with subdirs
         var flowConsoleDir = Path.Combine(targetDir, FlowConsoleDir);
         EnsureDirectory(Path.Combine(flowConsoleDir, "snapshots"));
         EnsureDirectory(Path.Combine(flowConsoleDir, "findings"));
@@ -123,21 +121,17 @@ internal sealed class InitCommand : Command<InitSettings>
         // Self-protection .gitignore inside .flowconsole/
         File.WriteAllText(Path.Combine(flowConsoleDir, ".gitignore"), "*\n");
 
-        // Append .flowconsole/ to project .gitignore
         AppendToGitignore(targetDir);
 
-        // Create rules/ with built-in rules
         var rulesDir = Path.Combine(targetDir, RulesDir);
         ExportBuiltInRules(rulesDir, settings.Force);
 
-        // Optional: example snapshot
         if (settings.WithExamples)
         {
             var examplesDir = Path.Combine(flowConsoleDir, "snapshots");
             File.WriteAllText(Path.Combine(examplesDir, "example.json"), ExampleSnapshot);
         }
 
-        // Optional: update README
         if (settings.UpdateReadme)
         {
             AppendReadmeHints(targetDir);
@@ -223,7 +217,6 @@ internal sealed class InitCommand : Command<InitSettings>
             if (content.Contains(entry, StringComparison.Ordinal))
                 return;
 
-            // Ensure we start on a new line
             if (content.Length > 0 && !content.EndsWith('\n'))
                 File.AppendAllText(gitignorePath, "\n");
 
@@ -298,7 +291,6 @@ internal sealed class InitCommand : Command<InitSettings>
 
     private static string? FindReadme(string dir)
     {
-        // Case-insensitive search for README.md
         return System.IO.Directory.GetFiles(dir, "README*")
             .FirstOrDefault(f => Path.GetFileName(f).StartsWith("README", StringComparison.OrdinalIgnoreCase));
     }

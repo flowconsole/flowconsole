@@ -4,9 +4,6 @@ using FlowConsole.Cli.Diff;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// Formats diff results as structured JSON: {added, removed, changed}.
-/// </summary>
 internal sealed class JsonDiffFormatter : IDiffFormatter
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -144,8 +141,6 @@ internal sealed class JsonDiffFormatter : IDiffFormatter
         };
     }
 }
-
-// JSON serialization models
 
 internal sealed class JsonDiffOutput
 {

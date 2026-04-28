@@ -6,18 +6,11 @@ using FlowConsole.Core.Entities.Relations;
 
 namespace FlowConsole.Cli.Serialization;
 
-/// <summary>
-/// Serializes a <see cref="ModelSnapshot"/> domain object to the ModelSnapshot v1 wire format JSON
-/// with mandatory <c>$schema</c> and <c>schemaVersion</c> top-level fields.
-/// </summary>
 internal static class SnapshotSerializer
 {
     public const string SchemaUri = "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json";
     public const string SchemaVersion = "1.1.0";
 
-    /// <summary>
-    /// Serializes a snapshot to a JSON string in canonical wire format.
-    /// </summary>
     public static string Serialize(ModelSnapshot snapshot, JsonSerializerOptions? options = null)
     {
         var node = ToJsonObject(snapshot);
@@ -25,19 +18,12 @@ internal static class SnapshotSerializer
         return node.ToJsonString(options);
     }
 
-    /// <summary>
-    /// Serializes a snapshot to a <see cref="JsonDocument"/> for schema validation.
-    /// </summary>
     public static JsonDocument ToJsonDocument(ModelSnapshot snapshot)
     {
         var json = Serialize(snapshot, new JsonSerializerOptions { WriteIndented = false });
         return JsonDocument.Parse(json);
     }
 
-    /// <summary>
-    /// Builds a <see cref="JsonObject"/> in canonical key order for the wire format.
-    /// Canonical order: $schema, schemaVersion, source, elements (sorted by id), relationships (sorted by sourceId+targetId+kind).
-    /// </summary>
     public static JsonObject ToJsonObject(ModelSnapshot snapshot)
     {
         var elements = snapshot.Elements
@@ -52,7 +38,6 @@ internal static class SnapshotSerializer
             .Select(MapRelationship)
             .ToList();
 
-        // Canonical key order
         var obj = new JsonObject
         {
             ["$schema"] = SchemaUri,
@@ -62,7 +47,6 @@ internal static class SnapshotSerializer
             ["relationships"] = new JsonArray(relationships.ToArray<JsonNode>())
         };
 
-        // Flows (sorted by id, steps in array order)
         if (snapshot.Flows is { Count: > 0 })
         {
             var flowsArray = new JsonArray();
@@ -76,10 +60,6 @@ internal static class SnapshotSerializer
         return obj;
     }
 
-    /// <summary>
-    /// Normalizes an existing JSON string to canonical format (for fcon fmt).
-    /// Parses, sorts elements by id, relationships by source+target+kind, reorders keys.
-    /// </summary>
     public static string Normalize(string json, int indent = 2, bool useTabs = false)
     {
         using var doc = JsonDocument.Parse(json);
@@ -92,7 +72,6 @@ internal static class SnapshotSerializer
             ["source"] = GetStringOrNull(root, "source")
         };
 
-        // Sort elements by id
         if (root.TryGetProperty("elements", out var elemArr) && elemArr.ValueKind == JsonValueKind.Array)
         {
             var sorted = elemArr.EnumerateArray()
@@ -106,7 +85,6 @@ internal static class SnapshotSerializer
             obj["elements"] = new JsonArray();
         }
 
-        // Sort relationships by sourceId+targetId+kind
         if (root.TryGetProperty("relationships", out var relArr) && relArr.ValueKind == JsonValueKind.Array)
         {
             var sorted = relArr.EnumerateArray()
@@ -122,7 +100,6 @@ internal static class SnapshotSerializer
             obj["relationships"] = new JsonArray();
         }
 
-        // Sort flows by id (steps preserve array order)
         if (root.TryGetProperty("flows", out var flowArr) && flowArr.ValueKind == JsonValueKind.Array)
         {
             var sorted = flowArr.EnumerateArray()
@@ -149,7 +126,6 @@ internal static class SnapshotSerializer
 
         var result = obj.ToJsonString(options);
 
-        // Handle custom indentation (default JsonSerializerOptions uses 2 spaces)
         if (useTabs)
         {
             result = ReplaceLeadingIndent(result, 2, "\t");

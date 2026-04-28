@@ -5,10 +5,6 @@ using Spectre.Console;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// Human-readable findings output. Emits Spectre.Console markup; the routing layer
-/// decides whether to render colors (TTY) or strip them (file/pipe).
-/// </summary>
 internal sealed class HumanFormatter : IFindingsFormatter
 {
     public string Format(RuleExecutionResult result, bool includeTrace)

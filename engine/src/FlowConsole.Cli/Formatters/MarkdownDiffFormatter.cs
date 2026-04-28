@@ -3,9 +3,6 @@ using FlowConsole.Cli.Diff;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// Formats diff results as PR-comment-ready Markdown.
-/// </summary>
 internal sealed class MarkdownDiffFormatter : IDiffFormatter
 {
     public string Format(DiffResult diff, string? onlyFilter)
@@ -87,7 +84,6 @@ internal sealed class MarkdownDiffFormatter : IDiffFormatter
             }
         }
 
-        // Summary
         var added = diff.AddedElements.Count + diff.AddedRelationships.Count;
         var removed = diff.RemovedElements.Count + diff.RemovedRelationships.Count;
         var changed = diff.ChangedElements.Count + diff.ChangedRelationships.Count;

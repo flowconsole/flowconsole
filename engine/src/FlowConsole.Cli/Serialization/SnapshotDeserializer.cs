@@ -7,10 +7,6 @@ using FlowConsole.Core.ValueObjects;
 
 namespace FlowConsole.Cli.Serialization;
 
-/// <summary>
-/// Deserializes a ModelSnapshot wire-format JSON document into domain types.
-/// Used by CLI commands (e.g., --merge-with, fcon fmt) to read existing snapshots.
-/// </summary>
 internal static class SnapshotDeserializer
 {
     public static ModelSnapshot Deserialize(JsonDocument document)
@@ -153,7 +149,6 @@ internal static class SnapshotDeserializer
             }
         }
 
-        // Generate relationship ID from components
         var id = GetString(r, "id") ?? $"{sourceId}-{kind.ToString().ToLowerInvariant()}-{targetId}";
 
         return RelationshipFactory.Create(

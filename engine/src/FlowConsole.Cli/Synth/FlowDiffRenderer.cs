@@ -2,32 +2,17 @@ using System.Text.Json;
 
 namespace FlowConsole.Cli.Synth;
 
-/// <summary>
-/// Represents a diff between local and remote flow snapshots.
-/// </summary>
 internal sealed record FlowDiff(
     IReadOnlyList<FlowSummary> Added,
     IReadOnlyList<FlowSummary> Removed,
     IReadOnlyList<(FlowSummary Before, FlowSummary After)> Changed);
 
-/// <summary>
-/// Lightweight flow representation for diff purposes.
-/// </summary>
 internal sealed record FlowSummary(string Id, string Name, IReadOnlyList<StepSummary> Steps);
 
-/// <summary>
-/// Lightweight flow step representation for diff purposes.
-/// </summary>
 internal sealed record StepSummary(string SourceElementId, string? RelationshipId, string? Label);
 
-/// <summary>
-/// Computes and renders flow-level diffs between local and remote model snapshots.
-/// </summary>
 internal static class FlowDiffRenderer
 {
-    /// <summary>
-    /// Computes a flow diff between local and remote snapshots.
-    /// </summary>
     public static FlowDiff ComputeDiff(JsonDocument local, JsonDocument remote)
     {
         var localFlows = ExtractFlows(local);
@@ -40,7 +25,6 @@ internal static class FlowDiffRenderer
         var removed = new List<FlowSummary>();
         var changed = new List<(FlowSummary Before, FlowSummary After)>();
 
-        // Flows in local but not in remote = added
         foreach (var flow in localFlows)
         {
             if (!remoteById.ContainsKey(flow.Id))
@@ -55,7 +39,6 @@ internal static class FlowDiffRenderer
             }
         }
 
-        // Flows in remote but not in local = removed
         foreach (var flow in remoteFlows)
         {
             if (!localById.ContainsKey(flow.Id))
@@ -65,15 +48,9 @@ internal static class FlowDiffRenderer
         return new FlowDiff(added, removed, changed);
     }
 
-    /// <summary>
-    /// Returns true if the diff has no changes.
-    /// </summary>
     public static bool IsEmpty(FlowDiff diff) =>
         diff.Added.Count == 0 && diff.Removed.Count == 0 && diff.Changed.Count == 0;
 
-    /// <summary>
-    /// Renders a flow diff to the given TextWriter.
-    /// </summary>
     public static void Render(FlowDiff diff, TextWriter writer, bool useColor = false)
     {
         if (IsEmpty(diff))

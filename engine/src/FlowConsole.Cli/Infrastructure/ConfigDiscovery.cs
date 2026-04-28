@@ -100,7 +100,6 @@ public static class ConfigDiscovery
         {
             var trimmed = line.TrimStart();
 
-            // Detect synth: section start
             if (trimmed.StartsWith("synth:", StringComparison.OrdinalIgnoreCase) && !trimmed.Contains('#'))
             {
                 inSynthSection = true;
@@ -116,7 +115,6 @@ public static class ConfigDiscovery
                 break;
             }
 
-            // Parse key: value within synth section
             command ??= ExtractYamlValue(trimmed, "command:");
             output ??= ExtractYamlValue(trimmed, "output:");
             cwd ??= ExtractYamlValue(trimmed, "cwd:");

@@ -5,10 +5,6 @@ using FlowConsole.Rules.Core.Execution;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// SARIF 2.1.0 output formatter for findings.
-/// Produces valid SARIF JSON per the OASIS spec.
-/// </summary>
 internal sealed partial class SarifFormatter : IFindingsFormatter
 {
     private const string SarifVersion = "2.1.0";

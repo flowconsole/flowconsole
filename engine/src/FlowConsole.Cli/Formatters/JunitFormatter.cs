@@ -4,9 +4,6 @@ using FlowConsole.Rules.Core.Execution;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// JUnit XML output formatter. Each rule is a test case; findings are failures.
-/// </summary>
 internal sealed class JunitFormatter : IFindingsFormatter
 {
     public string Format(RuleExecutionResult result, bool includeTrace)
@@ -22,7 +19,6 @@ internal sealed class JunitFormatter : IFindingsFormatter
         writer.WriteStartDocument();
         writer.WriteStartElement("testsuites");
 
-        // Group findings by rule
         var findingsByRule = result.Findings.GroupBy(f => f.RuleId).ToList();
         var errorsByRule = result.Errors.GroupBy(e => e.RuleId).ToList();
 
@@ -54,16 +50,16 @@ internal sealed class JunitFormatter : IFindingsFormatter
                 writer.WriteAttributeString("type", finding.Severity);
                 if (finding.ElementIds.Count > 0)
                     writer.WriteString($"Elements: {string.Join(", ", finding.ElementIds)}");
-                writer.WriteEndElement(); // failure
+                writer.WriteEndElement();
             }
 
-            writer.WriteEndElement(); // testcase
+            writer.WriteEndElement();
         }
 
         foreach (var group in errorsByRule)
         {
             if (findingsByRule.Any(f => f.Key == group.Key))
-                continue; // Already written as testcase with findings
+                continue;
 
             writer.WriteStartElement("testcase");
             writer.WriteAttributeString("name", group.Key);
@@ -74,14 +70,14 @@ internal sealed class JunitFormatter : IFindingsFormatter
                 writer.WriteStartElement("error");
                 writer.WriteAttributeString("message", error.Message);
                 writer.WriteAttributeString("type", error.Code);
-                writer.WriteEndElement(); // error
+                writer.WriteEndElement();
             }
 
-            writer.WriteEndElement(); // testcase
+            writer.WriteEndElement();
         }
 
-        writer.WriteEndElement(); // testsuite
-        writer.WriteEndElement(); // testsuites
+        writer.WriteEndElement();
+        writer.WriteEndElement();
         writer.WriteEndDocument();
         writer.Flush();
 

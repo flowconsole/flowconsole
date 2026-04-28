@@ -1,15 +1,7 @@
 namespace FlowConsole.Cli.Infrastructure;
 
-/// <summary>
-/// Shared utility methods used across multiple CLI commands.
-/// </summary>
 internal static class SharedHelpers
 {
-    /// <summary>
-    /// Extracts the rule file name from an embedded resource name.
-    /// Resource names like "FlowConsole.Rules.Engine.Default.BuiltInRules.no-orphan-elements.rule.yaml"
-    /// become "no-orphan-elements.rule.yaml".
-    /// </summary>
     public static string ExtractRuleFileName(string resourceName)
     {
         var parts = resourceName.Split('.');
@@ -27,9 +19,6 @@ internal static class SharedHelpers
             : resourceName;
     }
 
-    /// <summary>
-    /// Resolves rules directory from explicit path, .flowconsole.yaml config, or default ./rules/.
-    /// </summary>
     public static string ResolveRulesDir(string? explicitDir, string? configFile)
     {
         if (explicitDir is not null)
@@ -75,9 +64,6 @@ internal static class SharedHelpers
 
     private static readonly string[] ValidSeverities = ["critical", "error", "warning", "info"];
 
-    /// <summary>
-    /// Returns a numeric ordering for severity levels (higher = more severe).
-    /// </summary>
     public static int SeverityOrder(string severity) => severity.ToLowerInvariant() switch
     {
         "critical" => 4,
@@ -87,9 +73,6 @@ internal static class SharedHelpers
         _ => 0
     };
 
-    /// <summary>
-    /// Returns true if the given string is a recognized severity level.
-    /// </summary>
     public static bool IsValidSeverity(string severity) =>
         ValidSeverities.Contains(severity.ToLowerInvariant());
 }

@@ -38,21 +38,18 @@ internal sealed class DiffCommand : Command<DiffSettings>
 
     public override int Execute(CommandContext context, DiffSettings settings)
     {
-        // Validate format
         if (!ValidFormats.Contains(settings.Format, StringComparer.OrdinalIgnoreCase))
         {
             CliConsole.Error($"invalid format '{settings.Format}'. Must be one of: human, json, markdown");
             return 2;
         }
 
-        // Validate --only filter
         if (settings.Only is not null && !ValidOnlyValues.Contains(settings.Only, StringComparer.OrdinalIgnoreCase))
         {
             CliConsole.Error($"invalid --only value '{settings.Only}'. Must be one of: added, removed, changed");
             return 2;
         }
 
-        // Read before file
         if (!File.Exists(settings.BeforePath))
         {
             CliConsole.Error($"'before' file not found: {settings.BeforePath}");

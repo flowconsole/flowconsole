@@ -4,9 +4,6 @@ using FlowConsole.Rules.Core.Execution;
 
 namespace FlowConsole.Cli.Formatters;
 
-/// <summary>
-/// JSON output formatter. Serializes findings as a JSON array with metadata.
-/// </summary>
 internal sealed partial class JsonFormatter : IFindingsFormatter
 {
     public string Format(RuleExecutionResult result, bool includeTrace)

@@ -60,7 +60,6 @@ internal sealed class TelemetryStatusCommand : Command<TelemetryStatusSettings>
         Console.WriteLine($"Endpoint:  {TelemetryClient.PostHogEndpoint}");
         Console.WriteLine($"State:     {_state.StateFilePath}");
 
-        // Environment overrides
         var envTelemetry = Environment.GetEnvironmentVariable("FLOWCONSOLE_TELEMETRY");
         if (envTelemetry is not null)
             Console.WriteLine($"FLOWCONSOLE_TELEMETRY={envTelemetry} (env override)");
@@ -72,7 +71,7 @@ internal sealed class TelemetryStatusCommand : Command<TelemetryStatusSettings>
         if (settings.Verbose)
         {
             Console.WriteLine();
-            Console.Write(FirstRunBanner.Text);
+            Console.Write(FirstRunBanner.ShortNotice);
         }
 
         return 0;

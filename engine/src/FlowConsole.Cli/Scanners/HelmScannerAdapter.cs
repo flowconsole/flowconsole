@@ -6,10 +6,6 @@ using FlowConsole.Scanners.Helm;
 
 namespace FlowConsole.Cli.Scanners;
 
-/// <summary>
-/// Adapts <see cref="HelmChartScanner"/> (IInfraScanner) to produce <see cref="ScanResult"/>
-/// with diagnostics for the CLI scan pipeline.
-/// </summary>
 internal sealed class HelmScannerAdapter
 {
     private readonly HelmChartScanner _scanner = new();

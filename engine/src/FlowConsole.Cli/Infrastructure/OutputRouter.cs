@@ -27,25 +27,21 @@ public sealed class OutputRouter
         string? humanSummary,
         CancellationToken ct = default)
     {
-        // (3) Explicit -o path takes priority
         if (!string.IsNullOrWhiteSpace(explicitOutputPath))
         {
             await _writer.WriteAsync(explicitOutputPath, content, ct).ConfigureAwait(false);
             return explicitOutputPath;
         }
 
-        // (1) Piped stdout → write to stdout
         if (Console.IsOutputRedirected)
         {
             Console.Write(content);
             return null;
         }
 
-        // (2) TTY → write to .flowconsole/{category}/latest.{ext}
         var outputPath = Path.Combine(".flowconsole", category, $"latest.{extension}");
         await _writer.WriteAsync(outputPath, content, ct).ConfigureAwait(false);
 
-        // Print human summary to stdout
         if (!string.IsNullOrWhiteSpace(humanSummary))
             Console.WriteLine(humanSummary);
 

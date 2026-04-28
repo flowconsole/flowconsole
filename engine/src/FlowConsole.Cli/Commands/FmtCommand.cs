@@ -54,7 +54,6 @@ internal sealed class FmtCommand : Command<FmtSettings>
         var ct = _ctHolder.Token;
         var isStdin = settings.Snapshot == "-";
 
-        // Parse indent option
         var useTabs = settings.Indent.Equals("tab", StringComparison.OrdinalIgnoreCase);
         var indentSpaces = 2;
         if (!useTabs)
@@ -67,7 +66,6 @@ internal sealed class FmtCommand : Command<FmtSettings>
             indentSpaces = parsed;
         }
 
-        // Read input
         string inputJson;
         string? inputPath = null;
 
@@ -86,7 +84,6 @@ internal sealed class FmtCommand : Command<FmtSettings>
             inputJson = await File.ReadAllTextAsync(inputPath, ct).ConfigureAwait(false);
         }
 
-        // Parse and validate schema
         JsonDocument doc;
         try
         {
@@ -117,7 +114,6 @@ internal sealed class FmtCommand : Command<FmtSettings>
             }
         }
 
-        // Normalize
         string normalized;
         try
         {
@@ -129,7 +125,6 @@ internal sealed class FmtCommand : Command<FmtSettings>
             return 2;
         }
 
-        // Check mode: compare and report
         if (settings.Check)
         {
             // Normalize line endings and trailing whitespace for comparison.
@@ -150,12 +145,10 @@ internal sealed class FmtCommand : Command<FmtSettings>
             return 1;
         }
 
-        // Output
         try
         {
             if (isStdin || settings.Output is not null)
             {
-                // stdin → stdout, or explicit -o
                 var outputPath = settings.Output;
                 if (outputPath is not null)
                 {
@@ -165,13 +158,11 @@ internal sealed class FmtCommand : Command<FmtSettings>
                 }
                 else
                 {
-                    // stdin → stdout
                     Console.Write(normalized);
                 }
             }
             else
             {
-                // In-place
                 await _atomicWriter.WriteAsync(inputPath!, normalized, ct).ConfigureAwait(false);
                 if (!Console.IsOutputRedirected)
                     Console.WriteLine($"Formatted: {inputPath}");

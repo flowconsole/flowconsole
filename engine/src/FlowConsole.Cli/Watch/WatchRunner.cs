@@ -2,9 +2,6 @@ using FlowConsole.Cli.Infrastructure;
 
 namespace FlowConsole.Cli.Watch;
 
-/// <summary>
-/// Watches snapshot and rules-dir for changes, re-runs validation with debounce.
-/// </summary>
 internal sealed class WatchRunner : IDisposable
 {
     private const int DebounceMs = 200;
@@ -35,12 +32,10 @@ internal sealed class WatchRunner : IDisposable
 
     public async Task<int> RunAsync()
     {
-        // Run once initially
         var exitCode = await _runValidation().ConfigureAwait(false);
         Interlocked.Exchange(ref _lastExitCode, exitCode);
         Interlocked.Increment(ref _runCount);
 
-        // Set up watchers
         var snapshotDir = Path.GetDirectoryName(_snapshotPath)!;
         var snapshotFileName = Path.GetFileName(_snapshotPath);
 
@@ -66,14 +61,12 @@ internal sealed class WatchRunner : IDisposable
 
         CliConsole.Info($"Watching for changes... (Ctrl-C to exit)");
 
-        // Wait for cancellation
         try
         {
             await Task.Delay(Timeout.Infinite, _ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            // Normal exit
         }
 
         return Interlocked.CompareExchange(ref _lastExitCode, 0, 0);
@@ -98,7 +91,6 @@ internal sealed class WatchRunner : IDisposable
             {
                 if (_ct.IsCancellationRequested) return;
 
-                // Clear console for fresh output
                 try { Console.Clear(); } catch { /* ignore if not supported */ }
 
                 var result = await _runValidation().ConfigureAwait(false);

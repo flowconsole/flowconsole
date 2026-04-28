@@ -8,22 +8,6 @@ using Spectre.Console.Cli;
 
 namespace FlowConsole.Cli.Commands;
 
-/// <summary>
-/// Settings for <c>fcon push snapshot</c>.
-///
-/// Concurrency: last-writer-wins. Same-source pushes naturally serialize via Postgres
-/// row locks (no torn reads). Different-source pushes (e.g. C# and Helm) run in parallel.
-/// Stale CI job can overwrite a fresher push — coordinate pipeline ordering if needed.
-///
-/// Per-source split: if the snapshot contains elements from multiple sources, the CLI
-/// automatically splits by source and pushes each partition separately. Relationships
-/// whose both ends belong to the same source are included in that partition.
-///
-/// Secrets: API keys accepted ONLY via FLOWCONSOLE_API_KEY env. The --api-key flag is
-/// refused to prevent secrets from leaking into CI logs via ps/shell history.
-///
-/// Exit codes: 0=success, 2=usage error, 4=network/auth/circuit-breaker, 5=internal.
-/// </summary>
 internal sealed class PushSnapshotSettings : GlobalSettings
 {
     [CommandArgument(0, "<snapshot>")]
@@ -75,7 +59,6 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             return 2;
         }
 
-        // Resolve config file for fallback values
         var configFile = settings.ConfigPath ?? ConfigDiscovery.FindConfigFile(Directory.GetCurrentDirectory());
 
         // Resolve model ID: CLI flag > .flowconsole.yaml > error
@@ -111,7 +94,6 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             }
         }
 
-        // Read and validate snapshot file
         if (!File.Exists(settings.SnapshotPath))
         {
             CliConsole.Error($"snapshot file not found: {settings.SnapshotPath}");
@@ -150,7 +132,6 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             return 0;
         }
 
-        // Dry-run: print request payloads and exit
         if (settings.DryRun)
         {
             var displayUrl = apiUrl ?? "<not configured>";
@@ -165,7 +146,6 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             return 0;
         }
 
-        // Push each source partition sequentially
         var allSuccess = true;
         foreach (var (source, json) in sourcePartitions)
         {
@@ -219,17 +199,11 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             return 4;
         }
 
-        // Print final receipt for last partition's model version
         var lastResult = sourcePartitions.Count == 1 ? "Pushed." : $"Pushed {sourcePartitions.Count} source partition(s).";
         CliConsole.Success(lastResult);
         return 0;
     }
 
-    /// <summary>
-    /// Splits a snapshot JSON document by the <c>source</c> field of elements.
-    /// Each partition gets the same $schema/schemaVersion and only relationships
-    /// whose both ends belong to the partition.
-    /// </summary>
     internal static List<(string Source, string Json)> SplitBySource(JsonDocument doc)
     {
         var root = doc.RootElement;
@@ -242,7 +216,6 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
         var topLevelSource = root.TryGetProperty("source", out var ts) && ts.ValueKind == JsonValueKind.String
             ? ts.GetString() : null;
 
-        // Collect elements grouped by source
         var elementsBySource = new Dictionary<string, List<JsonElement>>(StringComparer.OrdinalIgnoreCase);
 
         if (root.TryGetProperty("elements", out var elements) && elements.ValueKind == JsonValueKind.Array)
@@ -270,7 +243,6 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
             return [(singleSource, doc.RootElement.GetRawText())];
         }
 
-        // Collect relationships
         var relationships = new List<JsonElement>();
         if (root.TryGetProperty("relationships", out var rels) && rels.ValueKind == JsonValueKind.Array)
         {
@@ -278,12 +250,10 @@ internal sealed class PushSnapshotCommand : Command<PushSnapshotSettings>
                 relationships.Add(rel);
         }
 
-        // Collect flows
         JsonElement? flowsElement = null;
         if (root.TryGetProperty("flows", out var flows) && flows.ValueKind == JsonValueKind.Array)
             flowsElement = flows;
 
-        // Build per-source sub-snapshots
         var result = new List<(string, string)>();
         foreach (var (source, elems) in elementsBySource.OrderBy(kv => kv.Key, StringComparer.Ordinal))
         {

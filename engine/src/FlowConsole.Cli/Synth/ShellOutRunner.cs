@@ -3,19 +3,10 @@ using System.Text;
 
 namespace FlowConsole.Cli.Synth;
 
-/// <summary>
-/// Executes a shell command as a subprocess, captures stdout, propagates cancellation.
-/// On SIGINT the child process is killed and partial output discarded.
-/// </summary>
 internal sealed class ShellOutRunner
 {
-    /// <summary>Maximum stdout size (10 MB) — catastrophic if exceeded.</summary>
     private const int MaxOutputBytes = 10 * 1024 * 1024;
 
-    /// <summary>
-    /// Runs <paramref name="command"/> in a shell, captures stdout.
-    /// </summary>
-    /// <returns>Exit code and captured stdout.</returns>
     public async Task<(int ExitCode, string Stdout)> RunAsync(
         string command,
         string workingDirectory,
@@ -50,14 +41,12 @@ internal sealed class ShellOutRunner
 
         process.Start();
 
-        // Register cancellation to kill the process
         await using var registration = ct.Register(() =>
         {
             try { process.Kill(entireProcessTree: true); }
             catch { /* best-effort */ }
         });
 
-        // Read stdout with size limit
         var buffer = new char[8192];
         var totalBytes = 0;
 

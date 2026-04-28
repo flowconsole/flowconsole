@@ -88,28 +88,24 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
     {
         var ct = _ctHolder.Token;
 
-        // Validate --fail-on value
         if (!SharedHelpers.IsValidSeverity(settings.FailOn))
         {
             CliConsole.Error($"unrecognized --fail-on value '{settings.FailOn}'. Valid: info, warning, error, critical");
             return 2;
         }
 
-        // Validate --severity value
         if (settings.Severity is not null && !SharedHelpers.IsValidSeverity(settings.Severity))
         {
             CliConsole.Error($"unrecognized --severity value '{settings.Severity}'. Valid: info, warning, error, critical");
             return 2;
         }
 
-        // Watch mode incompatible with stdin
         if (settings.Watch && settings.Snapshot == "-")
         {
             CliConsole.Error("--watch is incompatible with stdin input '-'");
             return 2;
         }
 
-        // Resolve snapshot path
         var snapshotPath = ResolveSnapshotPath(settings.Snapshot);
         if (snapshotPath is null && settings.Snapshot != "-")
         {
@@ -117,7 +113,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             return 2;
         }
 
-        // Resolve rules directory
         var rulesDir = ResolveRulesDir(settings.RulesDir, settings.ConfigPath);
 
         if (settings.Watch)
@@ -147,7 +142,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         ValidateSettings settings,
         CancellationToken ct)
     {
-        // Read snapshot
         string snapshotJson;
         if (settings.Snapshot == "-")
         {
@@ -163,7 +157,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             return 2;
         }
 
-        // Parse snapshot
         JsonDocument doc;
         try
         {
@@ -181,7 +174,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             snapshot = SnapshotDeserializer.Deserialize(doc);
         }
 
-        // Map to rule engine bindings
         List<FlowConsole.Rules.Core.Bindings.ElementRef> elements;
         List<FlowConsole.Rules.Core.Bindings.RelationshipRef> relationships;
         try
@@ -194,13 +186,11 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             return 2;
         }
 
-        // Ingest rule files
         var pipeline = new IngestPipeline(_expressionCompiler, _helperCatalog);
         var (ruleFiles, hasIngestErrors) = LoadRuleFiles(rulesDir, pipeline);
 
         if (ruleFiles is null)
         {
-            // Use built-in rules only
             var builtIn = _builtInRuleLoader.GetBuiltInRules();
             if (builtIn is null || builtIn.Rules.Count == 0)
             {
@@ -219,11 +209,9 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
                     : "one or more rule files failed to parse");
                 return 2;
             }
-            // Merge with built-in rules
             ruleFiles = _builtInRuleLoader.MergeWithBuiltIn(ruleFiles);
         }
 
-        // Apply --target filter
         if (settings.Target is not null)
         {
             if (!Enum.TryParse<FlowConsole.Rules.Core.Model.RuleTarget>(settings.Target, ignoreCase: true, out var targetFilter))
@@ -237,14 +225,12 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
                 ruleFiles.Diagnostics);
         }
 
-        // Execute rules
         var subjectResolver = new InMemorySubjectResolver(elements, relationships, null, _evaluator);
         var pathFinder = new InMemoryPathFinder(elements, relationships, _evaluator);
         var executor = new DefaultRuleExecutor(subjectResolver, pathFinder, _evaluator);
 
         var result = executor.Execute(ruleFiles);
 
-        // Apply severity filter
         if (settings.Severity is not null)
         {
             var minSeverity = SharedHelpers.SeverityOrder(settings.Severity);
@@ -256,7 +242,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             };
         }
 
-        // Format output
         IFindingsFormatter formatter;
         try
         {
@@ -269,7 +254,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
         }
         var output = formatter.Format(result, settings.IncludeTrace);
 
-        // Write output
         if (settings.Output is not null)
         {
             // File output: strip Spectre markup so the file stays plain text.
@@ -287,7 +271,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             Console.Write(output);
         }
 
-        // Determine exit code
         var failOnLevel = SharedHelpers.SeverityOrder(settings.FailOn);
         var hasFailingFindings = result.Findings.Any(f => SharedHelpers.SeverityOrder(f.Severity) >= failOnLevel);
 
@@ -339,7 +322,6 @@ internal sealed class ValidateCommand : Command<ValidateSettings>
             return File.Exists(explicit_path) ? Path.GetFullPath(explicit_path) : null;
         }
 
-        // Default: .flowconsole/snapshots/latest.json
         var defaultPath = Path.Combine(".flowconsole", "snapshots", "latest.json");
         return File.Exists(defaultPath) ? Path.GetFullPath(defaultPath) : null;
     }

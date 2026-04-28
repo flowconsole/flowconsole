@@ -4,10 +4,6 @@ using Spectre.Console.Cli;
 
 namespace FlowConsole.Cli.Commands;
 
-/// <summary>
-/// Default root command that prints version when --version is used,
-/// or help text otherwise.
-/// </summary>
 internal sealed class VersionCommand : Command<GlobalSettings>
 {
     public override int Execute(CommandContext context, GlobalSettings settings)
@@ -25,7 +21,6 @@ internal sealed class VersionCommand : Command<GlobalSettings>
 
         if (infoVersion is not null)
         {
-            // Strip the +commitHash suffix if present
             var plusIndex = infoVersion.IndexOf('+', StringComparison.Ordinal);
             return plusIndex >= 0 ? infoVersion[..plusIndex] : infoVersion;
         }

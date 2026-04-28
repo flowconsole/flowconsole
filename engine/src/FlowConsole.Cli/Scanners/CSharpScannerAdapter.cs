@@ -3,10 +3,6 @@ using FlowConsole.Scanners.Core;
 
 namespace FlowConsole.Cli.Scanners;
 
-/// <summary>
-/// Adapts <see cref="ICodeParser"/> (CSharpCodeParser) to produce <see cref="ScanResult"/>
-/// with diagnostics for the CLI scan pipeline.
-/// </summary>
 internal sealed class CSharpScannerAdapter
 {
     private readonly ICodeParser _parser;
