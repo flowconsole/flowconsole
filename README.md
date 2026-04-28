@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/flowconsole/flowconsole/main/apps/docs/public/banner.png" alt="FlowConsole" />
 </p>
-<p align="center">define, validate, and visualize software architecture</p>
+<p align="center">Architecture as Code with drift detection in CI</p>
 <br/>
 <p align="center">
   <a href="https://discord.gg/23CkhhDz"><img src="https://img.shields.io/badge/Community-discord-blue?style=flat&logo=discord" alt="discord chat"></a>

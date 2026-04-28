@@ -1,160 +1,300 @@
-name: CLI Preview
+name: CLI Preview Release
 
 on:
   push:
     branches: [dev]
     paths:
-      - 'engine/**'
-      - 'packages/cli/**'
-      - '.github/workflows/cli-preview.yml'
+      - "engine/**"
+      - "packages/cli/**"
   workflow_dispatch:
 
 concurrency:
-  group: cli-preview-${{ github.ref }}
+  group: cli-preview
   cancel-in-progress: true
 
 permissions:
   contents: write
-  id-token: write
 
 env:
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_VERSION: "10.0.x"
+  DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  CLI_PROJECT: engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj
 
 jobs:
   version:
     runs-on: ubuntu-latest
     outputs:
-      cli_version: ${{ steps.compute.outputs.cli_version }}
       npm_version: ${{ steps.compute.outputs.npm_version }}
+      cli_version: ${{ steps.compute.outputs.cli_version }}
       tag: ${{ steps.compute.outputs.tag }}
+      no_changes: ${{ steps.changeset.outputs.no_changes }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
-      - name: Compute preview version
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate preview changeset from git history
+        id: changeset
+        run: |
+          bash .github/scripts/generate-preview-changeset.sh \
+            --package @flowconsole/cli \
+            --paths 'engine' 'packages/cli' \
+            --tag-pattern 'cli-v*'
+
+      - name: Check for changes
+        if: steps.changeset.outputs.no_changes == 'true'
+        run: |
+          echo "No CLI changes since last preview tag. Skipping build."
+
+      - name: Generate snapshot versions
+        if: steps.changeset.outputs.no_changes != 'true'
+        run: pnpm changeset version --snapshot beta
+
+      - name: Compute versions
+        if: steps.changeset.outputs.no_changes != 'true'
         id: compute
         run: |
-          BASE=$(node -p "require('./packages/cli/package.json').cliVersion.replace(/-.*/, '')")
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          CLI_VERSION="${BASE}-preview.${SHORT_SHA}"
-          NPM_VERSION="2.0.0-preview.${SHORT_SHA}"
-          TAG="cli-v${CLI_VERSION}"
-          echo "cli_version=$CLI_VERSION" >> "$GITHUB_OUTPUT"
-          echo "npm_version=$NPM_VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG"               >> "$GITHUB_OUTPUT"
-          echo "Preview version: $CLI_VERSION (npm $NPM_VERSION, tag $TAG)"
+          NPM_VERSION=$(node -p "require('./packages/cli/package.json').version")
+          echo "npm_version=${NPM_VERSION}" >> "$GITHUB_OUTPUT"
 
-  sfa-publish:
+          CLI_BASE=$(node -p "
+            const pkg = require('./packages/cli/package.json');
+            if (!pkg.cliVersion) { process.stderr.write('ERROR: cliVersion missing from packages/cli/package.json\n'); process.exit(1); }
+            pkg.cliVersion.replace(/-.*/, '')
+          ")
+          SNAPSHOT_SUFFIX="${NPM_VERSION##*-beta-}"
+          if [[ "$SNAPSHOT_SUFFIX" == "$NPM_VERSION" ]]; then
+            echo "ERROR: could not extract snapshot suffix from '${NPM_VERSION}'" >&2
+            exit 1
+          fi
+          CLI_VERSION="${CLI_BASE}-beta-${SNAPSHOT_SUFFIX}"
+          echo "cli_version=${CLI_VERSION}" >> "$GITHUB_OUTPUT"
+
+          TAG="cli-v${CLI_VERSION}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+          echo "npm_version=${NPM_VERSION}"
+          echo "cli_version=${CLI_VERSION}"
+          echo "tag=${TAG}"
+
+      - name: Upload preview notes
+        if: steps.changeset.outputs.no_changes != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-notes
+          path: preview-notes.md
+
+  build:
     needs: version
-    runs-on: ubuntu-latest
+    if: needs.version.outputs.no_changes != 'true'
     strategy:
       matrix:
-        rid: [linux-x64, linux-arm64, osx-x64, osx-arm64, win-x64, win-arm64]
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            archive: tar.gz
+          - os: ubuntu-latest
+            rid: linux-arm64
+            archive: tar.gz
+          - os: macos-latest
+            rid: osx-x64
+            archive: tar.gz
+          - os: macos-14
+            rid: osx-arm64
+            archive: tar.gz
+          - os: windows-latest
+            rid: win-x64
+            archive: zip
+          - os: windows-latest
+            rid: win-arm64
+            archive: zip
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Publish SFA (${{ matrix.rid }})
+      - name: Publish SFA binary
+        shell: bash
         run: |
-          dotnet publish ${{ env.CLI_PROJECT }} \
-            -r ${{ matrix.rid }} \
+          dotnet publish engine/src/FlowConsole.Cli/FlowConsole.Cli.csproj \
             -c Release \
-            -p:Version=${{ needs.version.outputs.cli_version }} \
-            -o artifacts/${{ matrix.rid }}
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            "-p:Version=${CLI_VERSION}" \
+            -o publish/${{ matrix.rid }}
+        env:
+          CLI_VERSION: ${{ needs.version.outputs.cli_version }}
 
-      - name: Create archive (Unix)
-        if: ${{ !startsWith(matrix.rid, 'win-') }}
+      - name: Create archive (tar.gz)
+        if: matrix.archive == 'tar.gz'
         run: |
-          cd artifacts/${{ matrix.rid }}
-          tar czf ../fcon-${{ matrix.rid }}.tar.gz *
+          cd publish/${{ matrix.rid }}
+          tar -czf ../../fcon-${{ matrix.rid }}.${{ matrix.archive }} .
 
-      - name: Create archive (Windows)
-        if: ${{ startsWith(matrix.rid, 'win-') }}
+      - name: Create archive (zip)
+        if: matrix.archive == 'zip'
+        shell: pwsh
         run: |
-          cd artifacts/${{ matrix.rid }}
-          zip -r ../fcon-${{ matrix.rid }}.zip *
+          Compress-Archive -Path publish/${{ matrix.rid }}/* -DestinationPath fcon-${{ matrix.rid }}.${{ matrix.archive }}
 
-      - name: Compute SHA-256 checksum
+      - name: Generate checksum
+        shell: bash
         run: |
-          cd artifacts
-          if [ -f "fcon-${{ matrix.rid }}.tar.gz" ]; then
-            sha256sum "fcon-${{ matrix.rid }}.tar.gz" > "fcon-${{ matrix.rid }}.sha256"
-          else
-            sha256sum "fcon-${{ matrix.rid }}.zip"    > "fcon-${{ matrix.rid }}.sha256"
-          fi
+          sha256sum fcon-${{ matrix.rid }}.${{ matrix.archive }} > fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256 || \
+          shasum -a 256 fcon-${{ matrix.rid }}.${{ matrix.archive }} > fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256
 
-      - name: Upload SFA artifact
-        uses: actions/upload-artifact@v5
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: fcon-${{ matrix.rid }}
           path: |
-            artifacts/fcon-${{ matrix.rid }}.tar.gz
-            artifacts/fcon-${{ matrix.rid }}.zip
-            artifacts/fcon-${{ matrix.rid }}.sha256
+            fcon-${{ matrix.rid }}.${{ matrix.archive }}
+            fcon-${{ matrix.rid }}.${{ matrix.archive }}.sha256
 
-  github-prerelease:
-    needs: [version, sfa-publish]
+  npm-publish:
+    needs: [version, build]
+    if: needs.version.outputs.no_changes != 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Download all SFA artifacts
-        uses: actions/download-artifact@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: release-artifacts/
-          pattern: fcon-*
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set version
+        run: |
+          cd packages/cli
+          npm version "$NPM_VERSION" --no-git-tag-version
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.cliVersion = process.env.CLI_VERSION;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          NPM_VERSION: ${{ needs.version.outputs.npm_version }}
+          CLI_VERSION: ${{ needs.version.outputs.cli_version }}
+
+      - name: Publish to npm
+        run: pnpm --filter @flowconsole/cli publish --tag next --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  github-prerelease:
+    needs: [version, build]
+    if: needs.version.outputs.no_changes != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Download preview notes
+        uses: actions/download-artifact@v4
+        with:
+          name: preview-notes
+          path: .
+
+      - name: Build release notes
+        run: |
+          ARTIFACTS_TABLE="| Platform | Archive | Checksum |\n|----------|---------|----------|"
+          for dir in artifacts/fcon-*/; do
+            RID=$(basename "$dir" | sed 's/^fcon-//')
+            for archive in "$dir"fcon-*.tar.gz "$dir"fcon-*.zip; do
+              if [[ -f "$archive" ]]; then
+                ARCHIVE_NAME=$(basename "$archive")
+                CHECKSUM=""
+                if [[ -f "${archive}.sha256" ]]; then
+                  CHECKSUM=$(awk '{print $1}' "${archive}.sha256")
+                fi
+                case "$RID" in
+                  linux-x64)   PLATFORM="Linux x64" ;;
+                  linux-arm64) PLATFORM="Linux ARM64" ;;
+                  osx-x64)     PLATFORM="macOS x64" ;;
+                  osx-arm64)   PLATFORM="macOS ARM64" ;;
+                  win-x64)     PLATFORM="Windows x64" ;;
+                  win-arm64)   PLATFORM="Windows ARM64" ;;
+                  *)           PLATFORM="$RID" ;;
+                esac
+                ARTIFACTS_TABLE="${ARTIFACTS_TABLE}\n| ${PLATFORM} | ${ARCHIVE_NAME} | ${CHECKSUM} |"
+              fi
+            done
+          done
+
+          {
+            echo "## FlowConsole CLI ${CLI_VERSION}"
+            echo ""
+            echo "Automatic preview build from \`dev\` branch."
+            echo ""
+            echo "### Changes"
+            cat preview-notes.md 2>/dev/null || true
+            echo ""
+            echo "### Artifacts"
+            echo ""
+            printf '%b\n' "$ARTIFACTS_TABLE"
+            echo ""
+            echo "> **Warning:** This is a preview build. Not for production use."
+          } > release-body.md
+        env:
+          CLI_VERSION: ${{ needs.version.outputs.cli_version }}
 
       - name: Collect release assets
         run: |
           mkdir -p release-assets
-          find release-artifacts -name '*.tar.gz' -o -name '*.zip' -o -name '*.sha256' | while read f; do
-            cp "$f" release-assets/
+          for dir in artifacts/fcon-*/; do
+            cp "$dir"fcon-*.tar.gz "$dir"fcon-*.zip "$dir"fcon-*.sha256 release-assets/ 2>/dev/null || true
           done
-          ls -la release-assets/
 
       - name: Create GitHub pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ needs.version.outputs.tag }}" \
-            --title "FlowConsole CLI ${{ needs.version.outputs.cli_version }} (preview)" \
-            --notes "Automatic preview build from \`dev\` @ ${GITHUB_SHA:0:7}. Not for production." \
+          if ! compgen -G "release-assets/*" > /dev/null; then
+            echo "ERROR: No release assets found in release-assets/" >&2
+            exit 1
+          fi
+
+          gh release create "$TAG" \
             --prerelease \
-            --target "${GITHUB_SHA}" \
+            --title "FlowConsole CLI ${CLI_VERSION}" \
+            --notes-file release-body.md \
             release-assets/*
-
-  npm-publish:
-    needs: [version, github-prerelease]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Bump cliVersion + npm version
-        run: |
-          cd packages/cli
-          node -e "
-            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
-            pkg.cliVersion = '${{ needs.version.outputs.cli_version }}';
-            pkg.version    = '${{ needs.version.outputs.npm_version }}';
-            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-          cat package.json | grep -E '"(version|cliVersion)"'
-
-      - name: Publish npm wrapper (next tag)
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd packages/cli
-          npm publish --access public --tag next
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          CLI_VERSION: ${{ needs.version.outputs.cli_version }}
