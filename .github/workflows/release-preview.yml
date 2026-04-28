@@ -92,15 +92,17 @@ jobs:
 
       # ----- Publishing via publib (formerly jsii-release, AWS jsii ecosystem standard) -----
 
-      - name: Publish to npm
+      - name: Publish to npm (OIDC Trusted Publisher)
         if: steps.changeset.outputs.no_changes != 'true'
         working-directory: packages/sdk
-        # publib-npm/-pypi/-nuget/-maven/-golang are bin entries of the `publib` package,
-        # NOT standalone packages. Squat placeholders exist on npm to prevent dependency confusion.
+        # Auth via npm Trusted Publisher (configured for @flowconsole/sdk). publib reads
+        # NPM_PROVENANCE/NPM_TOKEN env vars; with provenance enabled and no token, the
+        # underlying `npm publish` exchanges the GitHub OIDC token automatically.
+        # publib-* are bin entries of the `publib` package; -p makes npx fetch the right pkg.
         run: npx -y -p publib publib-npm
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_DIST_TAG: beta
+          NPM_PROVENANCE: "true"
 
       - name: Publish to PyPI
         if: steps.changeset.outputs.no_changes != 'true'

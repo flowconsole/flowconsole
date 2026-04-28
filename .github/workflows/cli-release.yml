@@ -21,6 +21,7 @@ env:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   extract-version:
@@ -472,13 +473,12 @@ jobs:
             console.log('npm_version=' + pkg.version);
           " >> "$GITHUB_OUTPUT"
 
-      - name: Publish npm wrapper
+      - name: Publish npm wrapper (OIDC Trusted Publisher)
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run != 'true' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # Auth via npm Trusted Publisher; no NPM_TOKEN needed.
         run: |
           cd packages/cli
-          npm publish --access public --tag latest
+          npm publish --access public --tag latest --provenance
 
       - name: Dry-run npm publish
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'true' }}

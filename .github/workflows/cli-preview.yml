@@ -213,10 +213,12 @@ jobs:
           NPM_VERSION: ${{ needs.version.outputs.npm_version }}
           CLI_VERSION: ${{ needs.version.outputs.cli_version }}
 
-      - name: Publish to npm
-        run: pnpm --filter @flowconsole/cli publish --tag next --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish to npm (OIDC Trusted Publisher)
+        # Auth via npm Trusted Publisher (configured for @flowconsole/cli on npmjs.com).
+        # No NPM_TOKEN needed — npm CLI exchanges the GitHub OIDC token for a short-lived
+        # publish credential. Requires `id-token: write` permission (set at workflow level).
+        # `--provenance` adds an attestation linking the package to this workflow run.
+        run: pnpm --filter @flowconsole/cli publish --tag next --no-git-checks --provenance
 
   nuget-preview:
     needs: version
