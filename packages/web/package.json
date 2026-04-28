@@ -33,7 +33,7 @@
       "types": "./dist/architecture/index.d.ts",
       "import": "./dist/architecture/index.js"
     },
-    "./style.css": "./dist/flowconsole-web.css"
+    "./style.css": "./dist/web.css"
   },
   "files": [
     "dist"

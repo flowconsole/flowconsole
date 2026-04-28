@@ -1,0 +1,76 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--diagram-bg, #0b0f1a);
+  color: var(--diagram-text, #f4f6fc);
+}
+
+.viewer-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--diagram-panel, #101826);
+  border-bottom: 1px solid var(--diagram-border, #1f2a3d);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.viewer-topbar-path {
+  color: var(--diagram-text-muted, #94a3b8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewer-topbar-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--diagram-border, #1f2a3d);
+  color: var(--diagram-text, #f4f6fc);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.viewer-topbar-count {
+  color: var(--diagram-text-muted, #94a3b8);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.viewer-diagram {
+  width: 100%;
+  height: calc(100vh - 40px);
+}
+
+.viewer-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 40px);
+  gap: 12px;
+  color: var(--diagram-text-muted, #94a3b8);
+  font-size: 15px;
+}
+
+.viewer-status-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--diagram-text, #f4f6fc);
+}

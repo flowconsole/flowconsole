@@ -3,6 +3,7 @@ import type {
   ArchitectureEdge,
   ArchitectureNode,
   ElementTone,
+  RelationshipKind,
 } from '../diagram/types';
 
 import type { ModelSnapshotWire } from './snapshotTypes';
@@ -89,7 +90,7 @@ function mapRoleHint(kind: string): string | undefined {
   }
 }
 
-function mapRelationshipKind(kind: string): string {
+function mapRelationshipKind(kind: string): RelationshipKind {
   switch (kind) {
     case 'Produces':
     case 'Consumes':
