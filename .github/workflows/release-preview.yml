@@ -131,6 +131,40 @@ jobs:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
 
+      - name: Publish Go module
+        if: steps.changeset.outputs.no_changes != 'true'
+        run: |
+          set -e
+          SDK_VERSION=$(node -p "require('./packages/sdk/package.json').version")
+
+          # jsii-pacmak emits Go module under dist/go/<packageName>/
+          # (packageName = "flowconsole" per packages/sdk/package.json jsii config).
+          # The module path inside go.mod is github.com/flowconsole/go-flowconsole — points
+          # to a SEPARATE repo that this step force-pushes to.
+          cd packages/sdk/dist/go/flowconsole
+
+          git init -q
+          git config user.email "github@flowconsole.tech"
+          git config user.name "FlowConsole CI"
+
+          # Force-push to main of go-flowconsole. Consumers do:
+          #   go get github.com/flowconsole/go-flowconsole@main
+          # Go toolchain resolves to a pseudo-version v0.0.0-{utc}-{sha} automatically.
+          # No tag = no Go proxy cache pinning gotchas.
+          git remote add origin "https://x-access-token:${GO_REPO_TOKEN}@github.com/flowconsole/go-flowconsole.git"
+          git checkout -q -b main
+          git add -A
+          git commit -q -m "preview: ${SDK_VERSION} (from flowconsole/flowconsole@${GITHUB_SHA::7})"
+          git push -q --force origin main
+
+          # OPTIONAL: also force-push a v0.0.0-preview tag (uncomment if you want consumers
+          # to use `@v0.0.0-preview` instead of `@main`). Note: Go module proxy may serve
+          # stale data for force-pushed tags — `@main` is safer for preview.
+          # git tag -f v0.0.0-preview
+          # git push -q --force --tags origin
+        env:
+          GO_REPO_TOKEN: ${{ secrets.GO_REPO_TOKEN }}
+
       - name: Create GitHub pre-release
         if: steps.changeset.outputs.no_changes != 'true'
         run: |
@@ -166,7 +200,7 @@ jobs:
             echo "| PyPI | flowconsole-sdk | ${SDK_BASE}b${PYPI_SUFFIX} |"
             echo "| Maven | io.github.flowconsole:flowconsole-sdk | ${MAVEN_VERSION} |"
             echo "| NuGet | FlowConsole.Sdk | ${SDK_VERSION} |"
-            echo "| Go | github.com/flowconsole/go-flowconsole | v0.0.0-preview |"
+            echo "| Go | github.com/flowconsole/go-flowconsole | @main (latest commit) |"
             echo ""
             echo "> **Warning:** This is a preview build. Install npm packages with the \`beta\` tag."
           } > release-body.md
