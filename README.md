@@ -15,9 +15,9 @@
 </p>
 
 
-## What is FlowConsole?
+## What is FLOWCONSOLE?
 
-FlowConsole is a CLI and SDK for **Architecture as Code**: author your architectural model in real programming languages, scan source code into a structured snapshot, validate it against rules, and run those checks locally or in CI/CD. The model is plain JSON conforming to a public schema, so anything that reads JSON can produce or consume it.
+FLOWCONSOLE is a CLI and SDK for **Architecture as Code**: author your architectural model in real programming languages, scan source code into a structured snapshot, validate it against rules, and run those checks locally or in CI/CD. The model is plain JSON conforming to a public schema, so anything that reads JSON can produce or consume it.
 
 This repository ships the open-source CLI, SDK, scanners, rule engine, and JSON schemas. It is designed to run on a developer machine or inside a CI pipeline — no server required.
 
@@ -29,9 +29,9 @@ This repository ships the open-source CLI, SDK, scanners, rule engine, and JSON 
 - **CI/CD validation** — `fcon validate` enforces schema and rules; ships as a self-contained binary for  linux/macOS/windows × x64/arm64
 - **Public JSON schemas** — `model-snapshot/v1` and `rules/v1alpha1` with conformance fixtures, so any tool can integrate
 
-## How FlowConsole Compares
+## How FLOWCONSOLE Compares
 
-| Capability | FlowConsole | Structurizr | LikeC4 | Mermaid / PlantUML |
+| Capability | FLOWCONSOLE | Structurizr | LikeC4 | Mermaid / PlantUML |
 |---|---|---|---|---|
 | Model in real languages (TS, C#, Java, Python) | SDK (jsii) | DSL only | DSL only | Markup only |
 | Source code scanner (extract model from code) | C# + Helm | No | No | No |
@@ -67,7 +67,7 @@ See [engine/README.md](engine/README.md) for build-from-source instructions.
 
 ```
 ┌──────────────────────────────────────────────────┐
-│                  FlowConsole OSS                 │
+│                  FLOWCONSOLE OSS                 │
 ├───────────────────┬──────────────────────────────┤
 │   fcon CLI (.NET)   │   SDK (jsii)                 │
 │   scan / validate │   TS, C#, Java, Python       │
@@ -116,7 +116,7 @@ flowconsole/
 
 ## Commercial / Hosted Offering
 
-In addition to the open-source core, the FlowConsole project provides
+In addition to the open-source core, the FLOWCONSOLE project provides
 commercial offerings, such as:
 - managed SaaS deployment,
 - enterprise features,
@@ -126,13 +126,13 @@ commercial offerings, such as:
 These offerings are **not part of this open-source repository** and are
 provided under separate commercial terms.
 
-Use of the FlowConsole hosted service is governed by its own
+Use of the FLOWCONSOLE hosted service is governed by its own
 Terms of Service and does not change the licensing of the open-source core.
 
 ---
 ## Trademarks
 
-The FlowConsole name, logo, and branding are trademarks of the project
+The FLOWCONSOLE name, logo, and branding are trademarks of the project
 maintainers and may not be used without permission.
 
 This does not affect your rights to use, modify, or distribute the
