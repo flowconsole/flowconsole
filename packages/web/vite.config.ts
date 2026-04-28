@@ -10,9 +10,11 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: resolve(__dirname, 'index.ts'),
+      entry: {
+        'flowconsole-web': resolve(__dirname, 'index.ts'),
+        'architecture/index': resolve(__dirname, 'architecture/index.ts'),
+      },
       name: 'FlowConsoleWeb',
-      fileName: 'flowconsole-web',
     },
     rollupOptions: {
       external: [

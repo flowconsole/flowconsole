@@ -1,7 +1,7 @@
 {
   "name": "@flowconsole/web",
   "private": false,
-  "version": "1.0.1",
+  "version": "1.1.0",
   "type": "module",
   "license": "Apache-2.0",
   "author": "FlowConsole <v@flowconsole.tech> (https://flowconsole.tech)",
@@ -29,6 +29,10 @@
       "import": "./dist/flowconsole-web.js",
       "require": "./dist/flowconsole-web.umd.cjs"
     },
+    "./architecture": {
+      "types": "./dist/architecture/index.d.ts",
+      "import": "./dist/architecture/index.js"
+    },
     "./style.css": "./dist/flowconsole-web.css"
   },
   "files": [
@@ -54,7 +58,8 @@
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
     "wasm:setup": "bash scripts/dotnet-wasm/install.sh",
-    "wasm:clean": "bash scripts/dotnet-wasm/clean.sh"
+    "wasm:clean": "bash scripts/dotnet-wasm/clean.sh",
+    "generate:snapshot-types": "json2ts ../../contracts/model-snapshot/v1/schema.json -o architecture/snapshotTypes.ts"
   },
   "dependencies": {
     "@flowconsole/sdk": "workspace:*",
@@ -68,10 +73,12 @@
     "graphology-dag": "^0.4.1",
     "graphology-types": "^0.24.8",
     "graphviz-wasm": "^3.0.2",
-    "monaco-editor": "^0.55.1",
     "remeda": "^2.32.0",
     "type-fest": "^5.1.0",
     "webcola": "^3.4.0"
+  },
+  "optionalDependencies": {
+    "monaco-editor": "^0.55.1"
   },
   "peerDependencies": {
     "@monaco-editor/react": ">=4.0.0",
@@ -100,6 +107,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
+    "json-schema-to-typescript": "^15.0.0",
     "jsdom": "^27.2.0",
     "postcss": "^8.5.6",
     "postcss-simple-vars": "^7.0.1",
