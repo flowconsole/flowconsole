@@ -95,7 +95,9 @@ jobs:
       - name: Publish to npm
         if: steps.changeset.outputs.no_changes != 'true'
         working-directory: packages/sdk
-        run: npx -y publib-npm
+        # publib-npm/-pypi/-nuget/-maven/-golang are bin entries of the `publib` package,
+        # NOT standalone packages. Squat placeholders exist on npm to prevent dependency confusion.
+        run: npx -y -p publib publib-npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_DIST_TAG: beta
@@ -103,7 +105,7 @@ jobs:
       - name: Publish to PyPI
         if: steps.changeset.outputs.no_changes != 'true'
         working-directory: packages/sdk
-        run: npx -y publib-pypi
+        run: npx -y -p publib publib-pypi
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
@@ -111,7 +113,7 @@ jobs:
       - name: Publish to NuGet
         if: steps.changeset.outputs.no_changes != 'true'
         working-directory: packages/sdk
-        run: npx -y publib-nuget
+        run: npx -y -p publib publib-nuget
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
@@ -128,7 +130,7 @@ jobs:
       # - name: Publish to Maven Central
       #   if: steps.changeset.outputs.no_changes != 'true'
       #   working-directory: packages/sdk
-      #   run: npx -y publib-maven
+      #   run: npx -y -p publib publib-maven
       #   env:
       #     MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
       #     MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
@@ -140,7 +142,7 @@ jobs:
       - name: Publish Go module
         if: steps.changeset.outputs.no_changes != 'true'
         working-directory: packages/sdk
-        run: npx -y publib-golang
+        run: npx -y -p publib publib-golang
         env:
           GITHUB_TOKEN: ${{ secrets.GO_REPO_TOKEN }}
           GIT_USER_NAME: FlowConsole CI
