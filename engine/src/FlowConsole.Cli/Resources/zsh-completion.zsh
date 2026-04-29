@@ -1,8 +1,8 @@
-#compdef fc
+#compdef fcon
 
 # zsh completion for fcon (FlowConsole CLI)
 
-_fc() {
+_fcon() {
     local -a commands
     commands=(
         'scan:Auto-detect and scan source code to produce ModelSnapshot'
@@ -15,6 +15,7 @@ _fc() {
         'completion:Generate shell completion scripts'
         'push:Push data to FlowConsole server'
         'diff:Compare two ModelSnapshots'
+        'view:Start a local viewer for a ModelSnapshot'
         'telemetry:Manage anonymous telemetry'
     )
 
@@ -80,6 +81,14 @@ _fc() {
                 completion)
                     _arguments \
                         '1:shell:(bash zsh fish pwsh)'
+                    ;;
+                view)
+                    _arguments \
+                        '--port[Port to bind]:port:' \
+                        '--no-open[Do not open browser]' \
+                        '--source[Snapshot source filter]:source:(auto scan synth)' \
+                        '--max-snapshot-bytes[Maximum snapshot file size in bytes]:bytes:' \
+                        '*:snapshot:_files -g "*.json"'
                     ;;
             esac
             ;;

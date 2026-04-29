@@ -14,6 +14,7 @@ Register-ArgumentCompleter -Native -CommandName fcon -ScriptBlock {
         'completion' = 'Generate shell completion scripts'
         'push'       = 'Push data to FlowConsole server'
         'diff'       = 'Compare two ModelSnapshots'
+        'view'       = 'Start a local viewer for a ModelSnapshot'
         'telemetry'  = 'Manage anonymous telemetry'
     }
 
@@ -49,6 +50,7 @@ Register-ArgumentCompleter -Native -CommandName fcon -ScriptBlock {
         'rules'      { @('list', 'export', '--help') }
         'explain'    { @('--help') }
         'completion' { @('bash', 'zsh', 'fish', 'pwsh', '--help') }
+        'view'       { @('--port', '--no-open', '--source', '--max-snapshot-bytes', '--help') }
         default      { @('--help') }
     }
 

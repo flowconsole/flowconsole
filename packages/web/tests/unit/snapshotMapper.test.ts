@@ -246,4 +246,91 @@ describe('mapSnapshotToDiagram', () => {
     expect(byId['ext'].data).toMatchObject({ roleHint: 'entry' });
     expect((byId['svc'].data as Record<string, unknown>).roleHint).toBeUndefined();
   });
+
+  it('maps flows with edge steps using relationshipId', () => {
+    const snapshot = makeSnapshot({
+      elements: [
+        { id: 'a', kind: 'Service', name: 'A' },
+        { id: 'b', kind: 'Service', name: 'B' },
+      ],
+      relationships: [
+        { id: 'r1', sourceId: 'a', targetId: 'b', kind: 'Calls' },
+      ],
+      flows: [
+        {
+          id: 'f1',
+          name: 'Flow',
+          steps: [
+            { sourceElementId: 'a', relationshipId: 'r1', label: 'call B' },
+          ],
+        },
+      ],
+    });
+
+    const result = mapSnapshotToDiagram(snapshot);
+
+    expect(result.flows).toHaveLength(1);
+    expect(result.flows![0].steps).toHaveLength(1);
+    expect(result.flows![0].steps[0]).toMatchObject({
+      edgeId: 'r1',
+      sourceId: 'a',
+      targetId: 'b',
+      label: 'call B',
+    });
+  });
+
+  it('preserves action steps with null relationshipId', () => {
+    const snapshot = makeSnapshot({
+      elements: [
+        { id: 'a', kind: 'Service', name: 'A' },
+        { id: 'b', kind: 'Service', name: 'B' },
+      ],
+      relationships: [
+        { id: 'r1', sourceId: 'a', targetId: 'b', kind: 'Calls' },
+      ],
+      flows: [
+        {
+          id: 'f1',
+          name: 'Login',
+          steps: [
+            { sourceElementId: 'a', relationshipId: 'r1', label: 'POST /auth' },
+            { sourceElementId: 'b', relationshipId: null, label: 'validates credentials' },
+            { sourceElementId: 'b', relationshipId: 'r1', label: 'SELECT user' },
+          ],
+        },
+      ],
+    });
+
+    const result = mapSnapshotToDiagram(snapshot);
+
+    expect(result.flows![0].steps).toHaveLength(3);
+    const actionStep = result.flows![0].steps[1];
+    expect(actionStep.sourceId).toBe('b');
+    expect(actionStep.targetId).toBe('b');
+    expect(actionStep.label).toBe('validates credentials');
+  });
+
+  it('preserves action steps with undefined relationshipId', () => {
+    const snapshot = makeSnapshot({
+      elements: [
+        { id: 'svc', kind: 'Service', name: 'Order Service' },
+      ],
+      flows: [
+        {
+          id: 'f1',
+          name: 'Process',
+          steps: [
+            { sourceElementId: 'svc', label: 'validateOrder()' },
+            { sourceElementId: 'svc', label: 'calculateTotal()' },
+          ],
+        },
+      ],
+    });
+
+    const result = mapSnapshotToDiagram(snapshot);
+
+    expect(result.flows![0].steps).toHaveLength(2);
+    expect(result.flows![0].steps[0].label).toBe('validateOrder()');
+    expect(result.flows![0].steps[1].label).toBe('calculateTotal()');
+  });
 });

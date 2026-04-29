@@ -22,6 +22,7 @@ complete -c fcon -n '__fish_use_subcommand' -a explain -d 'Explain a rule or fin
 complete -c fcon -n '__fish_use_subcommand' -a completion -d 'Generate shell completion scripts'
 complete -c fcon -n '__fish_use_subcommand' -a push -d 'Push data to FlowConsole server'
 complete -c fcon -n '__fish_use_subcommand' -a diff -d 'Compare two ModelSnapshots'
+complete -c fcon -n '__fish_use_subcommand' -a view -d 'Start a local viewer for a ModelSnapshot'
 complete -c fcon -n '__fish_use_subcommand' -a telemetry -d 'Manage anonymous telemetry'
 
 # scan options
@@ -53,6 +54,12 @@ complete -c fcon -n '__fish_seen_subcommand_from doctor' -l verbose -d 'Show det
 # rules subcommands
 complete -c fcon -n '__fish_seen_subcommand_from rules' -a list -d 'List available rules'
 complete -c fcon -n '__fish_seen_subcommand_from rules' -a export -d 'Export built-in rules'
+
+# view options
+complete -c fcon -n '__fish_seen_subcommand_from view' -l port -r -d 'Port to bind'
+complete -c fcon -n '__fish_seen_subcommand_from view' -l no-open -d 'Do not open browser'
+complete -c fcon -n '__fish_seen_subcommand_from view' -l source -r -a 'auto scan synth' -d 'Snapshot source filter'
+complete -c fcon -n '__fish_seen_subcommand_from view' -l max-snapshot-bytes -r -d 'Maximum snapshot file size in bytes'
 
 # completion shells
 complete -c fcon -n '__fish_seen_subcommand_from completion' -a 'bash zsh fish pwsh' -d 'Shell type'

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # bash completion for fcon (FlowConsole CLI)
 
-_fc_completions()
+_fcon_completions()
 {
     local cur prev commands
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    commands="scan validate fmt init doctor rules explain completion push diff telemetry"
+    commands="scan validate fmt init doctor rules explain completion push diff view telemetry"
 
     case "${prev}" in
-        fc)
+        fcon)
             COMPREPLY=( $(compgen -W "${commands} --version --help --config --no-color --verbose --no-telemetry" -- "${cur}") )
             return 0
             ;;
@@ -47,6 +47,14 @@ _fc_completions()
             COMPREPLY=( $(compgen -W "bash zsh fish pwsh --help" -- "${cur}") )
             return 0
             ;;
+        view)
+            COMPREPLY=( $(compgen -W "--port --no-open --source --max-snapshot-bytes --help" -- "${cur}") )
+            return 0
+            ;;
+        --source)
+            COMPREPLY=( $(compgen -W "auto scan synth" -- "${cur}") )
+            return 0
+            ;;
         --scanner)
             COMPREPLY=( $(compgen -W "csharp" -- "${cur}") )
             return 0
@@ -69,4 +77,4 @@ _fc_completions()
     COMPREPLY=( $(compgen -f -- "${cur}") )
 }
 
-complete -F _fc_completions fc
+complete -F _fcon_completions fcon

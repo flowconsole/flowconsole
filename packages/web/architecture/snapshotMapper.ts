@@ -3,10 +3,11 @@ import type {
   ArchitectureEdge,
   ArchitectureNode,
   ElementTone,
+  FlowDefinition,
   RelationshipKind,
 } from '../diagram/types';
 
-import type { ModelSnapshotWire } from './snapshotTypes';
+import type { ModelSnapshotWire, SnapshotRelationship } from './snapshotTypes';
 
 const SOURCE_TONE: Record<string, ElementTone> = {
   Git: 'primary',
@@ -113,6 +114,36 @@ function mapRelationshipKind(kind: string): RelationshipKind {
  * Works directly with the snapshot's `sourceId`/`targetId` fields
  * (no intermediate view-model conversion).
  */
+function mapFlows(
+  snapshot: ModelSnapshotWire,
+  relIndex: Map<string, SnapshotRelationship>,
+): FlowDefinition[] | undefined {
+  if (!snapshot.flows?.length) return undefined;
+  return snapshot.flows.map((flow) => ({
+    id: flow.id,
+    name: flow.name,
+    steps: flow.steps.map((step, idx) => {
+      if (step.relationshipId != null) {
+        const rel = relIndex.get(step.relationshipId);
+        return {
+          id: `${flow.id}-step-${idx}`,
+          edgeId: step.relationshipId,
+          sourceId: step.sourceElementId,
+          targetId: rel?.targetId ?? step.sourceElementId,
+          label: step.label,
+        };
+      }
+      return {
+        id: `${flow.id}-step-${idx}`,
+        edgeId: `${flow.id}-action-${idx}`,
+        sourceId: step.sourceElementId,
+        targetId: step.sourceElementId,
+        label: step.label,
+      };
+    }),
+  }));
+}
+
 export function mapSnapshotToDiagram(snapshot: ModelSnapshotWire): ArchitectureDiagramModel {
   const { elements, relationships } = snapshot;
   const parentIds = new Set(elements.map((el) => el.parentId).filter(Boolean));
@@ -163,5 +194,8 @@ export function mapSnapshotToDiagram(snapshot: ModelSnapshotWire): ArchitectureD
     },
   }));
 
-  return { nodes, edges };
+  const relIndex = new Map(relationships.map((r) => [r.id, r]));
+  const flows = mapFlows(snapshot, relIndex);
+
+  return { nodes, edges, flows };
 }

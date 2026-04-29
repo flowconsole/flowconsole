@@ -66,7 +66,7 @@ var app = new CommandApp(registrar);
 
 app.Configure(config =>
 {
-    config.SetApplicationName("fc");
+    config.SetApplicationName("fcon");
     config.SetApplicationVersion(VersionCommand.GetVersion());
 
     config.AddCommand<InitCommand>("init")

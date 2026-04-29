@@ -15,23 +15,24 @@
   "bugs": {
     "url": "https://github.com/flowconsole/flowconsole/issues"
   },
-  "main": "dist/flowconsole-web.umd.cjs",
+  "main": "dist/flowconsole-web.cjs",
   "module": "dist/flowconsole-web.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/flowconsole-web.js",
-      "require": "./dist/flowconsole-web.umd.cjs"
+      "require": "./dist/flowconsole-web.cjs"
     },
     "./languages/types": {
       "types": "./dist/languages/types.d.ts",
       "import": "./dist/flowconsole-web.js",
-      "require": "./dist/flowconsole-web.umd.cjs"
+      "require": "./dist/flowconsole-web.cjs"
     },
     "./architecture": {
       "types": "./dist/architecture/index.d.ts",
-      "import": "./dist/architecture/index.js"
+      "import": "./dist/architecture/index.js",
+      "require": "./dist/architecture/index.cjs"
     },
     "./style.css": "./dist/web.css"
   },

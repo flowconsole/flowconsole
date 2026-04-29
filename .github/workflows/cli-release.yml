@@ -425,17 +425,22 @@ jobs:
             -p:Version=${{ needs.extract-version.outputs.version }} \
             -o artifacts/nuget
 
-      - name: Install as global tool (runtime-only image simulation)
+      - name: Verify tool works in runtime-only container (no ASP.NET Core)
         run: |
-          dotnet tool install -g FlowConsole.Cli \
-            --add-source artifacts/nuget \
-            --version ${{ needs.extract-version.outputs.version }}
-
-      - name: Verify fcon view --help works without ASP.NET Core runtime
-        run: fcon view --help
+          docker run --rm \
+            -v "${{ github.workspace }}/artifacts/nuget:/nuget:ro" \
+            mcr.microsoft.com/dotnet/sdk:10.0 \
+            bash -c '
+              dotnet tool install -g FlowConsole.Cli \
+                --add-source /nuget \
+                --version ${{ needs.extract-version.outputs.version }} &&
+              export PATH="$PATH:/root/.dotnet/tools" &&
+              rm -rf /usr/share/dotnet/shared/Microsoft.AspNetCore.App &&
+              fcon view --help
+            '
 
   nuget-publish:
-    needs: [build-and-test, extract-version]
+    needs: [build-and-test, extract-version, pack-as-tool-smoke]
     runs-on: ubuntu-latest
 
     steps:
@@ -486,7 +491,7 @@ jobs:
           path: artifacts/nuget/*.nupkg
 
   create-release:
-    needs: [extract-version, sfa-publish, sfa-smoke-test, conformance-suite, nuget-publish]
+    needs: [extract-version, sfa-publish, sfa-smoke-test, conformance-suite, nuget-publish, trim-smoke-test, pack-as-tool-smoke]
     runs-on: ubuntu-latest
 
     steps:
