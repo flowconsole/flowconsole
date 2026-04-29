@@ -19,7 +19,7 @@
     "build:core": "pnpm --filter @flowconsole/core build",
     "build:docs": "pnpm --filter flowconsole-docs build",
     "build:sdk": "pnpm --filter @flowconsole/sdk build",
-    "build:viewer": "pnpm --filter @flowconsole/viewer build && rm -rf engine/src/FlowConsole.Cli/Resources/web/* && cp -R packages/viewer/dist/. engine/src/FlowConsole.Cli/Resources/web/",
+    "build:viewer": "pnpm --filter @flowconsole/viewer build && node scripts/copy-viewer-dist.mjs",
     "test": "pnpm run test:unit",
     "test:unit": "pnpm -r test:unit",
     "changeset": "changeset",

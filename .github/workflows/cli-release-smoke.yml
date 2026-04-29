@@ -78,31 +78,44 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
+          cleanup_viewer() {
+            CHILD_PIDS=$(pgrep -P "$FCON_PID" 2>/dev/null || true)
+            for cpid in $CHILD_PIDS; do
+              kill "$cpid" 2>/dev/null || true
+            done
+            kill "$FCON_PID" 2>/dev/null || true
+            wait "$FCON_PID" 2>/dev/null || true
+          }
+          trap cleanup_viewer EXIT
+
           FIXTURE="contracts/model-snapshot/v1/conformance/valid/minimal.json"
           fcon view "$FIXTURE" --no-open --port 0 2>viewer_stderr.log &
           FCON_PID=$!
           sleep 3
 
-          PORT=$(ss -tlnp 2>/dev/null | grep "$FCON_PID" | grep -oP '127\.0\.0\.1:\K[0-9]+' | head -1 || true)
+          PORT=$(grep -oP 'Listening on http://127\.0\.0\.1:\K[0-9]+' viewer_stderr.log || true)
           if [ -z "$PORT" ]; then
-            echo "::warning::Could not detect viewer port — skipping HTTP checks"
-            kill "$FCON_PID" 2>/dev/null || true
+            CHILD_PID=$(pgrep -P "$FCON_PID" 2>/dev/null | head -1 || true)
+            SEARCH_PID="${CHILD_PID:-$FCON_PID}"
+            PORT=$(ss -tlnp 2>/dev/null | grep "$SEARCH_PID" | grep -oP '127\.0\.0\.1:\K[0-9]+' | head -1 || true)
+          fi
+          if [ -z "$PORT" ]; then
+            echo "::error::Could not detect viewer port"
             cat viewer_stderr.log
-            exit 0
+            exit 1
           fi
 
           BASE="http://127.0.0.1:$PORT"
 
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/")
           echo "GET / -> $HTTP_CODE"
-          [ "$HTTP_CODE" = "200" ] || { echo "::error::GET / returned $HTTP_CODE"; kill "$FCON_PID"; exit 1; }
+          [ "$HTTP_CODE" = "200" ] || { echo "::error::GET / returned $HTTP_CODE"; exit 1; }
 
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/api/snapshot")
           echo "GET /api/snapshot -> $HTTP_CODE"
-          [ "$HTTP_CODE" = "200" ] || { echo "::error::GET /api/snapshot returned $HTTP_CODE"; kill "$FCON_PID"; exit 1; }
+          [ "$HTTP_CODE" = "200" ] || { echo "::error::GET /api/snapshot returned $HTTP_CODE"; exit 1; }
 
           CACHE_HEADER=$(curl -s -D - -o /dev/null "$BASE/api/snapshot" | grep -i "cache-control" | tr -d '\r')
           echo "Cache-Control: $CACHE_HEADER"
 
-          kill "$FCON_PID" 2>/dev/null || true
           echo "fcon view smoke test passed"

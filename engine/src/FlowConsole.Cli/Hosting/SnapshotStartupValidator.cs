@@ -16,19 +16,19 @@ public sealed class SnapshotStartupValidator
 
     public ModelSnapshot ValidateAndLoad(string path, long maxBytes)
     {
-        var fileInfo = new FileInfo(path);
-        if (!fileInfo.Exists)
+        if (!File.Exists(path))
             throw new FileNotFoundException($"Snapshot file not found: '{path}'", path);
-
-        if (fileInfo.Length > maxBytes)
-            throw new InvalidOperationException(
-                $"Snapshot file '{path}' is {fileInfo.Length:N0} bytes, exceeding limit of {maxBytes:N0} bytes");
 
         JsonDocument document;
         try
         {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
+
+            if (stream.Length > maxBytes)
+                throw new InvalidOperationException(
+                    $"Snapshot file '{path}' is {stream.Length:N0} bytes, exceeding limit of {maxBytes:N0} bytes");
+
             document = JsonDocument.Parse(stream);
         }
         catch (JsonException ex)

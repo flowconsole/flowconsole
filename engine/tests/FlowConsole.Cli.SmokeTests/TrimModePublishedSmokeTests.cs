@@ -100,17 +100,18 @@ public sealed class TrimModePublishedSmokeTests
         if (!assetMatch.Success)
             assetMatch = Regex.Match(indexBody, @"""(/assets/[\w.-]+\.js)""");
 
-        if (assetMatch.Success)
-        {
-            var assetPath = assetMatch.Groups[1].Value;
-            if (!assetPath.StartsWith("/", StringComparison.Ordinal))
-                assetPath = "/assets/" + assetPath;
+        assetMatch.Success.Should().BeTrue(
+            "index.html should contain at least one JS asset reference; got body: " +
+            indexBody[..Math.Min(indexBody.Length, 500)]);
 
-            var assetResponse = await client.GetAsync($"{server.BaseUrl}{assetPath}");
-            assetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            assetResponse.Content.Headers.ContentType!.MediaType.Should().Be("application/javascript");
-            assetResponse.Headers.CacheControl!.MaxAge.Should().Be(TimeSpan.FromSeconds(31536000));
-        }
+        var assetPath = assetMatch.Groups[1].Value;
+        if (!assetPath.StartsWith("/", StringComparison.Ordinal))
+            assetPath = "/assets/" + assetPath;
+
+        var assetResponse = await client.GetAsync($"{server.BaseUrl}{assetPath}");
+        assetResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        assetResponse.Content.Headers.ContentType!.MediaType.Should().Be("application/javascript");
+        assetResponse.Headers.CacheControl!.MaxAge.Should().Be(TimeSpan.FromSeconds(31536000));
     }
 
     [Fact]

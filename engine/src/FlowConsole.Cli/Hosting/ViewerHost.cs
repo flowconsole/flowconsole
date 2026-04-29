@@ -23,9 +23,15 @@ internal sealed class ViewerHost : IDisposable
 
     public int Port => _port;
 
-    public async Task RunAsync(CancellationToken ct)
+    public void Start()
     {
         _listener.Start();
+    }
+
+    public async Task RunAsync(CancellationToken ct)
+    {
+        if (!_listener.IsListening)
+            _listener.Start();
         ct.Register(() => _listener.Stop());
 
         while (!ct.IsCancellationRequested)
@@ -50,11 +56,10 @@ internal sealed class ViewerHost : IDisposable
             }
             catch (HttpListenerException)
             {
-                // Client disconnected
             }
             catch (IOException)
             {
-                // Snapshot file disappeared or was replaced mid-read (e.g. AtomicFileWriter rename)
+                try { context.Response.Abort(); } catch (ObjectDisposedException) { }
             }
         }
     }
@@ -112,29 +117,41 @@ internal sealed class ViewerHost : IDisposable
 
     private async Task ServeSnapshot(HttpListenerResponse response)
     {
-        if (!File.Exists(_snapshotPath))
+        FileStream fs;
+        try
+        {
+            fs = new FileStream(_snapshotPath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete);
+        }
+        catch (FileNotFoundException)
         {
             response.StatusCode = 404;
             response.Close();
             return;
         }
-
-        var fileInfo = new FileInfo(_snapshotPath);
-        if (fileInfo.Length > _maxBytes)
+        catch (IOException)
         {
-            response.StatusCode = 413;
+            response.StatusCode = 503;
             response.Close();
             return;
         }
 
-        response.ContentType = "application/json";
-        response.Headers.Set("Cache-Control", "no-store");
+        await using (fs)
+        {
+            var length = fs.Length;
+            if (length > _maxBytes)
+            {
+                response.StatusCode = 413;
+                response.Close();
+                return;
+            }
 
-        await using var fs = new FileStream(_snapshotPath, FileMode.Open, FileAccess.Read,
-            FileShare.ReadWrite | FileShare.Delete);
-        response.ContentLength64 = fs.Length;
-        await fs.CopyToAsync(response.OutputStream);
-        response.Close();
+            response.ContentType = "application/json";
+            response.Headers.Set("Cache-Control", "no-store");
+            response.ContentLength64 = length;
+            await fs.CopyToAsync(response.OutputStream);
+            response.Close();
+        }
     }
 
     private async Task ServeEmbeddedResource(HttpListenerResponse response, string fileName, string contentType, string cacheControl)

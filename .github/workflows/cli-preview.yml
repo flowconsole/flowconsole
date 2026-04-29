@@ -6,6 +6,11 @@ on:
     paths:
       - "engine/**"
       - "packages/cli/**"
+      - "packages/viewer/**"
+      - "packages/web/**"
+      - "scripts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
   workflow_dispatch:
 
 concurrency:
@@ -56,7 +61,7 @@ jobs:
         run: |
           bash .github/scripts/generate-preview-changeset.sh \
             --package @flowconsole/cli \
-            --paths 'engine' 'packages/cli' \
+            --paths 'engine' 'packages/cli' 'packages/viewer' 'packages/web' 'scripts' 'package.json' 'pnpm-lock.yaml' \
             --tag-pattern 'cli-v*'
 
       - name: Check for changes

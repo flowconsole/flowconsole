@@ -1,7 +1,9 @@
 using FlowConsole.Cli.Infrastructure;
+using FlowConsole.Cli.Tests.Commands;
 
 namespace FlowConsole.Cli.Tests.Hosting;
 
+[Collection(ConsoleTestCollection.Name)]
 public sealed class EnvironmentDetectorTests
 {
     [Fact]
