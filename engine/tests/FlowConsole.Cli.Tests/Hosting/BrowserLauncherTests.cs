@@ -1,8 +1,10 @@
 using FlowConsole.Cli.Hosting;
 using FlowConsole.Cli.Infrastructure;
+using FlowConsole.Cli.Tests.Commands;
 
 namespace FlowConsole.Cli.Tests.Hosting;
 
+[Collection(ConsoleTestCollection.Name)]
 public sealed class BrowserLauncherTests
 {
     private sealed class TrackingBrowserLauncher : BrowserLauncher

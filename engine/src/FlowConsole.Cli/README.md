@@ -99,7 +99,7 @@ fcon view --source scan
 | `[path]` | Path to snapshot JSON file. If omitted, auto-discovers from `.flowconsole/snapshots/` |
 | `--port <PORT>` | Explicit port to bind (default: auto-select ephemeral) |
 | `--no-open` | Do not open the browser automatically |
-| `--source <SOURCE>` | Filter snapshots by source: `scan`, `synth`, or `auto` (default: `auto`) |
+| `--source <SOURCE>` | Filter snapshots by source: `scan` (matches CodeScan, InfraScan), `synth`, or `auto` (default: `auto`). Also accepts exact source names like `CodeScan`. |
 | `--max-snapshot-bytes <BYTES>` | Maximum snapshot file size in bytes (default: 200 MB) |
 
 ### Exit codes
@@ -108,7 +108,8 @@ fcon view --source scan
 |------|---------|
 | 0 | Graceful shutdown (Ctrl-C) |
 | 2 | Snapshot file not found |
-| 5 | Port already in use |
+| 4 | Invalid port number (must be between 1 and 65535) |
+| 5 | Port already in use or access denied |
 | 6 | No snapshots discovered / source filter matched nothing |
 | 7 | Snapshot validation failed (schema or integrity error) |
 

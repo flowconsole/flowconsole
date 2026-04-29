@@ -1,7 +1,9 @@
 using FlowConsole.Cli.Hosting;
+using FlowConsole.Cli.Tests.Commands;
 
 namespace FlowConsole.Cli.Tests.Hosting;
 
+[Collection(ConsoleTestCollection.Name)]
 public sealed class SnapshotDiscoveryTests : IDisposable
 {
     private readonly string _tempDir;
