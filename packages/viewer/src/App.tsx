@@ -28,6 +28,7 @@ const ERROR_MESSAGES: Record<SnapshotError, { title: string; detail: string }> =
 
 export default function App() {
   const [state, setState] = useState<ViewState>({ kind: 'loading' });
+  const [editable, setEditable] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +60,15 @@ export default function App() {
           <>
             <span className="viewer-topbar-badge">{state.snapshot.source}</span>
             <span className="viewer-topbar-count">{state.snapshot.elements.length} elements</span>
+            <button
+              type="button"
+              className={`viewer-topbar-toggle${editable ? ' is-active' : ''}`}
+              onClick={() => setEditable(v => !v)}
+              aria-pressed={editable}
+              title={editable ? 'Edits are not persisted — refresh to reset' : 'Enable interactive editing (changes are not saved)'}
+            >
+              {editable ? 'Edit: on' : 'Edit: off'}
+            </button>
           </>
         )}
       </div>
@@ -85,7 +95,7 @@ export default function App() {
             model={state.model}
             nodeTypes={architectureNodeTypes}
             edgeTypes={architectureEdgeTypes}
-            editable={false}
+            editable={editable}
             autoLayout={true}
           />
         </div>

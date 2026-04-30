@@ -45,3 +45,4 @@ packages/cli/*.tgz
 # Generated viewer assets copied into CLI for embedding
 engine/src/FlowConsole.Cli/Resources/web/
 packages/sdk/.jsii
+packages/viewer/tsconfig.tsbuildinfo

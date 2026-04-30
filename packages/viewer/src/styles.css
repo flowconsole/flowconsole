@@ -53,6 +53,33 @@ body,
   white-space: nowrap;
 }
 
+.viewer-topbar-toggle {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--diagram-border, #1f2a3d);
+  color: var(--diagram-text-muted, #94a3b8);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.viewer-topbar-toggle:hover {
+  border-color: var(--diagram-text-muted, #94a3b8);
+  color: var(--diagram-text, #f4f6fc);
+}
+
+.viewer-topbar-toggle.is-active {
+  background: var(--diagram-accent, #3b82f6);
+  border-color: var(--diagram-accent, #3b82f6);
+  color: #fff;
+}
+
 .viewer-diagram {
   width: 100%;
   height: calc(100vh - 40px);
