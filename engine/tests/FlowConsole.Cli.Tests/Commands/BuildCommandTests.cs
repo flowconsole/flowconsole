@@ -7,7 +7,7 @@ using FlowConsole.Cli.Tests.Synth;
 namespace FlowConsole.Cli.Tests.Commands;
 
 [Collection(ConsoleTestCollection.Name)]
-public sealed class SynthCommandTests : IDisposable
+public sealed class BuildCommandTests : IDisposable
 {
     private readonly string _tempRoot;
 
@@ -41,38 +41,38 @@ public sealed class SynthCommandTests : IDisposable
         }
         """;
 
-    public SynthCommandTests()
+    public BuildCommandTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"fc-synth-test-{Guid.NewGuid():N}");
+        _tempRoot = Path.Combine(Path.GetTempPath(), $"fc-build-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempRoot);
     }
 
     [Fact]
-    public void Synth_NoConfigNoCommand_ExitsTwo_WithHint()
+    public void Build_NoConfigNoCommand_ExitsTwo_WithHint()
     {
         var projectDir = CreateProjectDir("no-config");
         // No .flowconsole.yaml, no --command
 
-        var (exitCode, _, stderr) = RunSynth(projectDir);
+        var (exitCode, _, stderr) = RunBuild(projectDir);
 
         exitCode.Should().Be(2);
-        stderr.Should().Contain("synth.command not configured");
+        stderr.Should().Contain("build.command not configured");
     }
 
     [Fact]
-    public void Synth_NoConfigNoCommand_HintContainsSuggestion_WhenMainTsExists()
+    public void Build_NoConfigNoCommand_HintContainsSuggestion_WhenMainTsExists()
     {
         var projectDir = CreateProjectDir("hint-ts");
         File.WriteAllText(Path.Combine(projectDir, "main.ts"), "// entry");
 
-        var (exitCode, _, stderr) = RunSynth(projectDir);
+        var (exitCode, _, stderr) = RunBuild(projectDir);
 
         exitCode.Should().Be(2);
         stderr.Should().Contain("node main.ts");
     }
 
     [Fact]
-    public void Synth_CommandOverridesConfig_OutputWrittenToFile()
+    public void Build_CommandOverridesConfig_OutputWrittenToFile()
     {
         var projectDir = CreateProjectDir("cmd-override");
         CreateConfig(projectDir, command: "echo wrong");
@@ -82,7 +82,7 @@ public sealed class SynthCommandTests : IDisposable
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
         File.WriteAllText(snapshotFile, ValidSnapshot);
 
-        var (exitCode, _, _) = RunSynth(
+        var (exitCode, _, _) = RunBuild(
             projectDir,
             command: $"cat {snapshotFile}",
             output: outputPath);
@@ -96,11 +96,11 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_SubprocessExitNonZero_ExitsThree()
+    public void Build_SubprocessExitNonZero_ExitsThree()
     {
         var projectDir = CreateProjectDir("bad-exit");
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             command: "exit 42");
 
@@ -109,11 +109,11 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_SubprocessEmptyOutput_ExitsThree()
+    public void Build_SubprocessEmptyOutput_ExitsThree()
     {
         var projectDir = CreateProjectDir("empty-output");
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             command: "printf ''");
 
@@ -122,11 +122,11 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_SubprocessInvalidJson_ExitsThree()
+    public void Build_SubprocessInvalidJson_ExitsThree()
     {
         var projectDir = CreateProjectDir("bad-json");
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             command: "echo not-json-at-all");
 
@@ -135,7 +135,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_ConfigSynthCommand_Works()
+    public void Build_ConfigBuildCommand_Works()
     {
         var projectDir = CreateProjectDir("config-cmd");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
@@ -143,14 +143,14 @@ public sealed class SynthCommandTests : IDisposable
         CreateConfig(projectDir, command: $"cat {snapshotFile}");
 
         var outputPath = Path.Combine(projectDir, "output.json");
-        var (exitCode, _, _) = RunSynth(projectDir, output: outputPath);
+        var (exitCode, _, _) = RunBuild(projectDir, output: outputPath);
 
         exitCode.Should().Be(0);
         File.Exists(outputPath).Should().BeTrue();
     }
 
     [Fact]
-    public void Synth_OutputCanonicalNormalized_ByteStable()
+    public void Build_OutputCanonicalNormalized_ByteStable()
     {
         var projectDir = CreateProjectDir("canonical");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
@@ -159,8 +159,8 @@ public sealed class SynthCommandTests : IDisposable
         var output1 = Path.Combine(projectDir, "out1.json");
         var output2 = Path.Combine(projectDir, "out2.json");
 
-        RunSynth(projectDir, command: $"cat {snapshotFile}", output: output1);
-        RunSynth(projectDir, command: $"cat {snapshotFile}", output: output2);
+        RunBuild(projectDir, command: $"cat {snapshotFile}", output: output1);
+        RunBuild(projectDir, command: $"cat {snapshotFile}", output: output2);
 
         var content1 = File.ReadAllText(output1);
         var content2 = File.ReadAllText(output2);
@@ -169,7 +169,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_ConfigCwd_UsedAsWorkingDirectory()
+    public void Build_ConfigCwd_UsedAsWorkingDirectory()
     {
         var projectDir = CreateProjectDir("cwd-test");
         var subDir = Path.Combine(projectDir, "arch");
@@ -181,21 +181,21 @@ public sealed class SynthCommandTests : IDisposable
         CreateConfig(projectDir, command: "cat snapshot.json", cwd: "./arch");
 
         var outputPath = Path.Combine(projectDir, "output.json");
-        var (exitCode, _, _) = RunSynth(projectDir, output: outputPath, useCwdFromConfig: true);
+        var (exitCode, _, _) = RunBuild(projectDir, output: outputPath, useCwdFromConfig: true);
 
         exitCode.Should().Be(0);
         File.Exists(outputPath).Should().BeTrue();
     }
 
     [Fact]
-    public void Synth_RequireConfirmWithoutDiffAgainstLive_ExitsTwo()
+    public void Build_RequireConfirmWithoutDiffAgainstLive_ExitsTwo()
     {
         var projectDir = CreateProjectDir("require-confirm-no-diff");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
         File.WriteAllText(snapshotFile, ValidSnapshot);
         CreateConfig(projectDir, command: $"cat {snapshotFile}");
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             requireConfirm: true);
 
@@ -204,7 +204,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_DiffAgainstLive_NetworkError_ExitsFour()
+    public void Build_DiffAgainstLive_NetworkError_ExitsFour()
     {
         var projectDir = CreateProjectDir("diff-network-error");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
@@ -215,7 +215,7 @@ public sealed class SynthCommandTests : IDisposable
         var fakeFetcher = new FakeLiveDiffFetcher(
             new LiveDiffFetcher.FetchResult(false, null, null, "Network error: Connection refused"));
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             diffAgainstLive: true,
             liveDiffFetcher: fakeFetcher);
@@ -225,7 +225,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_DiffAgainstLive_IdenticalSnapshots_ShowsNoChanges()
+    public void Build_DiffAgainstLive_IdenticalSnapshots_ShowsNoChanges()
     {
         var projectDir = CreateProjectDir("diff-identical");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
@@ -237,7 +237,7 @@ public sealed class SynthCommandTests : IDisposable
         var fakeFetcher = new FakeLiveDiffFetcher(
             new LiveDiffFetcher.FetchResult(true, remoteDoc, 200, null));
 
-        var (exitCode, stdout, _) = RunSynth(
+        var (exitCode, stdout, _) = RunBuild(
             projectDir,
             diffAgainstLive: true,
             liveDiffFetcher: fakeFetcher);
@@ -247,7 +247,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_DiffAgainstLive_NewFlowAdded_ShowsAddedFlow()
+    public void Build_DiffAgainstLive_NewFlowAdded_ShowsAddedFlow()
     {
         var projectDir = CreateProjectDir("diff-new-flow");
 
@@ -284,7 +284,7 @@ public sealed class SynthCommandTests : IDisposable
         var fakeFetcher = new FakeLiveDiffFetcher(
             new LiveDiffFetcher.FetchResult(true, remoteDoc, 200, null));
 
-        var (exitCode, stdout, _) = RunSynth(
+        var (exitCode, stdout, _) = RunBuild(
             projectDir,
             diffAgainstLive: true,
             liveDiffFetcher: fakeFetcher);
@@ -296,7 +296,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_DiffAgainstLive_FlowStepReordered_ShowsChanged()
+    public void Build_DiffAgainstLive_FlowStepReordered_ShowsChanged()
     {
         var projectDir = CreateProjectDir("diff-reorder");
 
@@ -352,7 +352,7 @@ public sealed class SynthCommandTests : IDisposable
         var fakeFetcher = new FakeLiveDiffFetcher(
             new LiveDiffFetcher.FetchResult(true, remoteDoc, 200, null));
 
-        var (exitCode, stdout, _) = RunSynth(
+        var (exitCode, stdout, _) = RunBuild(
             projectDir,
             diffAgainstLive: true,
             liveDiffFetcher: fakeFetcher);
@@ -363,7 +363,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_RequireConfirm_UserTypesN_ExitsZero()
+    public void Build_RequireConfirm_UserTypesN_ExitsZero()
     {
         var projectDir = CreateProjectDir("confirm-n");
 
@@ -401,7 +401,7 @@ public sealed class SynthCommandTests : IDisposable
         var fakeFetcher = new FakeLiveDiffFetcher(
             new LiveDiffFetcher.FetchResult(true, remoteDoc, 200, null));
 
-        var (exitCode, stdout, _) = RunSynth(
+        var (exitCode, stdout, _) = RunBuild(
             projectDir,
             diffAgainstLive: true,
             requireConfirm: true,
@@ -413,7 +413,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_DiffAgainstLive_MissingApiUrl_ExitsTwo()
+    public void Build_DiffAgainstLive_MissingApiUrl_ExitsTwo()
     {
         var projectDir = CreateProjectDir("diff-no-api-url");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
@@ -421,7 +421,7 @@ public sealed class SynthCommandTests : IDisposable
         // Config without api_url
         CreateConfig(projectDir, command: $"cat {snapshotFile}");
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             diffAgainstLive: true);
 
@@ -430,7 +430,7 @@ public sealed class SynthCommandTests : IDisposable
     }
 
     [Fact]
-    public void Synth_DiffAgainstLive_MissingModelId_ExitsTwo()
+    public void Build_DiffAgainstLive_MissingModelId_ExitsTwo()
     {
         var projectDir = CreateProjectDir("diff-no-model-id");
         var snapshotFile = Path.Combine(projectDir, "snapshot.json");
@@ -438,7 +438,7 @@ public sealed class SynthCommandTests : IDisposable
         // Config with api_url but no model_id
         CreateConfig(projectDir, command: $"cat {snapshotFile}", apiUrl: "http://api.test");
 
-        var (exitCode, _, stderr) = RunSynth(
+        var (exitCode, _, stderr) = RunBuild(
             projectDir,
             diffAgainstLive: true);
 
@@ -467,7 +467,7 @@ public sealed class SynthCommandTests : IDisposable
             yaml += $"model_id: {modelId}\n";
         if (command is not null || cwd is not null)
         {
-            yaml += "synth:\n";
+            yaml += "build:\n";
             if (command is not null)
                 yaml += $"  command: \"{command}\"\n";
             if (cwd is not null)
@@ -476,7 +476,7 @@ public sealed class SynthCommandTests : IDisposable
         File.WriteAllText(Path.Combine(dir, ".flowconsole.yaml"), yaml);
     }
 
-    private (int exitCode, string stdout, string stderr) RunSynth(
+    private (int exitCode, string stdout, string stderr) RunBuild(
         string projectDir,
         string? command = null,
         string? output = null,
@@ -492,13 +492,13 @@ public sealed class SynthCommandTests : IDisposable
         var ctHolder = new CancellationTokenHolder(CancellationToken.None);
         var shellRunner = new ShellOutRunner();
 
-        var synthCommand = new SynthCommand(
+        var buildCommand = new BuildCommand(
             atomicWriter, outputRouter, ctHolder, shellRunner,
             liveDiffFetcher, consoleInput);
-        var context = TestHelper.CreateContext("synth");
+        var context = TestHelper.CreateContext("build");
 
         var configPath = Path.Combine(projectDir, ".flowconsole.yaml");
-        var settings = new SynthSettings
+        var settings = new BuildCommandSettings
         {
             ConfigPath = File.Exists(configPath) ? configPath : null,
             Cwd = useCwdFromConfig ? null : (cwd ?? projectDir),
@@ -518,7 +518,7 @@ public sealed class SynthCommandTests : IDisposable
 
         try
         {
-            var exitCode = synthCommand.Execute(context, settings);
+            var exitCode = buildCommand.Execute(context, settings);
             return (exitCode, stdoutWriter.ToString(), stderrWriter.ToString());
         }
         finally

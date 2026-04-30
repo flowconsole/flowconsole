@@ -10,6 +10,7 @@
   },
   "scripts": {
     "postinstall": "node postinstall.js",
+    "dev:uninstall": "bash scripts/uninstall.sh",
     "dev:reinstall": "bash scripts/dev-reinstall.sh"
   },
   "cliVersion": "0.2.0-beta",

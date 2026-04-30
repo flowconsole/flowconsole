@@ -86,7 +86,7 @@ _fcon() {
                     _arguments \
                         '--port[Port to bind]:port:' \
                         '--no-open[Do not open browser]' \
-                        '--source[Snapshot source filter]:source:(auto scan synth)' \
+                        '--source[Snapshot source filter]:source:(auto scan build)' \
                         '--max-snapshot-bytes[Maximum snapshot file size in bytes]:bytes:' \
                         '*:snapshot:_files -g "*.json"'
                     ;;

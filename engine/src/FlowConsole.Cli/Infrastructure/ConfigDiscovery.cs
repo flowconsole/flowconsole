@@ -36,9 +36,9 @@ public static class ConfigDiscovery
     }
 
     /// <summary>
-    /// Parsed <c>synth:</c> section from <c>.flowconsole.yaml</c>.
+    /// Parsed <c>build:</c> section from <c>.flowconsole.yaml</c>.
     /// </summary>
-    public sealed record SynthConfig(string? Command, string? Output, string? Cwd);
+    public sealed record BuildConfig(string? Command, string? Output, string? Cwd);
 
     /// <summary>
     /// Reads a top-level YAML value from a config file (e.g., <c>api_url</c>, <c>model_id</c>).
@@ -73,10 +73,10 @@ public static class ConfigDiscovery
     }
 
     /// <summary>
-    /// Reads the <c>synth:</c> section from the given config file.
+    /// Reads the <c>build:</c> section from the given config file.
     /// Simple line-based parser (no YAML library dependency).
     /// </summary>
-    public static SynthConfig? ReadSynthConfig(string configFilePath)
+    public static BuildConfig? ReadBuildConfig(string configFilePath)
     {
         if (!File.Exists(configFilePath))
             return null;
@@ -91,7 +91,7 @@ public static class ConfigDiscovery
             return null;
         }
 
-        var inSynthSection = false;
+        var inBuildSection = false;
         string? command = null;
         string? output = null;
         string? cwd = null;
@@ -100,16 +100,16 @@ public static class ConfigDiscovery
         {
             var trimmed = line.TrimStart();
 
-            if (trimmed.StartsWith("synth:", StringComparison.OrdinalIgnoreCase) && !trimmed.Contains('#'))
+            if (trimmed.StartsWith("build:", StringComparison.OrdinalIgnoreCase) && !trimmed.Contains('#'))
             {
-                inSynthSection = true;
+                inBuildSection = true;
                 continue;
             }
 
-            if (!inSynthSection)
+            if (!inBuildSection)
                 continue;
 
-            // Detect end of synth section (non-indented, non-empty, non-comment line)
+            // Detect end of build section (non-indented, non-empty, non-comment line)
             if (trimmed.Length > 0 && !trimmed.StartsWith('#') && line.Length > 0 && line[0] != ' ' && line[0] != '\t')
             {
                 break;
@@ -120,10 +120,10 @@ public static class ConfigDiscovery
             cwd ??= ExtractYamlValue(trimmed, "cwd:");
         }
 
-        if (!inSynthSection)
+        if (!inBuildSection)
             return null;
 
-        return new SynthConfig(command, output, cwd);
+        return new BuildConfig(command, output, cwd);
     }
 
     private static string? ExtractYamlValue(string trimmedLine, string key)

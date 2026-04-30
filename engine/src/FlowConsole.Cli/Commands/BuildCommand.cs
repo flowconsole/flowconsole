@@ -8,14 +8,14 @@ using Spectre.Console.Cli;
 
 namespace FlowConsole.Cli.Commands;
 
-internal sealed class SynthSettings : GlobalSettings
+internal sealed class BuildCommandSettings : GlobalSettings
 {
     [CommandOption("--cwd <DIR>")]
-    [Description("Working directory for synth command (default: directory containing .flowconsole.yaml)")]
+    [Description("Working directory for build command (default: directory containing .flowconsole.yaml)")]
     public string? Cwd { get; init; }
 
     [CommandOption("--command <CMD>")]
-    [Description("Override synth.command from config (for ad-hoc runs)")]
+    [Description("Override build.command from config (for ad-hoc runs)")]
     public string? Command { get; init; }
 
     [CommandOption("-o|--output <PATH>")]
@@ -31,7 +31,7 @@ internal sealed class SynthSettings : GlobalSettings
     public bool RequireConfirm { get; init; }
 }
 
-internal sealed class SynthCommand : Command<SynthSettings>
+internal sealed class BuildCommand : Command<BuildCommandSettings>
 {
     private readonly AtomicFileWriter _atomicWriter;
     private readonly OutputRouter _outputRouter;
@@ -40,7 +40,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
     private readonly LiveDiffFetcher _liveDiffFetcher;
     private readonly TextReader _consoleInput;
 
-    public SynthCommand(
+    public BuildCommand(
         AtomicFileWriter atomicWriter,
         OutputRouter outputRouter,
         CancellationTokenHolder ctHolder,
@@ -56,12 +56,12 @@ internal sealed class SynthCommand : Command<SynthSettings>
         _consoleInput = consoleInput ?? Console.In;
     }
 
-    public override int Execute(CommandContext context, SynthSettings settings)
+    public override int Execute(CommandContext context, BuildCommandSettings settings)
     {
         return ExecuteAsync(settings).GetAwaiter().GetResult();
     }
 
-    private async Task<int> ExecuteAsync(SynthSettings settings)
+    private async Task<int> ExecuteAsync(BuildCommandSettings settings)
     {
         var ct = _ctHolder.Token;
 
@@ -74,33 +74,33 @@ internal sealed class SynthCommand : Command<SynthSettings>
         var configFile = settings.ConfigPath ?? ConfigDiscovery.FindConfigFile(Directory.GetCurrentDirectory());
         var configDir = configFile is not null ? Path.GetDirectoryName(Path.GetFullPath(configFile))! : Directory.GetCurrentDirectory();
 
-        ConfigDiscovery.SynthConfig? synthConfig = null;
+        ConfigDiscovery.BuildConfig? buildConfig = null;
         if (configFile is not null)
-            synthConfig = ConfigDiscovery.ReadSynthConfig(configFile);
+            buildConfig = ConfigDiscovery.ReadBuildConfig(configFile);
 
         // Resolve command: CLI flag > config > error with hint
-        var command = settings.Command ?? synthConfig?.Command;
+        var command = settings.Command ?? buildConfig?.Command;
 
         // Resolve working directory: CLI flag > config > config file directory
         var cwd = settings.Cwd is not null
             ? Path.GetFullPath(settings.Cwd)
-            : synthConfig?.Cwd is not null
-                ? Path.GetFullPath(Path.Combine(configDir, synthConfig.Cwd))
+            : buildConfig?.Cwd is not null
+                ? Path.GetFullPath(Path.Combine(configDir, buildConfig.Cwd))
                 : configDir;
 
         if (command is null)
         {
-            var hint = EntrypointDetector.SuggestSynthCommand(cwd);
-            CliConsole.Error("synth.command not configured in .flowconsole.yaml and --command not provided.");
+            var hint = EntrypointDetector.SuggestBuildCommand(cwd);
+            CliConsole.Error("build.command not configured in .flowconsole.yaml and --command not provided.");
             CliConsole.Info("");
             CliConsole.Info("Add to your .flowconsole.yaml:");
             CliConsole.Info("");
-            CliConsole.Info("  synth:");
+            CliConsole.Info("  build:");
             CliConsole.Info($"    {hint}");
             CliConsole.Info("");
-            CliConsole.Info("Or use: fcon synth --command \"<your-command>\"");
+            CliConsole.Info("Or use: fcon build --command \"<your-command>\"");
             CliConsole.Info("");
-            CliConsole.Info("See https://flowconsole.tech/docs/sdk/synth for details.");
+            CliConsole.Info("See https://flowconsole.tech/docs/sdk/build for details.");
             return 2;
         }
 
@@ -122,25 +122,25 @@ internal sealed class SynthCommand : Command<SynthSettings>
         }
         catch (OperationCanceledException)
         {
-            CliConsole.Info("Synth cancelled.");
+            CliConsole.Info("Build cancelled.");
             return 130;
         }
 
         if (exitCode == -1)
         {
-            CliConsole.Error("synth command output exceeded 10 MB limit.");
+            CliConsole.Error("build command output exceeded 10 MB limit.");
             return 3;
         }
 
         if (exitCode != 0)
         {
-            CliConsole.Error($"synth command exited with code {exitCode}.");
+            CliConsole.Error($"build command exited with code {exitCode}.");
             return 3;
         }
 
         if (string.IsNullOrWhiteSpace(stdout))
         {
-            CliConsole.Error("synth command produced no output.");
+            CliConsole.Error("build command produced no output.");
             return 3;
         }
 
@@ -151,7 +151,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
         }
         catch (Exception ex)
         {
-            CliConsole.Error($"synth output is not valid JSON: {ex.Message}");
+            CliConsole.Error($"build output is not valid JSON: {ex.Message}");
             return 3;
         }
 
@@ -164,7 +164,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
                 settings.Output,
                 "snapshots",
                 "json",
-                $"Synthesized snapshot written to {settings.Output ?? defaultOutputPath}",
+                $"Snapshot written to {settings.Output ?? defaultOutputPath}",
                 ct).ConfigureAwait(false);
 
             if (settings.Verbose && outputPath is not null)
@@ -172,7 +172,7 @@ internal sealed class SynthCommand : Command<SynthSettings>
         }
         catch (OperationCanceledException)
         {
-            CliConsole.Info("Synth cancelled during output write.");
+            CliConsole.Info("Build cancelled during output write.");
             return 130;
         }
 

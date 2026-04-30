@@ -13,69 +13,69 @@ public sealed class EntrypointDetectorTests : IDisposable
     }
 
     [Fact]
-    public void SuggestSynthCommand_WithMainTs_SuggestsNodeMainTs()
+    public void SuggestBuildCommand_WithMainTs_SuggestsNodeMainTs()
     {
         var dir = CreateSubDir("ts-project");
         File.WriteAllText(Path.Combine(dir, "main.ts"), "// entry");
 
-        var result = EntrypointDetector.SuggestSynthCommand(dir);
+        var result = EntrypointDetector.SuggestBuildCommand(dir);
 
         result.Should().Contain("node main.ts");
     }
 
     [Fact]
-    public void SuggestSynthCommand_WithMainTsx_SuggestsNodeMainTs()
+    public void SuggestBuildCommand_WithMainTsx_SuggestsNodeMainTs()
     {
         var dir = CreateSubDir("tsx-project");
         File.WriteAllText(Path.Combine(dir, "main.tsx"), "// entry");
 
-        var result = EntrypointDetector.SuggestSynthCommand(dir);
+        var result = EntrypointDetector.SuggestBuildCommand(dir);
 
         result.Should().Contain("node main.ts");
     }
 
     [Fact]
-    public void SuggestSynthCommand_WithProgramCs_SuggestsDotnetRun()
+    public void SuggestBuildCommand_WithProgramCs_SuggestsDotnetRun()
     {
         var dir = CreateSubDir("cs-project");
         File.WriteAllText(Path.Combine(dir, "Program.cs"), "// entry");
 
-        var result = EntrypointDetector.SuggestSynthCommand(dir);
+        var result = EntrypointDetector.SuggestBuildCommand(dir);
 
         result.Should().Contain("dotnet run --project ./arch");
     }
 
     [Fact]
-    public void SuggestSynthCommand_WithCsprojNoProgramCs_SuggestsDotnetRun()
+    public void SuggestBuildCommand_WithCsprojNoProgramCs_SuggestsDotnetRun()
     {
         var dir = CreateSubDir("csproj-only");
         File.WriteAllText(Path.Combine(dir, "MyArch.csproj"), "<Project />");
 
-        var result = EntrypointDetector.SuggestSynthCommand(dir);
+        var result = EntrypointDetector.SuggestBuildCommand(dir);
 
         result.Should().Contain("dotnet run --project ./arch");
     }
 
     [Fact]
-    public void SuggestSynthCommand_WithBothTsAndCs_PrioritizesTs()
+    public void SuggestBuildCommand_WithBothTsAndCs_PrioritizesTs()
     {
         var dir = CreateSubDir("both-ts-cs");
         File.WriteAllText(Path.Combine(dir, "main.ts"), "// entry");
         File.WriteAllText(Path.Combine(dir, "Program.cs"), "// entry");
 
-        var result = EntrypointDetector.SuggestSynthCommand(dir);
+        var result = EntrypointDetector.SuggestBuildCommand(dir);
 
         // TS takes priority per plan spec
         result.Should().Contain("node main.ts");
     }
 
     [Fact]
-    public void SuggestSynthCommand_NoKnownEntrypoint_ReturnsGenericSample()
+    public void SuggestBuildCommand_NoKnownEntrypoint_ReturnsGenericSample()
     {
         var dir = CreateSubDir("unknown");
         File.WriteAllText(Path.Combine(dir, "readme.txt"), "hello");
 
-        var result = EntrypointDetector.SuggestSynthCommand(dir);
+        var result = EntrypointDetector.SuggestBuildCommand(dir);
 
         result.Should().Contain("<your-build-command>");
     }

@@ -52,7 +52,7 @@ _fcon_completions()
             return 0
             ;;
         --source)
-            COMPREPLY=( $(compgen -W "auto scan synth" -- "${cur}") )
+            COMPREPLY=( $(compgen -W "auto scan build" -- "${cur}") )
             return 0
             ;;
         --scanner)

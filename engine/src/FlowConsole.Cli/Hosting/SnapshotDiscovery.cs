@@ -91,14 +91,14 @@ public sealed class SnapshotDiscovery
         return mostRecent.Result;
     }
 
-    // CLI exposes friendly aliases (scan, synth) that map to wire-format source values:
+    // CLI exposes friendly aliases (scan, build) that map to wire-format source values:
     //   scan  → CodeScan, InfraScan (anything ending in "Scan")
-    //   synth → Git (SDK synthesized snapshots always emit source: "Git")
+    //   build → Git (SDK-built snapshots always emit source: "Git")
     private static bool MatchesSourceFilter(string snapshotSource, string filter) =>
         string.Equals(snapshotSource, filter, StringComparison.OrdinalIgnoreCase)
         || (string.Equals(filter, "scan", StringComparison.OrdinalIgnoreCase)
             && snapshotSource.EndsWith("Scan", StringComparison.OrdinalIgnoreCase))
-        || (string.Equals(filter, "synth", StringComparison.OrdinalIgnoreCase)
+        || (string.Equals(filter, "build", StringComparison.OrdinalIgnoreCase)
             && string.Equals(snapshotSource, "Git", StringComparison.OrdinalIgnoreCase));
 
     private static DiscoveryResult PeekSnapshot(string filePath, long maxBytes)

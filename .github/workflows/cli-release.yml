@@ -255,9 +255,9 @@ jobs:
           if [ "$RUNNER_OS" = "Windows" ]; then FC="fcon-bin/fcon.exe"; else FC="fcon-bin/fcon"; fi
           "$FC" fmt "$TMP_FMT"
 
-      - name: Smoke test - fcon synth --help
+      - name: Smoke test - fcon build --help
         run: |
-          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} synth --help
+          ${{ runner.os == 'Windows' && 'fcon-bin\fcon.exe' || 'fcon-bin/fcon' }} build --help
 
       - name: Smoke test - fcon --version
         shell: bash

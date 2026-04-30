@@ -20,7 +20,7 @@ type ViewState =
   | { kind: 'happy'; model: ArchitectureDiagramModel; snapshot: ModelSnapshotWire };
 
 const ERROR_MESSAGES: Record<SnapshotError, { title: string; detail: string }> = {
-  'not-found': { title: 'Snapshot not found', detail: 'The snapshot file was not found. Run fcon scan or fcon synth first.' },
+  'not-found': { title: 'Snapshot not found', detail: 'The snapshot file was not found. Run fcon scan or fcon build first.' },
   'too-large': { title: 'Snapshot too large', detail: 'The snapshot exceeds the maximum allowed size.' },
   'parse-error': { title: 'Invalid snapshot', detail: 'The snapshot file contains invalid JSON.' },
   'io-error': { title: 'Connection error', detail: 'Could not reach the viewer server.' },

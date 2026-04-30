@@ -127,7 +127,7 @@ public sealed class SnapshotDiscoveryTests : IDisposable
     {
         var snapshotsDir = Path.Combine(_tempDir, ".flowconsole", "snapshots");
         Directory.CreateDirectory(snapshotsDir);
-        WriteSnapshot(snapshotsDir, "synth.json", "Import", 3);
+        WriteSnapshot(snapshotsDir, "build.json", "Import", 3);
 
         var oldDir = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(_tempDir);

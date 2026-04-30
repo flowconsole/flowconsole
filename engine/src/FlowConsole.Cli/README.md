@@ -65,7 +65,7 @@ fcon doctor
 | `fcon rules list` | List available validation rules |
 | `fcon rules export <dir>` | Export built-in rules for customization |
 | `fcon explain <rule-id>` | Show rule details and examples |
-| `fcon synth [dir]` | Run SDK synthesizer and emit ModelSnapshot |
+| `fcon build [dir]` | Run SDK builder and emit ModelSnapshot |
 | `fcon view [path]` | Open a local web viewer for an architectural snapshot |
 | `fcon completion <shell>` | Generate shell completion script |
 
@@ -99,7 +99,7 @@ fcon view --source scan
 | `[path]` | Path to snapshot JSON file. If omitted, auto-discovers from `.flowconsole/snapshots/` |
 | `--port <PORT>` | Explicit port to bind (default: auto-select ephemeral) |
 | `--no-open` | Do not open the browser automatically |
-| `--source <SOURCE>` | Filter snapshots by source: `scan` (matches CodeScan, InfraScan), `synth`, or `auto` (default: `auto`). Also accepts exact source names like `CodeScan`. |
+| `--source <SOURCE>` | Filter snapshots by source: `scan` (matches CodeScan, InfraScan), `build`, or `auto` (default: `auto`). Also accepts exact source names like `CodeScan`. |
 | `--max-snapshot-bytes <BYTES>` | Maximum snapshot file size in bytes (default: 200 MB) |
 
 ### Exit codes
@@ -116,7 +116,7 @@ fcon view --source scan
 ### Iterate flow
 
 The viewer re-reads the snapshot from disk on every request — no restart
-needed after `fcon scan` or `fcon synth`:
+needed after `fcon scan` or `fcon build`:
 
 ```bash
 # Terminal 1: start the viewer
@@ -137,6 +137,6 @@ uses a lightweight `System.Net.HttpListener` — no ASP.NET Core dependency.
 ## Known Limitations (v0.2.0-alpha)
 
 - C# and Helm scanners available (additional languages planned)
-- `fcon synth --diff-against-live` requires a running backend
+- `fcon build --diff-against-live` requires a running backend
 - `fcon push` not yet available (Phase 3)
 - Binaries are unsigned during alpha

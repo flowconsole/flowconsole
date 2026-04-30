@@ -1,0 +1,6 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e1bd97ef_002D348b_002D4788_002D9eed_002Db4b5e4ee6d35/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="RelationshipIdAsValidIdentifier_DoesNotLeakNullBranchError" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;xUnit::0F34B4F3-D026-4B4D-6209-545B774D51CD::net10.0::FlowConsole.Schema.Tests.JsonSchemaValidatorFlowTests.RelationshipIdAsValidIdentifier_DoesNotLeakNullBranchError&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

@@ -58,7 +58,7 @@ complete -c fcon -n '__fish_seen_subcommand_from rules' -a export -d 'Export bui
 # view options
 complete -c fcon -n '__fish_seen_subcommand_from view' -l port -r -d 'Port to bind'
 complete -c fcon -n '__fish_seen_subcommand_from view' -l no-open -d 'Do not open browser'
-complete -c fcon -n '__fish_seen_subcommand_from view' -l source -r -a 'auto scan synth' -d 'Snapshot source filter'
+complete -c fcon -n '__fish_seen_subcommand_from view' -l source -r -a 'auto scan build' -d 'Snapshot source filter'
 complete -c fcon -n '__fish_seen_subcommand_from view' -l max-snapshot-bytes -r -d 'Maximum snapshot file size in bytes'
 
 # completion shells

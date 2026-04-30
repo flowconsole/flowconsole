@@ -19,7 +19,7 @@ internal sealed class ViewSettings : GlobalSettings
     public bool NoOpen { get; init; }
 
     [CommandOption("--source <SOURCE>")]
-    [Description("Filter snapshots by source: scan (matches CodeScan, InfraScan), synth, auto, or exact source name (default: auto)")]
+    [Description("Filter snapshots by source: scan (matches CodeScan, InfraScan), build, auto, or exact source name (default: auto)")]
     public string? Source { get; init; }
 
     [CommandOption("--max-snapshot-bytes <BYTES>")]

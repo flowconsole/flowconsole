@@ -194,7 +194,7 @@ public sealed class InitCommandTests : IDisposable
     }
 
     [Fact]
-    public void Init_WithExamples_TypeScriptProject_PrefillsSynthCommand()
+    public void Init_WithExamples_TypeScriptProject_PrefillsBuildCommand()
     {
         var targetDir = Path.Combine(_tempRoot, "ts-project");
         Directory.CreateDirectory(targetDir);
@@ -209,7 +209,7 @@ public sealed class InitCommandTests : IDisposable
     }
 
     [Fact]
-    public void Init_WithExamples_CSharpProject_PrefillsSynthCommand()
+    public void Init_WithExamples_CSharpProject_PrefillsBuildCommand()
     {
         var targetDir = Path.Combine(_tempRoot, "cs-project");
         Directory.CreateDirectory(targetDir);
@@ -232,7 +232,7 @@ public sealed class InitCommandTests : IDisposable
 
         var content = File.ReadAllText(Path.Combine(targetDir, ".flowconsole.yaml"));
         content.Should().Contain("command: \"\"");
-        content.Should().Contain("REQUIRED for fcon synth");
+        content.Should().Contain("REQUIRED for fcon build");
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class InitCommandTests : IDisposable
 
         var content = File.ReadAllText(Path.Combine(targetDir, ".flowconsole.yaml"));
         content.Should().Contain("command: \"\"");
-        content.Should().Contain("REQUIRED for fcon synth");
+        content.Should().Contain("REQUIRED for fcon build");
         // The command value must be empty — auto-detected command should NOT appear as the value
         content.Should().NotContain("command: \"node main.ts\"");
     }
@@ -269,15 +269,15 @@ public sealed class InitCommandTests : IDisposable
     }
 
     [Fact]
-    public void Init_DefaultConfig_IncludesSynthSection()
+    public void Init_DefaultConfig_IncludesBuildSection()
     {
-        var targetDir = Path.Combine(_tempRoot, "synth-section");
+        var targetDir = Path.Combine(_tempRoot, "build-section");
         Directory.CreateDirectory(targetDir);
 
         RunInit(targetDir);
 
         var content = File.ReadAllText(Path.Combine(targetDir, ".flowconsole.yaml"));
-        content.Should().Contain("synth:");
+        content.Should().Contain("build:");
         content.Should().Contain("command:");
     }
 

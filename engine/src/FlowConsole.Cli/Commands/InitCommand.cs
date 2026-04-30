@@ -38,8 +38,8 @@ internal sealed class InitCommand : Command<InitSettings>
         rules_dir: ./rules
         fail_on: error
         api_url: http://localhost:5555
-        synth:
-          command: ""              # REQUIRED for fcon synth — set to your build command:
+        build:
+          command: ""              # REQUIRED for fcon build — set to your build command:
                                    #   "node main.ts"  for TS projects
                                    #   "dotnet run --project ./arch"  for C# projects
           # output: "stdout"       # optional (default=stdout)
@@ -109,7 +109,7 @@ internal sealed class InitCommand : Command<InitSettings>
         var configContent = DefaultConfig;
         if (settings.WithExamples)
         {
-            configContent = BuildConfigWithSynthCommand(targetDir);
+            configContent = BuildConfigWithBuildCommand(targetDir);
         }
         File.WriteAllText(configPath, configContent);
 
@@ -154,10 +154,10 @@ internal sealed class InitCommand : Command<InitSettings>
         return 0;
     }
 
-    private static string BuildConfigWithSynthCommand(string targetDir)
+    private static string BuildConfigWithBuildCommand(string targetDir)
     {
-        var suggestion = EntrypointDetector.SuggestSynthCommand(targetDir);
-        // suggestion format: synth.command: "node main.ts" or synth.command: "<your-build-command>"
+        var suggestion = EntrypointDetector.SuggestBuildCommand(targetDir);
+        // suggestion format: build.command: "node main.ts" or build.command: "<your-build-command>"
         var command = ExtractCommandValue(suggestion);
 
         if (command.StartsWith('<'))
@@ -169,8 +169,8 @@ internal sealed class InitCommand : Command<InitSettings>
                 rules_dir: ./rules
                 fail_on: error
                 api_url: http://localhost:5555
-                synth:
-                  command: ""              # REQUIRED for fcon synth — set to your build command:
+                build:
+                  command: ""              # REQUIRED for fcon build — set to your build command:
                                            #   "node main.ts"  for TS projects
                                            #   "dotnet run --project ./arch"  for C# projects
                   # output: "stdout"       # optional (default=stdout)
@@ -184,7 +184,7 @@ internal sealed class InitCommand : Command<InitSettings>
             rules_dir: ./rules
             fail_on: error
             api_url: http://localhost:5555
-            synth:
+            build:
               command: "{command}"  # auto-detected entrypoint
               output: "stdout"
               cwd: "./"
@@ -193,7 +193,7 @@ internal sealed class InitCommand : Command<InitSettings>
 
     private static string ExtractCommandValue(string suggestion)
     {
-        // Parse: synth.command: "node main.ts" → node main.ts
+        // Parse: build.command: "node main.ts" → node main.ts
         var colonIndex = suggestion.IndexOf(':');
         if (colonIndex < 0) return suggestion;
         var value = suggestion[(colonIndex + 1)..].Trim().Trim('"');

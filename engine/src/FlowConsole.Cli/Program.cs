@@ -93,7 +93,7 @@ app.Configure(config =>
             .WithDescription("Export built-in rules to a directory");
     });
 
-    config.AddCommand<SynthCommand>("synth")
+    config.AddCommand<BuildCommand>("build")
         .WithDescription("Run SDK toolchain and produce a ModelSnapshot");
 
     config.AddCommand<ExplainCommand>("explain")
@@ -163,7 +163,7 @@ static string ResolveCommandName(string[] args)
     // updated every time a new --flag <VALUE> is added to any command.
     HashSet<string> knownCommands = [
         "init", "doctor", "completion", "scan", "fmt", "validate",
-        "synth", "explain", "diff", "view",
+        "build", "explain", "diff", "view",
         // Branch commands (parent only — subcommands checked separately)
         "push", "telemetry", "rules"
     ];

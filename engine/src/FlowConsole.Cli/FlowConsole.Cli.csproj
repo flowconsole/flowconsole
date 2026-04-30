@@ -23,7 +23,7 @@
     <PackageId>FlowConsole.Cli</PackageId>
     <Version>0.2.0-alpha</Version>
     <Authors>FlowConsole</Authors>
-    <Description>FlowConsole CLI — architecture-as-code scanner, validator, and SDK synthesizer. Scan C# projects, validate against rules, synthesize SDK models, format snapshots.</Description>
+    <Description>FlowConsole CLI — architecture-as-code scanner, validator, and SDK builder. Scan C# projects, validate against rules, build SDK models, format snapshots.</Description>
     <PackageProjectUrl>https://flowconsole.tech</PackageProjectUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageTags>architecture;code-scanner;validation;architecture-as-code</PackageTags>

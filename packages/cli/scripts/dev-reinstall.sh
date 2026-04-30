@@ -50,6 +50,9 @@ rm -f flowconsole-cli-*.tgz
 TARBALL_NAME="$(npm pack --silent)"
 TARBALL_PATH="$PKG_DIR/$TARBALL_NAME"
 
+echo "==> Removing any previous global install"
+"$PKG_DIR/scripts/uninstall.sh"
+
 echo "==> Installing $TARBALL_NAME globally"
 FLOWCONSOLE_CLI_SKIP_DOWNLOAD=1 npm install -g "$TARBALL_PATH"
 
