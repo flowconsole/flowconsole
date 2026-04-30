@@ -17,8 +17,6 @@ export type ConnectionKind = 'sync' | 'async' | 'event' | 'dependency';
  */
 export type ComponentTone = 'primary' | 'muted' | 'success' | 'warning' | 'danger';
 
-// ── Wire-format DTO interfaces (matches backend ModelSnapshotDto) ──
-
 /**
  * Wire-format element DTO matching backend schema.
  */
@@ -186,8 +184,6 @@ export enum RelationKind {
   /** Gateway routes traffic to a service. */
   ROUTES_TO = 'RoutesTo',
 }
-
-// ── Auto-ID generation (per-slug counters, matches web runtime's slugCounts) ──
 
 const _slugCounters = new Map<string, number>();
 function generateAutoId(kind: ElementKind, name?: string): string {
@@ -1398,15 +1394,8 @@ function canonicalReplacer(_key: string, value: unknown): unknown {
   return value;
 }
 
-// ── Flow id derivation ──
-
-/**
- * Derive a snapshot Identifier id from a human-readable scenario name.
- * Schema model-snapshot/v1 1.1.0 requires flow.id to satisfy
- * ^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$. The id is `slugify(name) + '-' + fnv1a32(name)`
- * — slug stays human-readable, hex hash makes it stable across runs (so
- * snapshot diffs work) and unique even when distinct names slugify equal.
- */
+// id = slug(name) + '-' + fnv1a32(name): slug читаем, хеш стабилен между
+// запусками (для снапшот-дифа) и снимает коллизии у имён с одинаковым slug.
 function deriveFlowId(name: string): string {
   const slug = slugifyForId(name);
   const hash = fnv1a32Hex(name);
@@ -1430,12 +1419,7 @@ function fnv1a32Hex(input: string): string {
   return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
-// ── Step-to-DTO mapping ──
-
-/**
- * Map internal FlowStep to wire-format FlowStepDto.
- * Action steps (no target) get relationshipId=null per C3.
- */
+// Action steps (no target) emit relationshipId=null per C3.
 function mapStepToDto(step: FlowStep): FlowStepDto {
   const sourceElementId = step.source.id ?? step.source.name ?? '';
   if (!step.target) {

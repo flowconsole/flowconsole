@@ -178,8 +178,6 @@ describe('emit() helper', () => {
   });
 });
 
-// ── Discriminated union type-level tests ──
-
 describe('Discriminated union ergonomics', () => {
   it('ElementKindUnion discriminates on kind field', () => {
     // Type-level test: verify the union narrows correctly

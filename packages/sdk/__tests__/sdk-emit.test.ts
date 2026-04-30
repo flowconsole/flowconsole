@@ -64,8 +64,6 @@ beforeEach(() => {
   resetRuntime();
 });
 
-// ── Per-ElementKind round-trip tests ──
-
 describe('Per-ElementKind round-trip', () => {
   const kindTests: Array<{ name: string; create: () => Component; expectedKind: ElementKind }> = [
     // Code layer
@@ -133,8 +131,6 @@ describe('Per-ElementKind round-trip', () => {
     expect(matchingElement!.kind).toBe(expectedKind);
   });
 });
-
-// ── toJson() byte-stability ──
 
 describe('toJson() byte-stability', () => {
   it('produces identical output on two calls with same input', () => {
@@ -212,8 +208,6 @@ describe('relationKindToConventionString', () => {
     expect(relationKindToConventionString(RelationKind.ROUTES_TO)).toBe('routesTo');
   });
 });
-
-// ── Flow emission: scenarios → flows array ──
 
 describe('Flow emission', () => {
   it('single named flow with edge steps computes relationshipId correctly', () => {
@@ -367,8 +361,6 @@ describe('Flow id derivation (cli-test eShop scenarios)', () => {
   });
 });
 
-// ── FlowStepDto.sourceElementId always set ──
-
 describe('FlowStepDto.sourceElementId', () => {
   it('is set for edge steps', () => {
     const a = new SoftwareSystem({ id: 'a', name: 'A' });
@@ -422,8 +414,6 @@ describe('Discriminated union ergonomics', () => {
     expect(allKinds.length).toBe(11);
   });
 });
-
-// ── Cross-source ID compatibility ──
 
 describe('Cross-source ID compatibility', () => {
   it('SDK-emitted relationship IDs use same format as backend scanners', () => {

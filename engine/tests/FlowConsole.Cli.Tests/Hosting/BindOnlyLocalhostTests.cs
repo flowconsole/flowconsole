@@ -49,11 +49,10 @@ public sealed class BindOnlyLocalhostTests : IDisposable
         using var host = new ViewerHost(_snapshotPath, 200 * 1024 * 1024, port);
         var serverTask = host.RunAsync(cts.Token);
 
-        // Try to get a non-loopback address
         var nonLoopback = GetNonLoopbackAddress();
         if (nonLoopback is null)
         {
-            // No non-loopback interface — skip
+            // No non-loopback interface available on this host — skip the bind check.
             cts.Cancel();
             try { await serverTask.WaitAsync(TimeSpan.FromSeconds(2)); }
             catch (OperationCanceledException) { }

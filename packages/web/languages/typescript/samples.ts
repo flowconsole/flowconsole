@@ -84,7 +84,6 @@ const overridden = new Module({
   style: { preset: "deprecated", borderColor: "#2ecc71" },
 });
 
-// ── Container node (SoftwareSystem + nested Namespace) ──
 const system = new SoftwareSystem({ name: "Container Node" });
 const ns = new Namespace({ name: "Nested Namespace", belongsTo: system });
 const child = new Module({
@@ -159,7 +158,6 @@ iconNamed.sendsRequest(iconEmoji, "named → emoji")
   .then(iconData).sendsRequest(iconUrl, "data url → http url")
   .scenario("Icon formats");
 
-// ── Convenience chain: automatic shape inference ──
 ingress.sendsRequest(api, "route")
   .then(api).sendsRequest(fraud, "score")
   .inParallel(
@@ -194,7 +192,6 @@ child.sendsRequest(api, "call parent")
 const customer = new User({ name: "Customer", description: "Shops online" });
 const admin = new User({ name: "Admin", description: "Manages catalog" });
 
-// ── Top-level system grouping ──
 const shop = new SoftwareSystem({ name: "E-Shop Platform" });
 
 const publicIngress = new Ingress({
@@ -259,7 +256,6 @@ const inventoryWorker = new Worker({
   belongsTo: shop,
 });
 
-// ── Third-party ──
 const paymentGateway = new External({
   name: "Payment Gateway",
   description: "Stripe / 3-DS",

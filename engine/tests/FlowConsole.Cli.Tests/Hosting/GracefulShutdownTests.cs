@@ -30,7 +30,6 @@ public sealed class GracefulShutdownTests : IDisposable
         using var host = new ViewerHost(_snapshotPath, 200 * 1024 * 1024, port);
         var serverTask = host.RunAsync(cts.Token);
 
-        // Verify server is up
         using var client = new HttpClient();
         var response = await client.GetAsync($"http://127.0.0.1:{port}/api/snapshot");
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -52,7 +51,6 @@ public sealed class GracefulShutdownTests : IDisposable
         using var host = new ViewerHost(_snapshotPath, 200 * 1024 * 1024, port);
         var serverTask = host.RunAsync(cts.Token);
 
-        // Verify server is up
         using var client = new HttpClient();
         await client.GetAsync($"http://127.0.0.1:{port}/api/snapshot");
 

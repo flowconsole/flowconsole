@@ -38,7 +38,6 @@ public sealed class SnapshotSizeGrowthTests : IDisposable
         var response1 = await client.GetAsync(url);
         response1.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // Replace with large snapshot exceeding maxBytes
         var tmpPath = _snapshotPath + ".tmp";
         File.WriteAllText(tmpPath, MakeSnapshot(2048));
         File.Move(tmpPath, _snapshotPath, overwrite: true);

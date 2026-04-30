@@ -38,11 +38,7 @@ export const highlightedPresetCode = `const svc: RestApi = { name: "Highlighted"
 
 export const criticalPresetCode = `const svc: RestApi = { name: "Critical", style: { preset: "critical" } };`;
 
-// ── Priority: preset + explicit override ──
-
 export const deprecatedWithGreenBorderCode = `const svc: RestApi = { name: "Override", style: { preset: "deprecated", borderColor: "#00ff00" } };`;
-
-// ── All shapes + presets combined showcase ──
 
 export const fullShowcaseCode = [
   `const circ: Gateway = { name: "Circle", style: { shape: "circle" } };`,

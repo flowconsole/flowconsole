@@ -34,8 +34,6 @@ vi.mock('../../reactflow/nodes/HiddenHandles', () => ({
   HiddenHandles: () => <div data-testid="handles" />,
 }));
 
-// ── Shapes (nodeType + visual) ──
-
 describe('Acceptance: Shapes produce correct nodeTypes and DOM', () => {
   it('circle shape -> type=circle, DOM has <circle>, aspect-ratio 1:1', async () => {
     const result = await evaluateDiagramCode(circleShapeCode);
