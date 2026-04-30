@@ -47,8 +47,15 @@ Items considered during development but intentionally deferred:
 
 Currently the internal scenario dict in `packages/sdk/flowconsole-sdk.ts:546` keys by `name`, while flow identity in the wire format (and the schema's uniqueness requirement) is on the derived `id`. Empty/whitespace names also throw, which is harsher than needed.
 
-Refactor:
 
-1. Switch `_scenarios` from `{ [name]: FlowStep[] }` to `{ [id]: { name, steps } }`. Collision check moves from name to id (functionally equivalent since `id = deriveFlowId(name)` is deterministic, but keeps runtime concept aligned with schema).
-2. Remove the empty-name throw added in `_registerScenario`. Substitute a placeholder (`"Unnamed flow"` or similar) so a single unnamed scenario still produces a schema-valid snapshot. Two unnamed scenarios will collide on the derived id and throw — same UX as duplicate names.
-3. Update `_toModelSnapshotDto` and the `scenarios` getter for the new shape, and adjust the two `throws on empty/whitespace scenario name` tests in `packages/sdk/__tests__/sdk-emit.test.ts` to assert the placeholder behavior instead.
+## SDK — auto-project typed kind-args into `properties` (Topic, Ingress, Endpoint)
+
+Schema requires `properties.<key>` for `Topic` (`partitions`), `Ingress` (`host`) and `Endpoint` (`httpMethod`). The wrapper classes accept these as typed constructor args (e.g. `new Topic({ partitions: 8 })`) but only store them as instance fields — `toDto()` never copies them into the wire-format `properties` dict. Result: snapshot fails schema validation with `KIND_PROPERTIES_REQUIRED_MISSING` even though the user provided the value via the typed API. Current workaround in cli-test/arch/Program.cs is to duplicate the value (`Partitions = 8` AND `Properties = { ["partitions"] = "8" }`) — ugly and bug-prone.
+
+## CLI — schema-validate snapshot in `fcon build` before writing to disk
+
+`BuildCommand.cs:147-156` only checks that the SDK toolchain output is parseable JSON (`SnapshotSerializer.Normalize`). It does not run `JsonSchemaValidator`, so an invalid snapshot is happily written to `.flowconsole/snapshots/latest.json` and `fcon build` exits 0. The schema errors only surface later when the user runs `fcon view`, which is fail-late: the source of the bug is the SDK build step, but it surfaces in an interactive viewer.
+
+## CLI — surface build-command stderr/stdout on failure
+
+`ShellOutRunner.cs:73` reads `StandardError` only to drain the pipe (avoid deadlock) and discards the contents (`_ = await ...`). When the user's build command fails (`dotnet run`, `node main.ts`, ad-hoc shell), `BuildCommand` prints the bare `build command exited with code N.` line and nothing else. The actual diagnostic — compiler error, stack trace, missing dependency, syntax error — is lost. User has to re-run the command manually outside fcon to see what broke.
