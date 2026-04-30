@@ -101,4 +101,54 @@ public class JsonSchemaValidatorFlowTests
         var errors = diagnostics.Where(d => d.Level == DiagnosticLevel.Error).ToList();
         errors.Should().BeEmpty("duplicate flow id cannot be caught by JSON Schema — semantic validator handles it");
     }
+
+    // Regression: cli-test users hit fcon view reporting
+    //   [SNAPSHOT_SCHEMA_INVALID_TYPE] /flows/N/steps/M/relationshipId:
+    //     Value is "string" but should be "null"
+    // for steps whose relationshipId is a valid Identifier string.
+    // Root cause: relationshipId schema is oneOf [Identifier, null]; when the
+    // snapshot has an unrelated error elsewhere (here: flow.id with spaces),
+    // JsonSchema.Net's OutputFormat.List exposes the failed null-branch detail
+    // even though the oneOf overall passed. The validator must drop those
+    // phantom errors from passing oneOf branches.
+    [Fact]
+    public void RelationshipIdAsValidIdentifier_DoesNotLeakNullBranchError()
+    {
+        var json = """
+        {
+          "$schema": "https://flowconsole.tech/contracts/model-snapshot/v1/schema.json",
+          "schemaVersion": "1.1.0",
+          "source": "Git",
+          "elements": [
+            {"id":"customer","kind":"External","name":"Customer"},
+            {"id":"webapp","kind":"Application","name":"WebApp"},
+            {"id":"basket-api","kind":"Application","name":"Basket.API"}
+          ],
+          "relationships": [
+            {"id":"customer_calls_webapp","kind":"Calls","sourceId":"customer","targetId":"webapp"},
+            {"id":"webapp_calls_basket-api","kind":"Calls","sourceId":"webapp","targetId":"basket-api"}
+          ],
+          "flows": [
+            {
+              "id": "Add to basket",
+              "name": "Add to basket",
+              "steps": [
+                {"sourceElementId":"customer","relationshipId":"customer_calls_webapp","label":"add to basket"},
+                {"sourceElementId":"webapp","relationshipId":"webapp_calls_basket-api","label":"POST /api/v1/basket"}
+              ]
+            }
+          ]
+        }
+        """;
+
+        var diagnostics = ValidateJson(json);
+        var errors = diagnostics.Where(d => d.Level == DiagnosticLevel.Error).ToList();
+
+        errors.Should().Contain(d => d.Path == "/flows/0/id",
+            "the invalid flow.id with spaces is the real error");
+
+        errors.Should().NotContain(
+            d => d.Path.EndsWith("/relationshipId", StringComparison.Ordinal),
+            "relationshipId values are valid Identifier strings; the failed null branch of oneOf must not be reported");
+    }
 }

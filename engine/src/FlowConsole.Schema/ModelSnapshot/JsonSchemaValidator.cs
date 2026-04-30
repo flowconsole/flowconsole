@@ -108,7 +108,7 @@ public sealed class JsonSchemaValidator : IJsonSchemaValidator
         {
             var evalOptions = new EvaluationOptions
             {
-                OutputFormat = OutputFormat.List
+                OutputFormat = OutputFormat.Hierarchical
             };
             result = schema.Evaluate(node, evalOptions);
         }
