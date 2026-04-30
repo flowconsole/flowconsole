@@ -561,6 +561,9 @@ export class FlowRuntime {
    * @internal
    */
   public _registerScenario(name: string, steps: FlowStep[]): void {
+    if (name.trim().length === 0) {
+      throw new Error('Scenario name must not be empty or whitespace-only.');
+    }
     if (this._scenarios[name]) {
       throw new Error(`Scenario "${name}" is already registered. Use a unique name for each scenario.`);
     }
@@ -1395,6 +1398,38 @@ function canonicalReplacer(_key: string, value: unknown): unknown {
   return value;
 }
 
+// ── Flow id derivation ──
+
+/**
+ * Derive a snapshot Identifier id from a human-readable scenario name.
+ * Schema model-snapshot/v1 1.1.0 requires flow.id to satisfy
+ * ^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$. The id is `slugify(name) + '-' + fnv1a32(name)`
+ * — slug stays human-readable, hex hash makes it stable across runs (so
+ * snapshot diffs work) and unique even when distinct names slugify equal.
+ */
+function deriveFlowId(name: string): string {
+  const slug = slugifyForId(name);
+  const hash = fnv1a32Hex(name);
+  return slug.length > 0 ? `${slug}-${hash}` : `flow-${hash}`;
+}
+
+function slugifyForId(name: string): string {
+  let slug = '';
+  for (const ch of name.toLowerCase()) {
+    slug += /[a-z0-9_]/.test(ch) ? ch : '-';
+  }
+  return slug.replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function fnv1a32Hex(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
 // ── Step-to-DTO mapping ──
 
 /**
@@ -1730,7 +1765,7 @@ export function buildSnapshot(entities: Component[], runtime?: FlowRuntime): IMo
       const scenarioEntries = Object.entries(scenarios).sort(([a], [b]) => a.localeCompare(b));
       const flows: FlowDto[] = scenarioEntries.map(([name, steps]) => {
         const flowDto: FlowDto = {
-          id: name,
+          id: deriveFlowId(name),
           name,
           steps: steps.map(s => mapStepToDto(s)),
         };

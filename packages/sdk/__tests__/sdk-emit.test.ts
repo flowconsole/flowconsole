@@ -230,7 +230,7 @@ describe('Flow emission', () => {
     expect(dto.flows!.length).toBe(1);
 
     const flow = dto.flows![0];
-    expect(flow.id).toBe('login');
+    expect(flow.id.startsWith('login-')).toBe(true);
     expect(flow.name).toBe('login');
     expect(flow.steps.length).toBe(2);
 
@@ -273,9 +273,11 @@ describe('Flow emission', () => {
 
     expect(dto.flows).not.toBeNull();
     expect(dto.flows!.length).toBe(2);
-    // Sorted by id
-    expect(dto.flows![0].id).toBe('a-flow');
-    expect(dto.flows![1].id).toBe('z-flow');
+    // Sorted by name (which seeds the derived id)
+    expect(dto.flows![0].name).toBe('a-flow');
+    expect(dto.flows![1].name).toBe('z-flow');
+    expect(dto.flows![0].id.startsWith('a-flow-')).toBe(true);
+    expect(dto.flows![1].id.startsWith('z-flow-')).toBe(true);
   });
 
   it('empty scenarios produce flows: null', () => {
@@ -284,6 +286,84 @@ describe('Flow emission', () => {
     const dto = snapshot._toModelSnapshotDto();
 
     expect(dto.flows).toBeNull();
+  });
+});
+
+// Schema model-snapshot/v1 1.1.0 requires flow.id to satisfy the Identifier
+// pattern ^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$. Human-readable scenario names with
+// spaces or Unicode characters violate that, so the SDK must derive id from
+// name as `slugify(name) + '-' + fnv1a32(name)`. The hash suffix guarantees
+// stability across runs (deterministic from name), schema-validity (hex+slug),
+// and uniqueness even when distinct names slugify to the same string.
+describe('Flow id derivation (cli-test eShop scenarios)', () => {
+  const IDENTIFIER = /^[a-zA-Z0-9_][a-zA-Z0-9_.:-]*$/;
+
+  it('scenario name with spaces produces a schema-valid, stable id and preserves name', () => {
+    const a = new SoftwareSystem({ id: 'a', name: 'A' });
+    const b = new SoftwareSystem({ id: 'b', name: 'B' });
+    a.calls(b, 'step').scenario('Add to basket');
+
+    const dto1 = buildSnapshot([a, b])._toModelSnapshotDto();
+    const flow1 = dto1.flows![0];
+
+    expect(flow1.name).toBe('Add to basket');
+    expect(flow1.id).toMatch(IDENTIFIER);
+    expect(flow1.id.startsWith('add-to-basket-')).toBe(true);
+
+    // Second build of the identical scenario must produce the same id —
+    // otherwise `fcon build --diff-against-live` reports every flow as
+    // delete+add on every run.
+    resetRuntime();
+    const a2 = new SoftwareSystem({ id: 'a', name: 'A' });
+    const b2 = new SoftwareSystem({ id: 'b', name: 'B' });
+    a2.calls(b2, 'step').scenario('Add to basket');
+    const dto2 = buildSnapshot([a2, b2])._toModelSnapshotDto();
+
+    expect(dto2.flows![0].id).toBe(flow1.id);
+  });
+
+  it('scenario name with Unicode characters produces a schema-valid id', () => {
+    const a = new SoftwareSystem({ id: 'a', name: 'A' });
+    const b = new SoftwareSystem({ id: 'b', name: 'B' });
+    a.calls(b, 'step').scenario('Catalog price change → basket update');
+
+    const dto = buildSnapshot([a, b])._toModelSnapshotDto();
+    const flow = dto.flows![0];
+
+    expect(flow.name).toBe('Catalog price change → basket update');
+    expect(flow.id).toMatch(IDENTIFIER);
+  });
+
+  it('distinct names that slugify to the same string get distinct ids via hash suffix', () => {
+    const a = new SoftwareSystem({ id: 'a', name: 'A' });
+    const b = new SoftwareSystem({ id: 'b', name: 'B' });
+
+    a.calls(b, 's1').scenario('Foo Bar');
+    a.calls(b, 's2').scenario('foo-bar');
+
+    const flows = buildSnapshot([a, b])._toModelSnapshotDto().flows!;
+    const ids = flows.map(f => f.id);
+
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+    for (const id of ids) {
+      expect(id).toMatch(IDENTIFIER);
+      expect(id.startsWith('foo-bar-')).toBe(true);
+    }
+  });
+
+  it('throws on empty scenario name', () => {
+    const a = new SoftwareSystem({ id: 'a', name: 'A' });
+    const b = new SoftwareSystem({ id: 'b', name: 'B' });
+
+    expect(() => a.calls(b, 's').scenario('')).toThrow();
+  });
+
+  it('throws on whitespace-only scenario name', () => {
+    const a = new SoftwareSystem({ id: 'a', name: 'A' });
+    const b = new SoftwareSystem({ id: 'b', name: 'B' });
+
+    expect(() => a.calls(b, 's').scenario('   ')).toThrow();
   });
 });
 

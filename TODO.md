@@ -42,3 +42,13 @@ Items considered during development but intentionally deferred:
 - `fcon view --watch` — restart-free scanner re-run on source file changes
 - Auto-migration of v0.x snapshots to current schema version
 - ETag/mtime weak validator on `/api/snapshot` for conditional responses
+
+## SDK — align `FlowRuntime._registerScenario` with id-based identity
+
+Currently the internal scenario dict in `packages/sdk/flowconsole-sdk.ts:546` keys by `name`, while flow identity in the wire format (and the schema's uniqueness requirement) is on the derived `id`. Empty/whitespace names also throw, which is harsher than needed.
+
+Refactor:
+
+1. Switch `_scenarios` from `{ [name]: FlowStep[] }` to `{ [id]: { name, steps } }`. Collision check moves from name to id (functionally equivalent since `id = deriveFlowId(name)` is deterministic, but keeps runtime concept aligned with schema).
+2. Remove the empty-name throw added in `_registerScenario`. Substitute a placeholder (`"Unnamed flow"` or similar) so a single unnamed scenario still produces a schema-valid snapshot. Two unnamed scenarios will collide on the derived id and throw — same UX as duplicate names.
+3. Update `_toModelSnapshotDto` and the `scenarios` getter for the new shape, and adjust the two `throws on empty/whitespace scenario name` tests in `packages/sdk/__tests__/sdk-emit.test.ts` to assert the placeholder behavior instead.
