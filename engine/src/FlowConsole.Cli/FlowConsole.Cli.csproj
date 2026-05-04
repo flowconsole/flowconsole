@@ -25,7 +25,7 @@
     <Authors>FlowConsole</Authors>
     <Description>FlowConsole CLI — architecture-as-code scanner, validator, and SDK builder. Scan C# projects, validate against rules, build SDK models, format snapshots.</Description>
     <PackageProjectUrl>https://flowconsole.tech</PackageProjectUrl>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <PackageTags>architecture;code-scanner;validation;architecture-as-code</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/flowconsole/flowconsole</RepositoryUrl>

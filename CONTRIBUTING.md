@@ -8,13 +8,24 @@ and code contributions.
 
 ## License
 
-The FlowConsole open-source core is licensed under the
-**Apache License, Version 2.0**.
+Effective 2026-05-01, the FlowConsole open-source core is licensed under the
+**GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**, with
+a **commercial license** available as an alternative for users who cannot
+accept the AGPL terms. The `packages/sdk/` subdirectory is separately
+licensed under the **MIT License** so it can be imported into user code
+without triggering AGPL obligations.
 
-By contributing to this repository, you agree that your contribution
-will be licensed under the Apache License 2.0.
+By contributing to this repository, you agree that your contribution will
+be licensed under the same terms that govern the directory you are
+contributing to:
+- Contributions to `packages/sdk/` are licensed under MIT.
+- Contributions everywhere else are licensed under AGPL-3.0-or-later, and —
+  through the [CLA](./CLA.md) — may also be relicensed by the maintainers
+  under the commercial license terms.
 
-See the [LICENSE](./LICENSE) file for details.
+See [`LICENSING.md`](./LICENSING.md) for the per-path map,
+[`COMMERCIAL-LICENSE.md`](./COMMERCIAL-LICENSE.md) for commercial-license
+terms, and the root [`LICENSE`](./LICENSE) file for the full AGPL text.
 
 ---
 

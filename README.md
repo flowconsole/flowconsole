@@ -5,7 +5,8 @@
 <br/>
 <p align="center">
   <a href="https://discord.gg/23CkhhDz"><img src="https://img.shields.io/badge/Community-discord-blue?style=flat&logo=discord" alt="discord chat"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+  <a href="LICENSING.md"><img src="https://img.shields.io/badge/license-AGPL--3.0%20or%20commercial-blue.svg" alt="License"></a>
+  <a href="packages/sdk/LICENSE"><img src="https://img.shields.io/badge/SDK-MIT-green.svg" alt="SDK License"></a>
   <a href="https://www.npmjs.com/package/@flowconsole/cli"><img src="https://img.shields.io/npm/v/@flowconsole/cli.svg" alt="npm cli"></a>
 </p>
 <p align="center">
@@ -40,7 +41,7 @@ This repository ships the open-source CLI, SDK, scanners, rule engine, and JSON 
 | Fitness functions / rule engine | Yes | No | No | No |
 | CI/CD validation via CLI | Yes | Partial | Partial | No |
 | Generated diagrams | Yes | Yes | Yes | Yes |
-| Open source license | Apache-2.0 | Freemium | MIT | MIT / GPL |
+| Open source license | AGPL-3.0 (SDK: MIT) or commercial | Freemium | MIT | MIT / GPL |
 
 ## Quick Start
 
@@ -115,22 +116,37 @@ flowconsole/
 - [Website](https://flowconsole.tech)
 - [Contributing](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
-- [License](LICENSE) (Apache-2.0)
+- [Licensing overview](LICENSING.md) — AGPL-3.0-or-later or commercial; `packages/sdk` is MIT
+- [Commercial license](COMMERCIAL-LICENSE.md)
 
 ## Commercial / Hosted Offering
 
-In addition to the open-source core, the FLOWCONSOLE project provides
-commercial offerings, such as:
+The repository is dual-licensed: **AGPL-3.0-or-later OR a commercial
+license**, with `packages/sdk` separately under MIT. AGPL is suitable
+for users who can comply with its source-disclosure terms (including
+network-use disclosure). Organizations that cannot accept AGPL — for
+example, when embedding FlowConsole into a proprietary product, or for
+**internal enterprise use** where AGPL is incompatible with company
+policy — can purchase a commercial license.
+
+**The commercial license does not grant the right to offer FlowConsole
+as a managed/hosted service to third parties.** That right is reserved
+by the FlowConsole project. If you want to run a hosted service based
+on FlowConsole, contact us — such arrangements are negotiated separately.
+
+In addition, the FLOWCONSOLE project provides commercial offerings,
+such as:
 - managed SaaS deployment,
 - enterprise features,
 - proprietary plugins/extensions,
 - commercial support and services.
 
-These offerings are **not part of this open-source repository** and are
-provided under separate commercial terms.
+These hosted/enterprise offerings are **not part of this open-source
+repository** and are provided under separate commercial terms.
 
-Use of the FLOWCONSOLE hosted service is governed by its own
-Terms of Service and does not change the licensing of the open-source core.
+For dual-license inquiries see [`COMMERCIAL-LICENSE.md`](COMMERCIAL-LICENSE.md).
+Use of the FLOWCONSOLE hosted service is governed by its own Terms of
+Service and does not change the licensing of the open-source core.
 
 ---
 ## Trademarks

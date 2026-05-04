@@ -2,7 +2,7 @@
   "name": "@flowconsole/cli",
   "version": "2.0.0",
   "description": "FlowConsole CLI (fc / fcon / flowconsole) — architecture scanner and rule engine for your CI/CD",
-  "license": "Apache-2.0",
+  "license": "AGPL-3.0-or-later",
   "bin": {
     "fc": "./bin/fc.js",
     "fcon": "./bin/fc.js",

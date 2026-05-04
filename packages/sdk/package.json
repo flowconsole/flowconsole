@@ -16,7 +16,7 @@
     "url": "https://github.com/flowconsole/flowconsole.git",
     "directory": "packages/sdk"
   },
-  "license": "Apache-2.0",
+  "license": "MIT",
   "homepage": "https://flowconsole.tech",
   "bugs": {
     "url": "https://github.com/flowconsole/flowconsole/issues"
