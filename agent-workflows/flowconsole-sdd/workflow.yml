@@ -1,0 +1,375 @@
+schema_version: "1.0"
+
+workflow:
+  id: "flowconsole-sdd"
+  name: "FlowConsole gated agent development"
+  version: "0.1.0"
+  author: "FlowConsole"
+  description: "Local spec-driven delivery with typed tasks, persisted artifacts, role gates, verification, and independent review"
+
+requires:
+  speckit_version: ">=0.8.5"
+  integrations:
+    any:
+      - "claude"
+      - "codex"
+      - "copilot"
+      - "gemini"
+      - "opencode"
+
+inputs:
+  request:
+    type: string
+    required: true
+    prompt: "Describe the task and desired outcome"
+  integration:
+    type: string
+    default: "auto"
+    prompt: "Agent integration; auto uses the integration configured for this project"
+  task_type:
+    type: string
+    default: "auto"
+    enum: ["auto", "feature", "bug-fix", "test", "refactor", "performance", "security", "documentation", "maintenance", "migration", "research-spike"]
+  scope:
+    type: string
+    default: "full"
+    enum: ["full", "engine", "web", "sdk", "contracts", "docs"]
+  quality_profile:
+    type: string
+    default: "full"
+    enum: ["focused", "full"]
+
+steps:
+  - id: prepare-intake
+    type: shell
+    run: 'mkdir -p ".specify/workflows/runs/{{ context.run_id }}/artifacts"'
+
+  - id: classify-and-intake
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are the FlowConsole Intake Analyst. Do not implement anything.
+      Read .specify/memory/constitution.md, CLAUDE.md, CONTRIBUTING.md, and the
+      current files relevant to the request. Use the structure in
+      {{ context.workflow_dir }}/templates/intake.md. Classify the task; if the
+      requested type is not auto, verify it and record any mismatch. Use only
+      existing paths and current evidence.
+
+      Write the completed artifact exactly to:
+      .specify/workflows/runs/{{ context.run_id }}/artifacts/intake.md
+
+      Requested type: {{ inputs.task_type }}
+      Repository scope: src_oss / {{ inputs.scope }}
+      Request: {{ inputs.request }}
+
+  - id: intake-gate
+    type: gate
+    message: "Product Owner gate: confirm task type, outcome, scope, constraints, unknowns, and ownership. Reject if the request is not ready for specification."
+    show_file: ".specify/workflows/runs/{{ context.run_id }}/artifacts/intake.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: specify
+    command: speckit.specify
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Create a specification from the approved intake at .specify/workflows/runs/{{ context.run_id }}/artifacts/intake.md. Preserve the selected task type and repository scope. Original request: {{ inputs.request }}"
+
+  - id: feature-context
+    type: shell
+    run: "cat .specify/feature.json"
+    output_format: json
+
+  - id: persist-intake
+    type: shell
+    run: >-
+      node -e 'const fs=require("fs"),path=require("path"); const root=path.resolve("."); const cfg=JSON.parse(fs.readFileSync(".specify/feature.json","utf8")); const value=cfg.feature_directory; if(typeof value!=="string"||!value) throw new Error("feature_directory is missing"); const dest=path.resolve(root,value); if(!dest.startsWith(root+path.sep)) throw new Error("feature_directory escapes project root"); fs.copyFileSync(".specify/workflows/runs/{{ context.run_id }}/artifacts/intake.md",path.join(dest,"intake.md"));'
+
+  - id: write-brief
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are the FlowConsole Product Analyst. Read the approved intake at
+      {{ steps.feature-context.output.data.feature_directory }}/intake.md, the
+      generated spec, and .specify/memory/constitution.md. Use
+      {{ context.workflow_dir }}/templates/brief.md. Explain why the work is
+      needed, current evidence, alternatives, non-goals, dependencies, and
+      measurable outcomes. Do not add implementation details or invent facts.
+
+      Write the completed artifact exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/brief.md
+
+  - id: brief-gate
+    type: gate
+    message: "Product Owner gate: approve the problem, why now, non-goals, alternatives, and measurable outcome before refining requirements."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/brief.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: clarify
+    command: speckit.clarify
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Resolve material ambiguities using the approved intake and brief. Keep unresolved product, licensing, security, or repository-boundary decisions explicit for the Product Owner."
+
+  - id: audit-spec
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are an independent Requirements Reviewer. Review, and when needed
+      correct, {{ steps.feature-context.output.data.feature_directory }}/spec.md
+      against its intake, brief, and .specify/memory/constitution.md. Ensure all
+      observable requirements and acceptance criteria have stable identifiers;
+      cover error paths, edge cases, compatibility, security, accessibility,
+      performance, and repository boundaries when applicable. The spec must say
+      what, not how. Do not approve unresolved material clarification markers.
+
+      Write the reviewer-owned requirements checklist exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/checklists/requirements.md
+
+  - id: requirements-quality-gate
+    type: gate
+    message: "Requirements Reviewer gate: every checked item must represent reviewed requirements quality, not implementation completion."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/checklists/requirements.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: spec-gate
+    type: gate
+    message: "Product Owner gate: approve the complete, testable specification. Reject if behavior or acceptance criteria remain ambiguous."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/spec.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: plan
+    command: speckit.plan
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Plan the approved spec using current FlowConsole architecture and project standards. Read the constitution, applicable CLAUDE.md files, manifests, tests, and current source before choosing paths or commands."
+
+  - id: audit-plan
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are an independent FlowConsole Technical Lead. Review and correct
+      {{ steps.feature-context.output.data.feature_directory }}/plan.md against
+      the approved brief/spec, current source tree, applicable CLAUDE.md files,
+      manifests, tests, and .specify/memory/constitution.md. Verify component
+      ownership, exact existing paths, dependency direction, contract impact,
+      security, rollout/rollback, documentation, and local verification. For a
+      cross-repository effect, map src_oss and src_main separately. Do not use
+      historical paths when current code disagrees.
+
+      Write the plan review checklist exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/checklists/plan.md
+
+  - id: plan-gate
+    type: gate
+    message: "Technical Lead gate: approve the architecture, placement, exact paths, standards, risks, and local verification strategy."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/plan.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: write-test-plan
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are the FlowConsole Test Lead. Read the approved intake, brief, spec,
+      plan, .specify/memory/constitution.md, and the relevant current tests. Use
+      {{ context.workflow_dir }}/templates/test-plan.md. Define risk-based unit,
+      integration, E2E, performance, conformance, and manual coverage only where
+      applicable. Include regression coverage, real Testcontainers requirements,
+      fail-loud behavior, exact local commands, prerequisites, and retained
+      evidence. Map every planned check to requirement or risk identifiers.
+
+      Write the completed artifact exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/test-plan.md
+
+  - id: test-plan-gate
+    type: gate
+    message: "Test Lead gate: approve risk coverage, environments, exact commands, evidence, and explicit exclusions."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/test-plan.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: tasks
+    command: speckit.tasks
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Generate executable tasks from the approved artifacts. Every task needs a category, requirement/risk ID, exact path, dependencies, agent role, verification command, and expected evidence. Tests are mandatory when behavior changes."
+
+  - id: analyze
+    command: speckit.analyze
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Analyze traceability and consistency across brief, spec, plan, test-plan, and tasks. Treat constitution violations, missing tests, invented paths, and unowned risks as blocking."
+
+  - id: audit-tasks
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are the FlowConsole Delivery Lead. Review and correct
+      {{ steps.feature-context.output.data.feature_directory }}/tasks.md using
+      all approved artifacts and current source. Tasks must be small, ordered,
+      dependency-aware, and labeled [DEV], [TEST], [DOC], [MIGRATION],
+      [SECURITY], [OPS], or [REVIEW]. Include exact paths, requirement/risk
+      traceability, assigned role, local check, and expected evidence. Ensure no
+      two parallel tasks edit the same file and no requirement is orphaned.
+
+      Write the task review checklist exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/checklists/tasks.md
+
+  - id: tasks-gate
+    type: gate
+    message: "Delivery Lead gate: approve the traceable, role-routable, executable task list before agents change code."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/tasks.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: implement
+    command: speckit.implement
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Execute only approved tasks. Preserve unrelated changes. Stop and update artifacts at the owning gate if an approved assumption changes. Record task evidence as work completes."
+
+  - id: converge
+    command: speckit.converge
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "Reconcile implementation with all approved artifacts and task checkboxes. Fix in-scope gaps; do not broaden scope or waive failed checks."
+
+  - id: local-quality-gates
+    type: switch
+    expression: "{{ inputs.quality_profile }}"
+    cases:
+      focused:
+        - id: focused-scope-gates
+          type: switch
+          expression: "{{ inputs.scope }}"
+          cases:
+            full:
+              - id: focused-full
+                type: shell
+                run: "pnpm test:unit && dotnet test engine/src/FlowConsole.slnx"
+                timeout: 1800
+            engine:
+              - id: focused-engine
+                type: shell
+                run: "dotnet test engine/src/FlowConsole.slnx"
+                timeout: 1800
+            web:
+              - id: focused-web
+                type: shell
+                run: "pnpm --filter @flowconsole/web test:unit"
+                timeout: 1800
+            sdk:
+              - id: focused-sdk
+                type: shell
+                run: "pnpm --filter @flowconsole/sdk test"
+                timeout: 1800
+            contracts:
+              - id: focused-contracts
+                type: shell
+                run: "pnpm validate:rules:all && pnpm validate:snapshots:all"
+                timeout: 1800
+            docs:
+              - id: focused-docs
+                type: shell
+                run: "pnpm --filter @flowconsole/docs test:unit"
+                timeout: 1800
+      full:
+        - id: full-scope-gates
+          type: switch
+          expression: "{{ inputs.scope }}"
+          cases:
+            full:
+              - id: full-all
+                type: shell
+                run: "pnpm validate:rules:all && pnpm validate:snapshots:all && pnpm test:unit && pnpm build && dotnet build engine/src/FlowConsole.slnx && dotnet test engine/src/FlowConsole.slnx && dotnet format engine/src/FlowConsole.slnx --verify-no-changes"
+                timeout: 3600
+            engine:
+              - id: full-engine
+                type: shell
+                run: "dotnet build engine/src/FlowConsole.slnx && dotnet test engine/src/FlowConsole.slnx && dotnet format engine/src/FlowConsole.slnx --verify-no-changes"
+                timeout: 3600
+            web:
+              - id: full-web
+                type: shell
+                run: "pnpm --filter @flowconsole/web lint && pnpm --filter @flowconsole/web test:unit && pnpm --filter @flowconsole/web build"
+                timeout: 3600
+            sdk:
+              - id: full-sdk
+                type: shell
+                run: "pnpm --filter @flowconsole/sdk test && pnpm --filter @flowconsole/sdk build"
+                timeout: 3600
+            contracts:
+              - id: full-contracts
+                type: shell
+                run: "pnpm validate:rules:all && pnpm validate:snapshots:all"
+                timeout: 1800
+            docs:
+              - id: full-docs
+                type: shell
+                run: "pnpm --filter @flowconsole/docs typecheck && pnpm --filter @flowconsole/docs test:unit && pnpm --filter @flowconsole/docs mdx:lint && pnpm --filter @flowconsole/docs build"
+                timeout: 3600
+
+  - id: write-verification
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 600
+    prompt: |
+      You are an independent Verification Agent. Read the run state under
+      .specify/workflows/runs/{{ context.run_id }}, the approved test plan,
+      tasks, implementation diff, and .specify/memory/constitution.md. Use
+      {{ context.workflow_dir }}/templates/verification.md. Report exact local
+      commands, exit status, observed result, scope, prerequisites, manual
+      checks, and every skipped check. Build a requirement-to-implementation-to-
+      test traceability matrix. A silent skip, missing evidence, failed command,
+      or unapproved exclusion is a fail, not a conditional pass.
+
+      Write the completed artifact exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/verification.md
+
+  - id: verification-gate
+    type: gate
+    message: "Test Lead gate: approve the verification evidence and traceability. Reject missing, failed, silently skipped, or non-reproducible checks."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/verification.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: independent-review
+    type: prompt
+    integration: "{{ inputs.integration }}"
+    timeout: 900
+    prompt: |
+      You are a fresh independent Maintainer Reviewer, not the implementer.
+      Review the complete diff and all artifacts against the approved brief,
+      spec, plan, test-plan, .specify/memory/constitution.md, applicable
+      CLAUDE.md files, current architecture, security, tests, and repository
+      boundaries. Inspect actual code; do not trust task checkmarks. Use
+      {{ context.workflow_dir }}/templates/review.md. Rank actionable findings
+      by severity, identify residual risk, and give exactly one verdict: PASS,
+      PASS WITH CONDITIONS, or FAIL. Conditions require an owner and due point.
+
+      Write the completed artifact exactly to:
+      {{ steps.feature-context.output.data.feature_directory }}/review.md
+
+  - id: maintainer-gate
+    type: gate
+    message: "Maintainer gate: accept the independent review only after blocking findings are resolved and conditions have owners."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/review.md"
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: final-acceptance
+    type: gate
+    message: "Final Product Owner + Maintainer gate: accept the outcome, full traceability, local proof, rollback posture, and residual risk."
+    show_file: "{{ steps.feature-context.output.data.feature_directory }}/verification.md"
+    options: [approve, reject]
+    on_reject: abort
