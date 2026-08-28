@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ArchitectureDiagram,
   architectureNodeTypes,
@@ -9,6 +9,8 @@ import {
 import type { ModelSnapshotWire } from '@flowconsole/web/architecture';
 import type { ArchitectureDiagramModel } from '@flowconsole/web/architecture';
 import { fetchSnapshot, type SnapshotError } from './api';
+import { useSnapshotStatus } from './hooks/useSnapshotStatus';
+import { StatusIndicator } from './components/StatusIndicator';
 import '@xyflow/react/dist/style.css';
 import '@flowconsole/web/style.css';
 import './styles.css';
@@ -29,6 +31,26 @@ const ERROR_MESSAGES: Record<SnapshotError, { title: string; detail: string }> =
 export default function App() {
   const [state, setState] = useState<ViewState>({ kind: 'loading' });
   const [editable, setEditable] = useState(false);
+
+  const refreshSnapshot = useCallback(() => {
+    fetchSnapshot().then((result) => {
+      if (!result.ok) {
+        // Keep the last valid diagram; the status banner reports failures.
+        return;
+      }
+      if (result.data.elements.length === 0) {
+        setState({ kind: 'empty' });
+        return;
+      }
+      setState({
+        kind: 'happy',
+        model: mapSnapshotToDiagram(result.data),
+        snapshot: result.data,
+      });
+    }).catch(() => {
+      // Transient: keep last valid state.
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +75,8 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
+  const status = useSnapshotStatus(refreshSnapshot);
+
   return (
     <ThemeProvider>
       <div className="viewer-topbar">
@@ -72,6 +96,7 @@ export default function App() {
           </>
         )}
       </div>
+      <StatusIndicator status={status} />
       {state.kind === 'loading' && (
         <div className="viewer-status" data-testid="loading">
           <div className="viewer-status-title">Loading snapshot...</div>

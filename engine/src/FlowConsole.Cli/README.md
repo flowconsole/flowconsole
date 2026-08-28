@@ -115,8 +115,35 @@ fcon view --source scan
 
 ### Iterate flow
 
-The viewer re-reads the snapshot from disk on every request — no restart
-needed after `fcon scan` or `fcon build`:
+`fcon watch` runs the whole loop from a single command: it builds the initial
+snapshot, starts the local viewer, observes your architecture sources, and
+rebuilds on change — the open browser page updates itself, no refresh needed:
+
+```bash
+# One terminal, one command
+fcon watch ./src
+
+# Edit your C# architecture source and save — the diagram follows.
+```
+
+The rebuild uses the `build.command` from `.flowconsole.yaml` (same resolution
+as `fcon build`; override with `--command`). Rapid saves are debounced
+(`--debounce-ms`, default 200 ms) and rebuilds never run concurrently. A failed
+rebuild keeps the session alive: the terminal shows the build error, the viewer
+shows an error banner over the last valid diagram, and the next successful
+build recovers automatically.
+
+Key options: `--port`, `--no-open`, `--cwd`, `--max-snapshot-bytes`.
+
+Shutdown: both Ctrl+C (SIGINT) and `kill` (SIGTERM) shut down gracefully —
+listener released, watchers disposed, build child processes terminated,
+exit code 0. A second signal force-exits with code 130. Note that SIGTERM
+handling applies to all `fcon` commands, so `kill` on any long-running
+command now exits 0 (graceful) instead of 143 (default termination).
+
+The viewer also works without watch mode — it re-reads the snapshot from disk
+on every request, so no restart is needed after `fcon scan` or `fcon build`,
+just a browser refresh:
 
 ```bash
 # Terminal 1: start the viewer

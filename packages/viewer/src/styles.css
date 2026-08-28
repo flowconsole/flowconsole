@@ -101,3 +101,37 @@ body,
   font-weight: 600;
   color: var(--diagram-text, #f4f6fc);
 }
+
+/* Watch-session status indication (fcon watch) */
+.viewer-status-indicator {
+  position: fixed;
+  top: 48px;
+  right: 16px;
+  z-index: 20;
+  max-width: 420px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+}
+
+.viewer-status-indicator--building {
+  background: rgba(88, 166, 255, 0.12);
+  border: 1px solid #58a6ff;
+  color: #58a6ff;
+}
+
+.viewer-status-indicator--failed {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid #f85149;
+  color: #f85149;
+}
+
+.viewer-status-indicator-detail {
+  display: block;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0.85;
+}
