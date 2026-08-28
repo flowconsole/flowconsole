@@ -120,6 +120,9 @@ app.Configure(config =>
     config.AddCommand<ViewCommand>("view")
         .WithDescription("Start a local viewer for a ModelSnapshot");
 
+    config.AddCommand<WatchCommand>("watch")
+        .WithDescription("Watch architecture sources, rebuild the snapshot on change, and live-serve the viewer on 127.0.0.1");
+
     config.AddBranch("telemetry", telemetry =>
     {
         telemetry.SetDescription("Manage anonymous usage telemetry");

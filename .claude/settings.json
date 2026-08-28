@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(.specify/workflows/runs/**)",
+      "Edit(specs/**)"
+    ]
+  }
+}

@@ -1,23 +1,28 @@
 using System.Net;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using FlowConsole.Cli.Infrastructure;
 
 namespace FlowConsole.Cli.Hosting;
 
-internal sealed class ViewerHost : IDisposable
+internal sealed partial class ViewerHost : IDisposable
 {
     private readonly HttpListener _listener = new();
     private readonly string _snapshotPath;
     private readonly long _maxBytes;
     private readonly int _port;
+    private readonly Func<(long Version, string State, string? LastError)>? _statusProvider;
 
     private const string ResourcePrefix = "FlowConsole.Cli.Resources.web.";
 
-    public ViewerHost(string snapshotPath, long maxBytes, int port)
+    public ViewerHost(string snapshotPath, long maxBytes, int port,
+        Func<(long Version, string State, string? LastError)>? statusProvider = null)
     {
         _snapshotPath = snapshotPath;
         _maxBytes = maxBytes;
         _port = port;
+        _statusProvider = statusProvider;
         _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
     }
 
@@ -81,6 +86,12 @@ internal sealed class ViewerHost : IDisposable
             return;
         }
 
+        if (path == "/api/status")
+        {
+            ServeStatus(response);
+            return;
+        }
+
         if (path.StartsWith("/assets/", StringComparison.Ordinal))
         {
             var assetName = path["/assets/".Length..];
@@ -114,6 +125,32 @@ internal sealed class ViewerHost : IDisposable
         response.StatusCode = 404;
         response.Close();
     }
+
+    private void ServeStatus(HttpListenerResponse response)
+    {
+        if (_statusProvider is null)
+        {
+            // Plain `fcon view` sessions have no watch state; the viewer
+            // treats 404 as "no watch" and disables status polling.
+            response.StatusCode = 404;
+            response.Close();
+            return;
+        }
+
+        var (version, state, lastError) = _statusProvider();
+        var payload = JsonSerializer.Serialize(
+            new StatusPayload(version, state, lastError),
+            ViewerJsonContext.Default.StatusPayload);
+
+        var bytes = Encoding.UTF8.GetBytes(payload);
+        response.ContentType = "application/json";
+        response.Headers.Set("Cache-Control", "no-store");
+        response.ContentLength64 = bytes.Length;
+        response.OutputStream.Write(bytes, 0, bytes.Length);
+        response.Close();
+    }
+
+    internal sealed record StatusPayload(long Version, string State, string? LastError);
 
     private async Task ServeSnapshot(HttpListenerResponse response)
     {
@@ -204,3 +241,9 @@ internal sealed class ViewerHost : IDisposable
         _listener.Close();
     }
 }
+
+[System.Text.Json.Serialization.JsonSourceGenerationOptions(
+    PropertyNamingPolicy = System.Text.Json.Serialization.JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+[System.Text.Json.Serialization.JsonSerializable(typeof(ViewerHost.StatusPayload))]
+internal sealed partial class ViewerJsonContext : System.Text.Json.Serialization.JsonSerializerContext;

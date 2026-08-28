@@ -66,7 +66,14 @@ function mockFetchNetworkError() {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn());
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    // Status polling (fcon watch) calls /api/status after the snapshot fetch;
+    // default to 404 = "no watch session" unless a test queues a response.
+    if (String(input).includes('/api/status')) {
+      return { ok: false, status: 404 } as Response;
+    }
+    return { ok: false, status: 500 } as Response;
+  }));
 });
 
 async function renderApp() {
